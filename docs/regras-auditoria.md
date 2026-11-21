@@ -1,0 +1,83 @@
+# Regras da auditoria
+
+O script `audit_pbip.py` verifica um projeto PBIP sem rede e sem alterar nada. Cada achado tem um código
+`PBIxxx`, uma severidade e o princípio da skill a que se refere (seção 1 do `SKILL.md`). Quando existe uma
+regra equivalente no Best Practice Analyzer (BPA) do Tabular Editor, o ID dela aparece na última coluna.
+
+```bash
+python skills/powerbi-architect/scripts/audit_pbip.py caminho/do/projeto            # texto
+python skills/powerbi-architect/scripts/audit_pbip.py caminho/do/projeto --json     # JSON
+python skills/powerbi-architect/scripts/audit_pbip.py caminho/do/projeto --sarif    # GitHub code scanning
+python skills/powerbi-architect/scripts/audit_pbip.py --list-rules
+```
+
+O código de saída é 1 quando há achados na severidade de `--fail-on` ou acima (padrão: `blocker`);
+use `--fail-on important` num pipeline mais rígido ou `--fail-on never` só para relatar.
+
+## Regras
+
+| Código | Severidade | Princípio | O que verifica | Como corrigir | Regra do BPA |
+|---|---|---|---|---|---|
+| PBI001 | Bloqueador | governança | Arquivo de dados ou configuração local dentro do projeto | Remova `.pbix`, `.abf` e `localSettings.json` do repositório e coloque-os no `.gitignore`. | — |
+| PBI002 | Bloqueador | governança | Nenhum modelo semântico em TMDL encontrado | Salve o projeto como PBIP com o formato TMDL ativado. | — |
+| PBI003 | Bloqueador | 4 | Servidor ou banco fixo no Power Query | Use parâmetros (`Servidor`, `Banco`) no lugar de textos fixos. | — |
+| PBI004 | Bloqueador | governança | JSON inválido na definição do relatório | Corrija o arquivo apontado; o Power BI Desktop não abre o relatório assim. | — |
+| PBI005 | Bloqueador | 5 | Medida sem descrição | Escreva uma frase de negócio com `///` acima da medida. | `OBJECTS_WITH_NO_DESCRIPTION` |
+| PBI006 | Bloqueador | 8 | Relatório sem página de Documentação | Crie a página Documentação com o catálogo de medidas e as cargas (`INFO.VIEW`). | — |
+| PBI010 | Importante | 2 | Auto date/time ligado | Desligue em Opções e use uma única tabela de datas. | `REMOVE_AUTO-DATE_TABLE` |
+| PBI011 | Importante | 2 | Nenhuma tabela marcada como tabela de datas | Marque a tabela de calendário como tabela de datas (`dataCategory: Time`). | `MODEL_SHOULD_HAVE_A_DATE_TABLE`, `DATE/CALENDAR_TABLES_SHOULD_BE_MARKED_AS_A_DATE_TABLE` |
+| PBI012 | Importante | 4 | Mais de uma etapa no Power Query | Leve filtros, junções e conversões para o SQL; deixe uma etapa só. | `MINIMIZE_POWER_QUERY_TRANSFORMATIONS` |
+| PBI013 | Importante | 4 | Transformações no Power Query | Faça a transformação no SQL ou na view de origem. | `MINIMIZE_POWER_QUERY_TRANSFORMATIONS` |
+| PBI014 | Importante | 2 | Coluna calculada em tabela fato | Calcule a coluna na origem (SQL) ou troque por medida. | `REDUCE_NUMBER_OF_CALCULATED_COLUMNS`, `REDUCE_USAGE_OF_CALCULATED_COLUMNS_THAT_USE_THE_RELATED_FUNCTION` |
+| PBI015 | Importante | 2 | Relacionamento bidirecional | Use direção única; se for mesmo necessário, registre a decisão (ADR). | `AVOID_EXCESSIVE_BI-DIRECTIONAL_OR_MANY-TO-MANY_RELATIONSHIPS`, `CHECK_IF_BI-DIRECTIONAL_AND_MANY-TO-MANY_RELATIONSHIPS_ARE_VALID` |
+| PBI016 | Importante | 2 | Relacionamento muitos-para-muitos | Crie uma tabela ponte por desenho, ou corrija o grão das tabelas. | `AVOID_EXCESSIVE_BI-DIRECTIONAL_OR_MANY-TO-MANY_RELATIONSHIPS`, `CHECK_IF_BI-DIRECTIONAL_AND_MANY-TO-MANY_RELATIONSHIPS_ARE_VALID` |
+| PBI017 | Importante | 2 | Inteligência de tempo sobre a hierarquia automática (`.[Date]`) | Use a coluna de data da tabela de calendário. | `REMOVE_AUTO-DATE_TABLE` |
+| PBI018 | Importante | 6 | Página com mais de 8 visuais de dados | Divida a página: uma página, uma pergunta. | — |
+| PBI019 | Importante | acessibilidade | Visual de dados sem texto alternativo | Preencha o texto alternativo descrevendo o que o visual mostra. | — |
+| PBI020 | Importante | governança | Relatório no formato antigo (`report.json`) | Salve o relatório no formato PBIR. | — |
+| PBI030 | Sugestão | 5 | Medida sem formato | Defina `formatString` (moeda, percentual, inteiro). | `PROVIDE_FORMAT_STRING_FOR_MEASURES` |
+| PBI031 | Sugestão | 5 | Medida sem pasta | Defina `displayFolder` para organizar a lista de campos. | — |
+| PBI032 | Sugestão | 5 | Divisão com `/` em vez de `DIVIDE` | Use `DIVIDE ( numerador, denominador )`, que trata zero e vazio. | `USE_THE_DIVIDE_FUNCTION_FOR_DIVISION` |
+| PBI033 | Sugestão | 5 | `IFERROR` em medida | Trate o caso de erro de forma explícita (por exemplo com `DIVIDE` ou `IF`). | `AVOID_USING_THE_IFERROR_FUNCTION` |
+| PBI034 | Sugestão | 3 | Coluna importada e nunca usada | Remova a coluna do `SELECT`: ela não aparece em medida, visual, relacionamento, ordenação, hierarquia ou RLS. | `UNNECESSARY_COLUMNS` |
+| PBI035 | Sugestão | 2 | Coluna de ponto flutuante (`double`) | Use `decimal` para valores e `int64` para inteiros. | `AVOID_FLOATING_POINT_DATA_TYPES` |
+| PBI036 | Sugestão | 2 | Chave estrangeira visível | Oculte as colunas de chave da tabela fato. | `HIDE_FOREIGN_KEYS` |
+| PBI037 | Sugestão | 2 | Chave de relacionamento que não é inteira | Prefira uma chave substituta `int64` (relacionamentos com a tabela de datas são exceção). | `RELATIONSHIP_COLUMNS_SHOULD_BE_OF_INTEGER_DATA_TYPE` |
+| PBI038 | Sugestão | 2 | Dimensão em floco de neve | Junte as dimensões encadeadas em uma só (esquema estrela). | `SNOWFLAKE_SCHEMA_ARCHITECTURE` |
+| PBI039 | Sugestão | 3 | Mais de 12 tabelas de fonte | Confirme se todas respondem a alguma pergunta de negócio. | — |
+| PBI040 | Sugestão | 7 | Gráfico de pizza ou rosca | Só com até 3 fatias; acima disso use barras ordenadas. | — |
+| PBI041 | Sugestão | 7 | Visual customizado em uso | Registre o motivo em um ADR (árvore de decisão da skill). | — |
+| PBI042 | Sugestão | 1 | Página com nome genérico | Dê à página o nome da pergunta que ela responde. | — |
+| PBI043 | Sugestão | 8 | Projeto sem README.md | Crie o README ao lado do `.pbip` (o que é, como usar, cargas, métricas). | — |
+
+## Como silenciar uma regra
+
+Silencie só com motivo, e registre o motivo junto.
+
+**Arquivo `.pbiaudit.json` na pasta auditada** (ou outro caminho com `--config`):
+
+```json
+{
+  "disable": ["PBI040"],
+  "ignore": [
+    { "rule": "PBI015", "path": "*/relationships.tmdl" }
+  ]
+}
+```
+
+`disable` desliga a regra no projeto inteiro. `ignore` desliga a regra só nos arquivos que casam com
+`path` (padrão de nome de arquivo, como `*` e `?`).
+
+**Anotação no modelo (TMDL)**, em um objeto específico. Vale para o objeto e, numa tabela, para as
+colunas e medidas dela; no `model.tmdl`, vale para o modelo inteiro:
+
+```tmdl
+	measure 'Margem %' = [Margem] / [Receita]
+		formatString: 0.0%
+		annotation PowerBIArchitect_IgnoreRules = {"RuleIDs":["PBI032"]}
+```
+
+**Compatível com o Best Practice Analyzer:** a anotação `BestPracticeAnalyzer_IgnoreRules`, que o Tabular
+Editor grava quando você ignora uma regra do BPA, também é respeitada. Se um objeto ignora
+`REMOVE_AUTO-DATE_TABLE` no BPA, a auditoria deixa de acusar as regras equivalentes (`PBI010`, `PBI017`).
+A auditoria não executa as expressões das regras do BPA; ela só reconhece os IDs da tabela acima.
