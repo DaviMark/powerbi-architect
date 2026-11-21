@@ -1,5 +1,10 @@
 # Contas a receber (exemplo)
 
+![Prévia da página Visão Geral, com dados de amostra](../../docs/assets/exemplo-visao-geral.png)
+
+*Prévia gerada por `scripts/preview_pbir.py` a partir dos arquivos PBIR, com os valores de
+`preview-sample.json`; o projeto não traz dados.*
+
 Projeto PBIP sintético que segue todas as regras da skill. Serve para três coisas:
 
 - **Ver o padrão pronto:** modelo estrela, Power Query de uma etapa, medidas documentadas, página de
@@ -22,16 +27,22 @@ Responde a quatro perguntas de cobrança, para a diretoria financeira, com carga
 
 ## Como usar
 
-![Prévia do layout da página Visão Geral, sem dados](../../docs/assets/exemplo-visao-geral.png)
-
-*Prévia do layout gerada por `tools/preview_pbir.py` a partir dos arquivos PBIR, sem dados: as barras,
-linhas e valores são marcadores de posição.*
-
 | Página | Pergunta |
 |---|---|
 | Visão Geral | Quanto está vencido, onde e há quanto tempo |
-| Clientes | Quem concentra o valor vencido |
+| Diagnóstico | Como cada faixa de atraso, segmento e regional compõe o vencido |
+| Clientes | Quem concentra o valor vencido (botão direito num cliente abre o detalhe) |
 | Documentação | O que cada medida significa e quando foi a última carga |
+| Detalhe do cliente | Drill-through: a situação de um cliente (página oculta da navegação) |
+| Tooltip regional | Faixas de atraso da regional apontada no gráfico (página de tooltip) |
+
+As páginas são geradas a partir de [`layout.json`](layout.json) pelo `scripts/pbir_layout.py` da skill.
+O arquivo [`preview-sample.json`](preview-sample.json) tem valores de amostra para a prévia:
+
+```bash
+python skills/powerbi-architect/scripts/preview_pbir.py examples/contas-a-receber/ContasReceber.Report \
+  --sample examples/contas-a-receber/preview-sample.json --out preview.html
+```
 
 ## Cargas
 
@@ -55,7 +66,7 @@ Filtros, nomes de colunas e faixas de atraso são resolvidos no SQL.
 | Valor Aberto | Saldo em aberto das parcelas, vencidas ou a vencer |
 | Valor Vencido | Saldo em aberto das parcelas com vencimento anterior à data da carga |
 | % Vencido | Parcela do saldo em aberto que já venceu |
-| Dias Atraso Medio | Média de dias de atraso das parcelas vencidas, ponderada pelo saldo |
+| Atraso Médio (dias) | Média de dias de atraso das parcelas vencidas, ponderada pelo saldo |
 
 O catálogo completo, com a expressão DAX, fica na página **Documentação** (gerada por `INFO.VIEW.MEASURES`).
 
