@@ -108,6 +108,10 @@ Navigation: page tabs are enough for ≤ 6 pages. Use buttons/bookmarks only whe
 - Same meaning, same color across all pages (e.g., "Online" is always the 2nd palette color).
 - Backgrounds: light canvas, white cards, 1‑px border, radius from brand. No gradients, glow, shadows, 3D.
 - Contrast ≥ 4.5:1 for text, ≥ 3:1 for graphical objects. Don't rely on color alone — add labels/icons.
+- No brand theme yet? Start from [templates/theme/powerbi-architect-acessivel.json](../templates/theme/powerbi-architect-acessivel.json):
+  6 categorical colors, all ≥ 4.8:1 on white, status colors, one font, no gridlines/axis titles/shadows.
+  Register it as `customTheme` (see [pbir.md](pbir.md) › Theme registration) and replace colors with the
+  brand's, keeping the contrast.
 
 ## 7. Visual craft
 - **Bars**: start at zero; sort by value (except time/ordinal); data labels on, value axis off;
