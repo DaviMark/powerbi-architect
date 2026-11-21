@@ -706,6 +706,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--list-rules", action="store_true", help="list every rule and exit")
     ap.add_argument("--version", action="version", version=f"%(prog)s {skill_version()}")
     args = ap.parse_args(argv)
+    if hasattr(_sys.stdout, "reconfigure"):
+        try:
+            _sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
+        except ValueError:
+            pass
 
     if args.list_rules:
         for rid, (sev, law, title, bpa) in RULES.items():
