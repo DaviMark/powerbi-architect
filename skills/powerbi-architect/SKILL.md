@@ -3,7 +3,7 @@ name: powerbi-architect
 description: Senior Power BI engineering for AI agents. Use for ANY Power BI work - designing or reviewing semantic models (star schema, minimal imports, relationships, date tables), writing SQL for loads, Power Query (one-step native queries, no transformations), DAX measures, TMDL and PBIR/PBIP files, report and page design, visual selection, accessibility, documentation pages, refactoring legacy .pbix/.pbit dashboards, performance tuning, RLS, and building custom visuals (.pbiviz) ONLY when no native visual fits. Ships an offline knowledge graph of the repo (powerbi-graph/) - query it before reading TMDL/PBIR files to save tokens. Works standalone or inside the Power BI Workspaces framework (AGENTS.md).
 license: MIT
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   homepage: https://github.com/DaviMark/powerbi-architect
 ---
 
