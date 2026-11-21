@@ -208,6 +208,11 @@
           {
             "show": false
           }
+        ],
+        "layout": [
+          {
+            "clusteredGapSize": 32
+          }
         ]
       }
     },
@@ -228,6 +233,11 @@
           {
             "show": false
           }
+        ],
+        "layout": [
+          {
+            "clusteredGapSize": 32
+          }
         ]
       }
     },
@@ -237,6 +247,17 @@
           {
             "show": true,
             "gridlineShow": false
+          }
+        ],
+        "lineStyles": [
+          {
+            "strokeWidth": 2,
+            "showMarker": false
+          }
+        ],
+        "labels": [
+          {
+            "show": false
           }
         ]
       }
@@ -395,7 +416,7 @@
         "layout": [
           {
             "orientation": 1,
-            "cellPadding": 2
+            "cellPadding": 0
           }
         ],
         "shape": [
@@ -451,7 +472,7 @@
               }
             },
             "horizontalAlignment": "left",
-            "leftMargin": 8
+            "leftMargin": 32
           },
           {
             "$id": "hover",
@@ -469,6 +490,64 @@
                 "color": "#333333"
               }
             }
+          }
+        ]
+      }
+    },
+    "waterfallChart": {
+      "*": {
+        "sentimentColors": [
+          {
+            "increaseFill": {
+              "solid": {
+                "color": "#00824D"
+              }
+            },
+            "decreaseFill": {
+              "solid": {
+                "color": "#CE2C31"
+              }
+            },
+            "totalFill": {
+              "solid": {
+                "color": "#666666"
+              }
+            }
+          }
+        ],
+        "labels": [
+          {
+            "show": true,
+            "fontSize": 9,
+            "color": {
+              "solid": {
+                "color": "#666666"
+              }
+            }
+          }
+        ],
+        "valueAxis": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "image": {
+      "*": {
+        "background": [
+          {
+            "show": false
+          }
+        ],
+        "border": [
+          {
+            "show": false
+          }
+        ],
+        "title": [
+          {
+            "show": false
           }
         ]
       }
