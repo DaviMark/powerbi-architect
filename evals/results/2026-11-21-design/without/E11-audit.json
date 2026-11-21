@@ -1,0 +1,425 @@
+[
+  {
+    "rule": "PBI006",
+    "severity": "BLOCKER",
+    "law": "8",
+    "where": "ContasReceber.Report",
+    "line": 0,
+    "message": "no Documentation page (Documentação/Documentation)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI050",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/clientes/page.json",
+    "line": 0,
+    "message": "page 'Clientes' has 3 slicers — keep ≤ 2 on the page, move the rest to the filter pane",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/clientes/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Clientes' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/clientes/visuals/seg_faixa/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Clientes' is 300×44 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/clientes/visuals/seg_regional/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Clientes' is 300×44 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/clientes/visuals/seg_segmento/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Clientes' is 300×44 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/clientes/visuals/tabela/visual.json",
+    "line": 0,
+    "message": "tableEx on page 'Clientes' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/clientes/visuals/titulo/visual.json",
+    "line": 0,
+    "message": "textbox on page 'Clientes' uses 22 pt — keep it ≤ 14 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI018",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/page.json",
+    "line": 0,
+    "message": "page 'Visão Geral' has 12 data visuals (target ≤ 8)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI050",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/page.json",
+    "line": 0,
+    "message": "page 'Visão Geral' has 3 slicers — keep ≤ 2 on the page, move the rest to the filter pane",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/faixa/visual.json",
+    "line": 0,
+    "message": "columnChart on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi1/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi1/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' uses 28 pt — keep it ≤ 24 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi1_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi2/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi2/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' uses 28 pt — keep it ≤ 24 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi2_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi3/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi3/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' uses 28 pt — keep it ≤ 24 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi3_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi4/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi4/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' uses 28 pt — keep it ≤ 24 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi4_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/mensal/visual.json",
+    "line": 0,
+    "message": "columnChart on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/regional/visual.json",
+    "line": 0,
+    "message": "barChart on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/seg_ano/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Visão Geral' is 300×44 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/seg_regional/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Visão Geral' is 300×44 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/seg_segmento/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Visão Geral' is 300×44 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/titulo/visual.json",
+    "line": 0,
+    "message": "textbox on page 'Visão Geral' uses 22 pt — keep it ≤ 14 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI043",
+    "severity": "SUGGESTION",
+    "law": "8",
+    "where": ".",
+    "line": 0,
+    "message": "no README.md next to ContasReceber.pbip",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/clientes/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Clientes': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/clientes/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Clientes' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI053",
+    "severity": "SUGGESTION",
+    "law": "a11y",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/page.json",
+    "line": 0,
+    "message": "page 'Visão Geral': keyboard order does not follow the reading order (top to bottom, left to right) — set tabOrder accordingly",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/faixa/visual.json",
+    "line": 0,
+    "message": "columnChart on page 'Visão Geral': y, height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi1_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi1_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi2_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi2_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi3_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi3_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi4_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/kpi4_ctx/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/mensal/visual.json",
+    "line": 0,
+    "message": "columnChart on page 'Visão Geral': y, height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "ContasReceber.Report/definition/pages/visaogeral/visuals/regional/visual.json",
+    "line": 0,
+    "message": "barChart on page 'Visão Geral': y, height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  }
+]
