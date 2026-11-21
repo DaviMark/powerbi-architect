@@ -1,0 +1,10 @@
+{
+  "name": "powerbi-architect",
+  "version": "1.1.0",
+  "description": "Senior Power BI engineering for AI agents: star schema, minimal imports, one-step Power Query, documented DAX, product-grade report design, offline PBIP audit and knowledge graph.",
+  "author": { "name": "DaviMark", "url": "https://github.com/DaviMark" },
+  "homepage": "https://github.com/DaviMark/powerbi-architect",
+  "repository": "https://github.com/DaviMark/powerbi-architect",
+  "license": "MIT",
+  "keywords": ["power-bi", "dax", "tmdl", "pbir", "pbip", "semantic-model", "fabric", "data-visualization"]
+}

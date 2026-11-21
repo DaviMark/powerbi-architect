@@ -29,6 +29,15 @@ class TestSkill(unittest.TestCase):
         self.assertTrue(0 < len(fm.get("description", "")) <= 1024)
         self.assertNotIn("<", fm["description"])
 
+    def test_versions_are_in_sync(self):
+        import json
+        fm_version = re.search(r'version:\s*"([^"]+)"', (SKILL / "SKILL.md").read_text(encoding="utf-8")).group(1)
+        plugin = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+        self.assertEqual(plugin["version"], fm_version, "update .claude-plugin/plugin.json")
+        self.assertEqual(market["plugins"][0]["version"], fm_version, "update .claude-plugin/marketplace.json")
+        self.assertEqual(plugin["name"], "powerbi-architect")
+
     def test_skill_md_is_concise(self):
         lines = (SKILL / "SKILL.md").read_text(encoding="utf-8").count("\n")
         self.assertLess(lines, 500, "keep SKILL.md under 500 lines; move detail to references/")
