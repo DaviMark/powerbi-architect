@@ -5,7 +5,25 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
+
+## [1.2.0] — 2026-11-21
 ### Adicionado
+- Projeto PBIP de exemplo em `examples/contas-a-receber`, validado pelos schemas da Microsoft, sem
+  nenhum achado na auditoria nem no grafo.
+- Avaliações publicadas: com a skill, 16 de 18 itens e 8 de 10 casos; sem a skill, 6 de 18 e 2 de 10
+  (`evals/results/2026-11-21`). Materiais de apoio dos casos em `evals/fixtures/`.
+- Auditoria: códigos de regra (`PBI001`…`PBI043`) com arquivo e linha, `--help`, `--version`,
+  `--list-rules`, `--json`, `--sarif`, `--fail-on`, supressão por `.pbiaudit.json` e por anotação TMDL,
+  correspondência com as regras do Best Practice Analyzer do Tabular Editor (inclusive a anotação
+  `BestPracticeAnalyzer_IgnoreRules`) e regras novas para que cada um dos oito princípios tenha
+  verificação automática. Catálogo em `docs/regras-auditoria.md`.
+- Modelos de página PBIR (`templates/pbir-pages`) e tema acessível (`templates/theme`).
+- Referências `semantic-features.md` (calculation groups, field parameters, visual calculations, funções
+  DAX) e `fabric-and-cicd.md` (Direct Lake, Git do Fabric, deployment pipelines, CI).
+- Plugin do Claude Code: `/plugin install powerbi-architect --marketplace DaviMark/powerbi-architect`.
+- Instaladores: `--status` e `--update` (`-Status` e `-Update` no PowerShell).
+- Releases com o zip da skill e atestado de procedência (`gh attestation verify`).
+- `ROADMAP.md`.
 - Arquivos de comunidade: formulários de issue (comportamento da IA, bug, ideia, resultado de avaliação,
   dúvida), template de pull request, `CODEOWNERS`, `SUPPORT.md` e labels gerenciadas
   (`.github/labels.json`).
@@ -13,6 +31,10 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   e publica uma release no GitHub com a skill em `.zip`.
 - `.gitattributes` mantém o `install.sh` com finais de linha LF em clones no Windows; `.editorconfig`.
 ### Alterado
+- CI roda os testes no Linux e no Windows, do Python 3.9 ao 3.13, valida os JSON pelos schemas da
+  Microsoft e confere todo exemplo de código das referências.
+- README: números de tokens medidos no projeto de exemplo (reproduzíveis), no lugar dos números de um
+  projeto que não estava no repositório.
 - `CONTRIBUTING.md` ampliado (fluxo de trabalho, versões, processo de release e regra de idiomas).
 - Documentação para pessoas (`SECURITY.md`, `evals/README.md`, `CHANGELOG.md`) e nomes dos jobs de CI
   em português do Brasil. Arquivos lidos pela IA continuam em inglês.
@@ -21,6 +43,12 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 - Os instaladores e o `pbi_graph.py` mostram `[ok]` no lugar de um símbolo de check, para que a saída
   apareça igual em qualquer terminal e página de código. O banner do README desenha os checks como
   vetores.
+### Corrigido
+- `audit_pbip.py --help` era tratado como caminho de pasta e gerava um BLOCKER.
+- A auditoria podia falhar no console do Windows ao imprimir símbolos como → e ≤.
+- O grafo apontava como sem uso as medidas usadas em título dinâmico de visual e as colunas usadas só em
+  hierarquias.
+- O `install.sh` tratava opções desconhecidas como pasta de destino.
 
 ## [1.1.0] — 2026-11-21
 ### Adicionado

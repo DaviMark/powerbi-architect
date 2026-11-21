@@ -195,8 +195,8 @@ class Graph:
 
 
 CONTAINS = {"contains", "has_column", "has_measure", "has_page", "has_visual", "defines"}
-DEPENDS = {"uses_measure", "uses_column", "uses_table", "sorted_by", "relationship", "reads_source",
-           "loaded_by", "uses_parameter", "binds_model", "filters", "imports"}
+DEPENDS = {"uses_measure", "uses_column", "uses_table", "sorted_by", "hierarchy_level", "relationship",
+           "reads_source", "loaded_by", "uses_parameter", "binds_model", "filters", "imports"}
 
 
 class Builder:
@@ -357,6 +357,10 @@ class Builder:
                         self.g.edge(cid, tgt, "sorted_by")
                 if c.expression:
                     self.dax_edges(ctx, cid, c.expression, t.name)
+            for level in sorted(getattr(t, "level_columns", ())):
+                tgt = cols.get((norm(t.name), norm(level)))
+                if tgt:
+                    self.g.edge(tid, tgt, "hierarchy_level")
             for ms in t.measures:
                 self.dax_edges(ctx, measures[norm(ms.name)], ms.expression, t.name)
             for part in t.partitions:
@@ -512,6 +516,7 @@ class Builder:
                 self.visual_fields(ctx, vid, v.get("filterConfig", {}), "filters")
                 self.visual_fields(ctx, vid, vis.get("objects", {}), "uses")
                 self.visual_fields(ctx, vid, v.get("visualContainerObjects", {}), "uses")
+                self.visual_fields(ctx, vid, vis.get("visualContainerObjects", {}), "uses")
 
     @staticmethod
     def visual_title(v: dict) -> str:
@@ -690,7 +695,8 @@ def findings(g: dict) -> dict[str, list]:
             incoming[e["source"]].add(e["rel"])
         if e["rel"] in {"uses_measure", "uses_column"} and nodes[e["source"]]["kind"] == "visual":
             fields[e["source"]] += 1
-    use_rels = {"uses_column", "uses_measure", "relationship", "sorted_by", "filters", "uses_table"}
+    use_rels = {"uses_column", "uses_measure", "relationship", "sorted_by", "filters", "uses_table",
+                "hierarchy_level"}
     out: dict[str, list] = collections.defaultdict(list)
     for nid, n in nodes.items():
         k = n["kind"]
@@ -895,7 +901,7 @@ def model_card(g: dict, m: dict) -> str:
             for c in cols:
                 flags = "".join(x for x, ok in (("·key", c.get("key")), ("·h", c.get("hidden")),
                                                  ("·calc", c.get("calculated"))) if ok)
-                used = sum(1 for e in inc[c["id"]] if e["rel"] in {"uses_column", "relationship", "sorted_by", "filters"}
+                used = sum(1 for e in inc[c["id"]] if e["rel"] in {"uses_column", "relationship", "sorted_by", "filters", "hierarchy_level"}
                            or (e["rel"] == "relationship"))
                 used += sum(1 for e in out[c["id"]] if e["rel"] == "relationship")
                 parts.append(f"{c['label'].split('[', 1)[1][:-1]}:{c.get('data_type', '?')}{flags}"
@@ -1195,8 +1201,8 @@ def cmd_impact(g: dict, name: str) -> str:
     if not hits:
         return f"Not found: {name}"
     start = hits[0]
-    dep = {"uses_measure", "uses_column", "uses_table", "sorted_by", "filters", "relationship", "has_column",
-           "has_measure", "reads_source", "loaded_by", "uses_parameter", "binds_model", "has_visual", "imports"}
+    dep = {"uses_measure", "uses_column", "uses_table", "sorted_by", "hierarchy_level", "filters", "relationship",
+           "has_column", "has_measure", "reads_source", "loaded_by", "uses_parameter", "binds_model", "has_visual", "imports"}
     rev = collections.defaultdict(list)
     for e in g["edges"]:
         if e["rel"] in dep:

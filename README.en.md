@@ -20,6 +20,13 @@ supports the open **[Agent Skills](https://agentskills.io)** format. Standalone 
 
 ## Install
 
+**Claude Code**, one command: `/plugin install powerbi-architect --marketplace DaviMark/powerbi-architect`
+
+**No terminal** (Claude.ai and other tools that accept skill uploads): download
+`powerbi-architect-vX.Y.Z.zip` from the [latest release](https://github.com/DaviMark/powerbi-architect/releases/latest).
+
+**Every AI in your repository:**
+
 ```bash
 git clone https://github.com/DaviMark/powerbi-architect.git
 ./powerbi-architect/install/install.sh /path/to/your/repo      # or --global, --link
@@ -27,6 +34,10 @@ git clone https://github.com/DaviMark/powerbi-architect.git
 ```
 The installer copies the skill into `.claude/skills/`, `.github/skills/` and `.agents/skills/`, then builds
 the **Power BI knowledge graph** of your repo (see below). `--no-graph` / `-NoGraph` only copies files.
+To update: `git pull` in the clone, then `--update` / `-Update` (`--status` / `-Status` shows versions).
+
+**Measured, not promised:** in the [published evals](evals/results/2026-11-21/README.md) the same model met
+**16 of 18** expected behaviors with the skill and **6 of 18** without it (blind grading, raw answers included).
 
 ## Knowledge graph: fewer tokens per question
 
@@ -40,7 +51,8 @@ TMDL model, PBIR report, SQL loads, `ficha.toml`, docs. It writes `powerbi-graph
 - `graph.json` (GraphRAG-ready) and `graph.html` (interactive, offline).
 
 The agent reads the report and the card instead of dozens of `*.tmdl`/`visual.json` files. On the
-example dashboard, ~66k tokens of source become a ~1.2k-token report and a ~2k-token card. For
+small [example project](examples/contas-a-receber), ~10.5k tokens of source become a ~0.9k-token report and a
+~1.2k-token card (12× fewer); savings grow with project size. For
 targeted lookups it runs `query`, `explain`, `impact` ("what breaks if I change this measure?") and
 `path`.
 
@@ -58,7 +70,11 @@ Code `SessionStart` + after edits, and git `post-commit/merge/checkout`. Everyth
   official ESLint config and packages with `pbiviz package` with no recommended feature missing
   (rendering events, landing page, selection, context menu, tooltips, highlights, localization,
   keyboard, high contrast, allowInteractions, no network). Rebuilt in CI.
-- `scripts/audit_pbip.py` — offline audit of any PBIP folder.
+- `scripts/audit_pbip.py` — offline audit of any PBIP folder: rule codes with file and line, matching
+  Tabular Editor Best Practice Analyzer IDs, `--json` / `--sarif`, suppressions
+  ([rules, in Portuguese](docs/regras-auditoria.md)).
+- `templates/pbir-pages/` and `templates/theme/` — schema-validated PBIR pages and an accessible theme.
+- `examples/contas-a-receber/` — a complete PBIP project that follows every rule.
 - `scripts/pbi_graph.py` — offline knowledge graph + query/explain/impact/path (installed automatically).
 
 Uses the Microsoft **Power BI Modeling MCP** when available (model edits + DAX validation).

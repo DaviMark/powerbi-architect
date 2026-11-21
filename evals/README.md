@@ -8,3 +8,15 @@ Como medir se a skill faz diferença:
 4. Compartilhe os resultados numa issue **Resultado de avaliação** (sem dados reais). Eles orientam a próxima versão.
 
 Um caso passa quando todos os itens **must** aparecem e nenhum item **must not** acontece.
+
+Os materiais de apoio dos casos (view de 60 colunas, metadados do `.pbit` legado, briefing com injeção
+de instruções, estado do projeto) ficam em [`fixtures/`](fixtures).
+
+## Resultados publicados
+
+| Data | Modelo | Sem a skill | Com a skill | Detalhes |
+|---|---|---|---|---|
+| 21/11/2026 | Claude Sonnet 5.5 | 6 de 18 itens · 2 de 10 casos | 16 de 18 itens · 8 de 10 casos | [resultados](results/2026-11-21/README.md) |
+
+Para corrigir sem viés, embaralhe as duas respostas de cada caso como "A" e "B" e só revele qual é qual
+depois da pontuação.
