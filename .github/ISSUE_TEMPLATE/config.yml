@@ -1,5 +1,8 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: 🔒 Security vulnerability
+  - name: Vulnerabilidade de segurança
     url: https://github.com/DaviMark/powerbi-architect/security/advisories/new
-    about: Report privately. Do not open a public issue.
+    about: Relate em privado. Não abra uma issue pública.
+  - name: Leia a documentação primeiro
+    url: https://github.com/DaviMark/powerbi-architect#readme
+    about: Instalação, grafo de conhecimento, script de auditoria e segurança.
