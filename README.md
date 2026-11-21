@@ -175,7 +175,19 @@ Detalhes em [SECURITY.md](SECURITY.md).
 
 ## Contribua
 
-Padrões de DAX, novos conectores, arquétipos de página, traduções, evals — PRs bem-vindos
-([CONTRIBUTING.md](CONTRIBUTING.md)).
+Padrões de DAX, novos conectores, arquétipos de página, traduções, avaliações: contribuições são
+bem-vindas, em português ou inglês.
+
+| Você tem… | Faça isto |
+|---|---|
+| Uma IA que ignorou a skill | [Abra uma issue **Comportamento da IA**](https://github.com/DaviMark/powerbi-architect/issues/new/choose) com o prompt, a regra esperada e a resposta |
+| Um script, instalador ou exemplo quebrado | Issue **Bug** |
+| Uma ideia (padrão DAX, conector, arquétipo de página) | Issue **Ideia / melhoria** antes de PRs grandes |
+| 15 minutos e um agente de IA | Rode um caso de [`evals/`](evals/README.md) e compartilhe em **Resultado de avaliação** |
+| Uma correção pequena | PR direto |
+
+Leia o [CONTRIBUTING.md](CONTRIBUTING.md) antes do primeiro PR. Dúvidas: [SUPPORT.md](SUPPORT.md).
+Vulnerabilidades: [SECURITY.md](SECURITY.md), nunca em issue pública. Mudanças por versão:
+[CHANGELOG.md](CHANGELOG.md).
 
 <sub>MIT © colaboradores do Power BI Architect · Power BI é marca da Microsoft; projeto independente.</sub>

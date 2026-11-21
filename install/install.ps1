@@ -38,7 +38,7 @@ foreach ($d in $Dests) {
   Copy-Item -Recurse -Path $Src -Destination $dest
   $nm = Join-Path $dest "templates\pbiviz-bullet-kpi\node_modules"
   if (Test-Path $nm) { Remove-Item -Recurse -Force $nm }
-  Write-Host "✔ $dest"
+  Write-Host "[ok] $dest"
 }
 if (-not $Global -and -not $NoGraph) {
   $Py = $null

@@ -52,7 +52,7 @@ for d in "${DESTS[@]}"; do
     cp -R "$SRC" "$dest"
     rm -rf "$dest/templates/pbiviz-bullet-kpi/node_modules" 2>/dev/null || true
   fi
-  echo "✔ $dest"
+  echo "[ok] $dest"
 done
 echo
 echo "powerbi-architect $(grep -m1 'version:' "$SRC/SKILL.md" | tr -d ' "' | cut -d: -f2) installed."

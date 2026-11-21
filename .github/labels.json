@@ -1,0 +1,21 @@
+[
+  {"name": "bug",                    "color": "d73a4a", "description": "Algo está quebrado"},
+  {"name": "comportamento-da-skill", "color": "5319e7", "description": "A IA não seguiu a skill como esperado"},
+  {"name": "melhoria",               "color": "a2eeef", "description": "Nova orientação, padrão ou recurso"},
+  {"name": "avaliação",              "color": "c5def5", "description": "Resultados de avaliação ou casos novos"},
+  {"name": "dúvida",                 "color": "d876e3", "description": "Como instalar ou usar"},
+  {"name": "documentação",           "color": "0075ca", "description": "README, referências ou guias"},
+  {"name": "tradução",               "color": "bfdadc", "description": "Português, inglês ou novos idiomas"},
+  {"name": "triagem",                "color": "fbca04", "description": "Aguardando análise do mantenedor"},
+  {"name": "good first issue",       "color": "7057ff", "description": "Boa para quem está começando (nome reconhecido pelo GitHub)"},
+  {"name": "help wanted",            "color": "008672", "description": "Precisa de ajuda (nome reconhecido pelo GitHub)"},
+  {"name": "mudança incompatível",   "color": "b60205", "description": "Muda caminhos de instalação, CLI ou formato de saída dos scripts"},
+  {"name": "dependências",           "color": "0366d6", "description": "Atualização de dependência ou de GitHub Actions"},
+  {"name": "área: skill",            "color": "ededed", "description": "SKILL.md e references/"},
+  {"name": "área: scripts",          "color": "ededed", "description": "audit_pbip.py e pbi_graph.py"},
+  {"name": "área: instalador",       "color": "ededed", "description": "install.sh e install.ps1"},
+  {"name": "área: pbiviz",           "color": "ededed", "description": "Template do visual customizado"},
+  {"name": "duplicada",              "color": "cfd3d7", "description": "Já relatada"},
+  {"name": "inválida",               "color": "e4e669", "description": "Não é um relato válido"},
+  {"name": "não será feito",         "color": "ffffff", "description": "Fora do escopo da skill"}
+]

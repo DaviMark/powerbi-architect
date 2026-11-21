@@ -1,0 +1,60 @@
+name: Bug
+description: Algo quebrado em um script, instalador, no template .pbiviz ou na documentação
+title: "[Bug] "
+labels: ["bug", "triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English is welcome too. A IA fez algo errado? Use o formulário **Comportamento da IA**.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - scripts/pbi_graph.py (grafo de conhecimento)
+        - scripts/audit_pbip.py (auditoria)
+        - install.sh / install.ps1
+        - templates/pbiviz-bullet-kpi (visual customizado)
+        - SKILL.md / references (exemplo errado ou inválido)
+        - README / documentação
+        - CI
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu
+      description: Inclua o comando completo e a saída de erro.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. ./install/install.sh /caminho/do/repo
+        2. python .claude/skills/powerbi-architect/scripts/pbi_graph.py build .
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+  - type: input
+    id: env
+    attributes:
+      label: Ambiente
+      placeholder: "Windows 11 · PowerShell 5.1 · Python 3.12 · skill 1.1.0"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Verificações
+      options:
+        - label: Procurei nas issues existentes
+          required: true
+        - label: Removi dados reais, servidores e credenciais desta issue
+          required: true
