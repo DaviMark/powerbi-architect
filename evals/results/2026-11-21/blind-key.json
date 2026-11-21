@@ -1,0 +1,42 @@
+{
+ "E01": {
+  "A": "without",
+  "B": "with"
+ },
+ "E02": {
+  "A": "with",
+  "B": "without"
+ },
+ "E03": {
+  "A": "with",
+  "B": "without"
+ },
+ "E04": {
+  "A": "without",
+  "B": "with"
+ },
+ "E05": {
+  "A": "with",
+  "B": "without"
+ },
+ "E06": {
+  "A": "with",
+  "B": "without"
+ },
+ "E07": {
+  "A": "with",
+  "B": "without"
+ },
+ "E08": {
+  "A": "with",
+  "B": "without"
+ },
+ "E09": {
+  "A": "with",
+  "B": "without"
+ },
+ "E10": {
+  "A": "without",
+  "B": "with"
+ }
+}
