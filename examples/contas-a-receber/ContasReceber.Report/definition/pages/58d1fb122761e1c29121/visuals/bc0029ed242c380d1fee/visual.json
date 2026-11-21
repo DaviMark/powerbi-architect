@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
   "name": "bc0029ed242c380d1fee",
   "position": {
-    "x": 960,
+    "x": 1012,
     "y": 80,
-    "z": 5000,
-    "width": 296,
-    "height": 104,
-    "tabOrder": 5000
+    "z": 12000,
+    "width": 244,
+    "height": 88,
+    "tabOrder": 12000
   },
   "visual": {
     "visualType": "card",
@@ -40,7 +40,7 @@
             "altText": {
               "expr": {
                 "Literal": {
-                  "Value": "'Dias de atraso (média ponderada), na data da carga'"
+                  "Value": "'Dias de atraso, média ponderada, na data da carga'"
                 }
               }
             }
@@ -60,7 +60,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Dias de atraso (média ponderada)'"
+                  "Value": "'Dias de atraso, média ponderada'"
                 }
               }
             }

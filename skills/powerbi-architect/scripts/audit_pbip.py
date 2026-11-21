@@ -398,6 +398,14 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI041": ("SUGGESTION", "7", "Custom visual in use: record the decision (ADR)", ()),
     "PBI042": ("SUGGESTION", "1", "Page with a generic name", ()),
     "PBI043": ("SUGGESTION", "8", "Project without README.md", ()),
+    # PBI044 and PBI045 are reserved for open issues (month sort, inactive relationships).
+    "PBI046": ("IMPORTANT", "6", "Oversized slicer", ()),
+    "PBI047": ("IMPORTANT", "6", "Font larger than the type scale", ()),
+    "PBI048": ("SUGGESTION", "6", "Visual off the 4 px grid", ()),
+    "PBI049": ("IMPORTANT", "2", "Table name without the ft_ (fact) or dm_ (dimension) prefix", ()),
+    "PBI050": ("IMPORTANT", "6", "More than 2 slicers on a page", ()),
+    "PBI051": ("SUGGESTION", "6", "More than one font family, or a font outside the professional set", ()),
+    "PBI052": ("IMPORTANT", "6", "Visual outside the page", ()),
 }
 BPA_TO_PBI: dict[str, set[str]] = {}
 for _rid, (_sev, _law, _title, _bpa) in RULES.items():
@@ -412,6 +420,14 @@ HEAVY = re.compile(r"\bTable\.(?:AddColumn|TransformColumns|TransformColumnTypes
 DOC_PAGES = {"documentação", "documentacao", "documentation", "documentación"}
 GENERIC_PAGE = re.compile(r"^(?:page|página|pagina|duplicate of .*|duplicado de .*)\s*\d*$", re.I)
 DECORATIVE = {"textbox", "shape", "basicShape", "image", "actionButton", "pageNavigator", "bookmarkNavigator"}
+SLICERS = {"slicer", "advancedSlicerVisual", "listSlicer", "textSlicer"}
+BIG_NUMBER_VISUALS = {"card", "cardVisual", "multiRowCard", "kpi"}
+# Type scale in pt (references/report-design.md §5): text boxes ≤ 14, KPI values ≤ 24, everything else ≤ 12.
+MAX_PT = {"textbox": 14, "big": 24, "other": 12}
+# Fonts that render everywhere Power BI runs and read as professional. Weights count as one family.
+PRO_FONTS = {"segoe ui", "segoe ui light", "segoe ui semibold", "segoe ui bold", "segoe ui semilight"}
+UGLY_FONTS = {"din", "comic sans ms", "impact", "arial black", "courier new", "wingdings", "symbol",
+              "segoe print", "segoe script", "corbel"}
 IGNORE_ANNOTATIONS = {"PowerBIArchitect_IgnoreRules": "pbi", "BestPracticeAnalyzer_IgnoreRules": "bpa"}
 CONFIG_FILE = ".pbiaudit.json"
 
@@ -481,6 +497,45 @@ def load_config(root: Path, path: Path | None) -> dict:
         data = _json.loads(cfg.read_text(encoding="utf-8"))
         return {"disable": set(data.get("disable", [])), "ignore": data.get("ignore", [])}
     return {"disable": set(), "ignore": []}
+
+
+def _pt(value) -> float | None:
+    """'14pt', '14D', '14L', 14 → 14.0."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    m = re.match(r"^'?\s*(\d+(?:\.\d+)?)\s*(?:pt|px|D|L)?\s*'?$", str(value))
+    return float(m.group(1)) if m else None
+
+
+def font_usage(visual: dict) -> tuple[list[float], set[str]]:
+    """Font sizes (pt) and font families set on one visual (text runs and formatting objects)."""
+    sizes: list[float] = []
+    families: set[str] = set()
+
+    def walk(o, key=""):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k in ("fontSize", "textSize"):
+                    lv = v.get("expr", {}).get("Literal", {}).get("Value") if isinstance(v, dict) else v
+                    n = _pt(lv) if lv is not None else None
+                    if n:
+                        sizes.append(n)
+                elif k == "fontFamily":
+                    lv = v.get("expr", {}).get("Literal", {}).get("Value") if isinstance(v, dict) else v
+                    if isinstance(lv, str):
+                        families.update(f.strip().strip("'\"").lower() for f in lv.strip("'").split(",") if f.strip())
+                else:
+                    walk(v, k)
+        elif isinstance(o, list):
+            for x in o:
+                walk(x, key)
+
+    walk(visual)
+    return sizes, families
+
+
+def family_of(font: str) -> str:
+    return "segoe ui" if font.startswith("segoe ui") else font
 
 
 def audit(root: Path, config: dict | None = None) -> list:
@@ -611,6 +666,16 @@ def audit(root: Path, config: dict | None = None) -> list:
                 add("PBI038", rel(t.file), f"'{name}' is both a dimension and filtered by another dimension — "
                                            "flatten it into one dimension (star schema)", t.line,
                     model_ign | ignored_rules(t.annotations))
+        for t in model.tables:
+            if t.name.startswith("_"):
+                continue
+            is_fact = t.name in from_tables and t.name not in to_tables
+            is_dim = t.name in to_tables or t.name in date_tables
+            want = "ft_" if is_fact else "dm_" if is_dim else None
+            if want and not t.name.startswith(want):
+                kind = "fact" if is_fact else "dimension"
+                add("PBI049", rel(t.file), f"{kind} '{t.name}' — name it {want}{re.sub(r'[^a-z0-9]+', '_', t.name.lower()).strip('_')}",
+                    t.line, model_ign | ignored_rules(t.annotations))
         src_tables = [t for t in model.tables if not t.is_calculated]
         if len(src_tables) > 12:
             add("PBI039", mt, f"{len(src_tables)} source tables — are all of them needed?", suppressed=model_ign)
@@ -629,23 +694,56 @@ def audit(root: Path, config: dict | None = None) -> list:
                     add("PBI041", rel(rj), f"custom visual(s) in use: {', '.join(custom)} — keep an ADR")
             except ValueError:
                 add("PBI004", rel(rj), "invalid JSON")
+        report_families: set[str] = set()
         for pj in sorted(rep.glob("definition/pages/*/page.json")):
             try:
-                display = _json.loads(pj.read_text(encoding="utf-8-sig")).get("displayName", "")
+                pdata = _json.loads(pj.read_text(encoding="utf-8-sig"))
             except ValueError:
                 add("PBI004", rel(pj), "invalid JSON")
                 continue
+            display = pdata.get("displayName", "")
+            page_w, page_h = pdata.get("width", 1280), pdata.get("height", 720)
             names.append(display.lower())
             if GENERIC_PAGE.match(display.strip()):
                 add("PBI042", rel(pj), f"page '{display}' — name it after the question it answers")
-            data_visuals = 0
+            data_visuals = slicers = 0
             for vj in sorted(pj.parent.glob("visuals/*/visual.json")):
                 try:
-                    v = _json.loads(vj.read_text(encoding="utf-8-sig")).get("visual", {})
+                    container = _json.loads(vj.read_text(encoding="utf-8-sig"))
                 except ValueError:
                     add("PBI004", rel(vj), "invalid JSON")
                     continue
+                v = container.get("visual", {}) or {}
                 vtype = v.get("visualType", "")
+                pos = container.get("position", {}) or {}
+                x, y = pos.get("x", 0), pos.get("y", 0)
+                w, h = pos.get("width", 0), pos.get("height", 0)
+                where_v = rel(vj)
+                if x < 0 or y < 0 or x + w > page_w + 0.5 or y + h > page_h + 0.5:
+                    add("PBI052", where_v, f"{vtype or 'visual'} on page '{display}' goes outside the "
+                                           f"{page_w}×{page_h} page")
+                off = [n for n, val in (("x", x), ("y", y), ("width", w), ("height", h))
+                       if not (val <= 2 and n in ("width", "height")) and round(val) % 4]
+                if off and min(w, h) > 2:
+                    add("PBI048", where_v, f"{vtype or 'visual'} on page '{display}': {', '.join(off)} not a "
+                                           "multiple of 4 px — align it to the grid")
+                sizes, families = font_usage(v)
+                report_families |= {family_of(f) for f in families}
+                limit = MAX_PT["textbox"] if vtype == "textbox" else (
+                    MAX_PT["big"] if vtype in BIG_NUMBER_VISUALS else MAX_PT["other"])
+                if sizes and max(sizes) > limit:
+                    add("PBI047", where_v, f"{vtype} on page '{display}' uses {max(sizes):g} pt — "
+                                           f"keep it ≤ {limit} pt (see the type scale)")
+                if vtype in SLICERS:
+                    slicers += 1
+                    mode = (((v.get("objects", {}).get("data") or [{}])[0].get("properties", {})
+                             .get("mode", {}).get("expr", {}).get("Literal", {}).get("Value", "")) or "").strip("'")
+                    compact = mode in ("Dropdown", "Between", "Before", "After")
+                    max_h, max_w = (48, 240) if compact else (320, 320)
+                    if h > max_h or w > max_w:
+                        add("PBI046", where_v, f"{mode or 'list'} slicer on page '{display}' is {w:g}×{h:g} px "
+                                               f"— keep it within {max_w}×{max_h} px")
+                    continue
                 if not vtype or vtype in DECORATIVE:
                     continue
                 data_visuals += 1
@@ -657,8 +755,16 @@ def audit(root: Path, config: dict | None = None) -> list:
                     add("PBI040", rel(vj), f"{vtype} on page '{display}' — ≤ 3 slices, otherwise a sorted bar")
             if data_visuals > 8:
                 add("PBI018", rel(pj), f"page '{display}' has {data_visuals} data visuals (target ≤ 8)")
+            if slicers > 2:
+                add("PBI050", rel(pj), f"page '{display}' has {slicers} slicers — keep ≤ 2 on the page, "
+                                       "move the rest to the filter pane")
         if not DOC_PAGES & set(names):
             add("PBI006", rel(rep), "no Documentation page (Documentação/Documentation)")
+        odd = sorted(f for f in report_families if f in UGLY_FONTS or f not in PRO_FONTS)
+        if len(report_families) > 1 or any(f in UGLY_FONTS for f in report_families):
+            add("PBI051", rel(rep), f"fonts in use: {', '.join(sorted(report_families))} — one family "
+                                    "(Segoe UI, two weights) unless the brand defines another"
+                                    + (f"; avoid {', '.join(odd)}" if odd else ""))
     for pbip in sorted(root.rglob("*.pbip")):
         if not any((pbip.parent / n).exists() for n in ("README.md", "readme.md", "LEIAME.md")):
             add("PBI043", rel(pbip.parent) or ".", f"no README.md next to {pbip.name}")

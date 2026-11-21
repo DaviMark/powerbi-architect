@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
   "name": "26a3c76ab764572840a7",
   "position": {
-    "x": 24,
-    "y": 200,
-    "z": 6000,
-    "width": 808,
+    "x": 232,
+    "y": 184,
+    "z": 13000,
+    "width": 672,
     "height": 248,
-    "tabOrder": 6000
+    "tabOrder": 13000
   },
   "visual": {
     "visualType": "lineChart",
@@ -20,13 +20,13 @@
                 "Column": {
                   "Expression": {
                     "SourceRef": {
-                      "Entity": "Calendario"
+                      "Entity": "dm_calendario"
                     }
                   },
                   "Property": "Ano-Mês"
                 }
               },
-              "queryRef": "Calendario.Ano-Mês",
+              "queryRef": "dm_calendario.Ano-Mês",
               "nativeQueryRef": "Ano-Mês"
             }
           ]
@@ -57,7 +57,7 @@
               "Column": {
                 "Expression": {
                   "SourceRef": {
-                    "Entity": "Calendario"
+                    "Entity": "dm_calendario"
                   }
                 },
                 "Property": "Ano-Mês"

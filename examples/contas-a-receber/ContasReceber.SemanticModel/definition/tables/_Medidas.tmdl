@@ -2,12 +2,12 @@
 table _Medidas
 
 	/// Saldo em aberto das parcelas, vencidas ou a vencer.
-	measure 'Valor Aberto' = SUM ( 'Fato Titulos'[Valor Aberto] )
+	measure 'Valor Aberto' = SUM ( ft_titulos[Valor Aberto] )
 		formatString: \R\$ #,0
 		displayFolder: Valores
 
 	/// Saldo em aberto das parcelas com vencimento anterior à data da carga.
-	measure 'Valor Vencido' = CALCULATE ( [Valor Aberto], 'Fato Titulos'[Dias Atraso] > 0 )
+	measure 'Valor Vencido' = CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 0 )
 		formatString: \R\$ #,0
 		displayFolder: Valores
 
@@ -20,13 +20,17 @@ table _Medidas
 	measure 'Dias Atraso Medio' =
 			DIVIDE (
 				SUMX (
-					FILTER ( 'Fato Titulos', 'Fato Titulos'[Dias Atraso] > 0 ),
-					'Fato Titulos'[Dias Atraso] * 'Fato Titulos'[Valor Aberto]
+					FILTER ( ft_titulos, ft_titulos[Dias Atraso] > 0 ),
+					ft_titulos[Dias Atraso] * ft_titulos[Valor Aberto]
 				),
 				[Valor Vencido]
 			)
 		formatString: #,0
 		displayFolder: Indicadores
+
+	/// Data e hora da última carga, para a barra do topo.
+	measure 'Texto Atualizacao' = "Atualizado em " & FORMAT ( MAX ( '_Medidas'[Data Carga] ), "dd/mm/yyyy hh:nn" )
+		displayFolder: Títulos
 
 	/// Título dinâmico da página Visão Geral: valor vencido e participação no saldo.
 	measure 'Titulo Vencido' = "Vencido: " & FORMAT ( [Valor Vencido], "R$ #,0" ) & " (" & FORMAT ( [% Vencido], "0.0%" ) & " do saldo)"
