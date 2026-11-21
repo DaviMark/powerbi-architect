@@ -121,6 +121,11 @@ def main() -> int:
     ap.add_argument("--font", default="Segoe UI", help="a font from Power BI's supported list (default Segoe UI)")
     ap.add_argument("--out", type=Path, default=Path("theme.json"))
     args = ap.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
+        except ValueError:
+            pass
     try:
         theme, notes = build(args.primary, args.name, args.font)
     except ValueError as e:

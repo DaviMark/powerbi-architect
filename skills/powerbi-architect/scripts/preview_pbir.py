@@ -27,6 +27,7 @@ import argparse
 import base64
 import html
 import json
+import sys
 from pathlib import Path
 
 PT = 4 / 3  # Power BI font sizes are points; the canvas is in pixels.
@@ -423,6 +424,11 @@ def main() -> int:
     ap.add_argument("--mobile", action="store_true", help="render the phone layout (mobile.json)")
     ap.add_argument("--png", type=Path, metavar="DIR", help="also save one PNG per page (needs playwright)")
     args = ap.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
+        except ValueError:
+            pass
     sample = json.loads(args.sample.read_text(encoding="utf-8")) if args.sample else None
     args.out.write_text(Preview(args.report, sample).render(mobile=args.mobile), encoding="utf-8")
     print(f"[ok] {args.out}")
