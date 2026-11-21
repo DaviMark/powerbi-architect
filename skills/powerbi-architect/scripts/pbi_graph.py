@@ -1050,7 +1050,7 @@ def build(root: Path, out: Path, quiet: bool = False) -> dict:
                "corpus_tokens": stats["corpus_tokens"], "report_tokens": tokens(len(rep)), "seconds": round(time.time() - t0, 2)}
     if not quiet:
         ratio = summary["corpus_tokens"] / max(1, summary["report_tokens"])
-        print(f"✔ graph: {summary['nodes']} nodes · {summary['edges']} edges · {summary['models']} model(s) "
+        print(f"[ok] graph: {summary['nodes']} nodes · {summary['edges']} edges · {summary['models']} model(s) "
               f"in {summary['seconds']}s → {rel(out, root)}/")
         print(f"  source ≈ {summary['corpus_tokens']:,} tokens · GRAPH_REPORT.md ≈ {summary['report_tokens']:,} "
               f"tokens ({ratio:.0f}× smaller)")
@@ -1336,14 +1336,14 @@ def install(repo: Path, hooks: bool, agents: bool, commit_graph: bool) -> int:
         claude = repo / "CLAUDE.md"
         agents_md = repo / "AGENTS.md"
         sec = agent_section(cmd)
-        print(f"✔ AGENTS.md: {upsert_block(agents_md, sec, MARK_START, MARK_END, '# AGENTS.md' + chr(10))}")
+        print(f"[ok] AGENTS.md: {upsert_block(agents_md, sec, MARK_START, MARK_END, '# AGENTS.md' + chr(10))}")
         if claude.exists() and "@AGENTS.md" in claude.read_text(encoding="utf-8"):
             print("• CLAUDE.md imports AGENTS.md — not duplicated")
         else:
-            print(f"✔ CLAUDE.md: {upsert_block(claude, sec, MARK_START, MARK_END, '# CLAUDE.md' + chr(10))}")
+            print(f"[ok] CLAUDE.md: {upsert_block(claude, sec, MARK_START, MARK_END, '# CLAUDE.md' + chr(10))}")
         gh = repo / ".github" / "copilot-instructions.md"
         if gh.exists():
-            print(f"✔ .github/copilot-instructions.md: {upsert_block(gh, sec, MARK_START, MARK_END)}")
+            print(f"[ok] .github/copilot-instructions.md: {upsert_block(gh, sec, MARK_START, MARK_END)}")
     if hooks:
         claude_hooks(repo, f"{cmd} update --quiet")
         git_hooks(repo, f"{cmd} update --quiet")
@@ -1370,7 +1370,7 @@ def claude_hooks(repo: Path, command: str) -> None:
         groups.append(entry)
     sp.parent.mkdir(parents=True, exist_ok=True)
     sp.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print("✔ .claude/settings.json: graph refresh on SessionStart and after edits")
+    print("[ok] .claude/settings.json: graph refresh on SessionStart and after edits")
 
 
 def git_hooks(repo: Path, command: str) -> None:
@@ -1389,17 +1389,17 @@ def git_hooks(repo: Path, command: str) -> None:
             hp.chmod(0o755)
         except OSError:
             pass
-    print("✔ .git/hooks: graph refresh after commit, merge and checkout")
+    print("[ok] .git/hooks: graph refresh after commit, merge and checkout")
 
 
 def uninstall(repo: Path) -> int:
     repo = repo.resolve()
     for f in (repo / "AGENTS.md", repo / "CLAUDE.md", repo / ".github" / "copilot-instructions.md"):
         if remove_block(f, MARK_START, MARK_END):
-            print(f"✔ section removed: {rel(f, repo)}")
+            print(f"[ok] section removed: {rel(f, repo)}")
     for name in ("post-commit", "post-merge", "post-checkout"):
         if remove_block(repo / ".git" / "hooks" / name, SH_START, SH_END):
-            print(f"✔ git hook cleaned: {name}")
+            print(f"[ok] git hook cleaned: {name}")
     sp = repo / ".claude" / "settings.json"
     if sp.exists():
         try:
@@ -1411,12 +1411,12 @@ def uninstall(repo: Path) -> int:
             if not s.get("hooks"):
                 s.pop("hooks", None)
             sp.write_text(json.dumps(s, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-            print("✔ .claude/settings.json hooks removed")
+            print("[ok] .claude/settings.json hooks removed")
         except ValueError:
             pass
     if (repo / OUT_DIR).exists():
         shutil.rmtree(repo / OUT_DIR)
-        print(f"✔ {OUT_DIR}/ removed")
+        print(f"[ok] {OUT_DIR}/ removed")
     return 0
 
 
@@ -1454,7 +1454,7 @@ def main(argv: list[str]) -> int:
         out = Path(out_opt).resolve() if out_opt else root / OUT_DIR
         if cmd == "update" and not needs_update(root, out):
             if not quiet:
-                print("✔ graph up to date")
+                print("[ok] graph up to date")
             return 0
         try:
             build(root, out, quiet)
