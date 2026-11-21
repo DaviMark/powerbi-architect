@@ -1,0 +1,26 @@
+{
+  "visual": {
+    "name": "bulletKpi",
+    "displayName": "Bullet KPI",
+    "guid": "bulletKpiREPLACE_WITH_NEW_GUID_FROM_PBIVIZ_NEW",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Actual vs target per category (reference visual of the powerbi-architect skill).",
+    "supportUrl": "https://github.com/DaviMark/powerbi-architect",
+    "gitHubUrl": "https://github.com/DaviMark/powerbi-architect"
+  },
+  "apiVersion": "5.11.1",
+  "author": {
+    "name": "powerbi-architect",
+    "email": "maintainers@example.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": null,
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": [],
+  "version": "1.0.0.0"
+}
