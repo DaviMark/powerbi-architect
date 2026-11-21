@@ -1,0 +1,11 @@
+relationship 9fce74731a9205336b29
+	fromColumn: 'Fato Titulos'.id_cliente
+	toColumn: 'Dim Cliente'.id_cliente
+
+relationship a93455d6e3a72562c3c0
+	fromColumn: 'Fato Titulos'.id_regional
+	toColumn: 'Dim Regional'.id_regional
+
+relationship 313649b7b5fb5b753fc9
+	fromColumn: 'Fato Titulos'.'Data Vencimento'
+	toColumn: Calendario.Data
