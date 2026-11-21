@@ -15,7 +15,8 @@ Plus `definition.pbism` (`"version": "4.0"` or higher = TMDL) and `.platform` (F
 
 ## Syntax rules
 - **Indentation = hierarchy, with tabs.** Object at level n, its properties at n+1.
-- Names with spaces or special characters in **single quotes**: `'Fato Vendas'`, `'% Vencido'`.
+- Names with spaces or special characters in **single quotes**: `'Valor Vencido'`, `'% Vencido'`.
+  Table names follow `ft_`/`dm_` snake case ([modeling.md](modeling.md) › Naming) and need no quotes.
   Escape a quote by doubling it: `'Customer''s Name'`.
 - Object declaration with expression: `measure Name = <expr>`; multi‑line expressions start on the next
   line, indented **two levels deeper** than the object (or fenced with ```` ``` ````).
@@ -45,8 +46,8 @@ annotation __PBI_TimeIntelligenceEnabled = 0
 ## Source table
 ```tmdl
 /// Itens de nota fiscal faturados, sem devoluções.
-/// Grão: 1 linha por item · Fonte: trabalho-da-ia/sql/Fato Vendas.sql · Conexão: erp
-table 'Fato Vendas'
+/// Grão: 1 linha por item · Fonte: trabalho-da-ia/sql/ft_vendas.sql · Conexão: erp
+table ft_vendas
 
 	column id_cliente
 		dataType: int64
@@ -67,7 +68,7 @@ table 'Fato Vendas'
 		summarizeBy: none
 		sourceColumn: Valor
 
-	partition 'Fato Vendas' = m
+	partition ft_vendas = m
 		mode: import
 		source =
 				let
@@ -82,7 +83,7 @@ table 'Fato Vendas'
 table _Medidas
 
 	/// Receita líquida faturada (sem devoluções e cancelamentos).
-	measure Receita = SUM ( 'Fato Vendas'[Valor] )
+	measure Receita = SUM ( ft_vendas[Valor] )
 		formatString: \R\$ #,0
 		displayFolder: Valores
 
@@ -113,7 +114,7 @@ avoid in facts (push to SQL).
 
 ## Date table
 ```tmdl
-table Calendario
+table dm_calendario
 	dataCategory: Time
 
 	column Data
@@ -137,13 +138,13 @@ table Calendario
 ## Relationships
 ```tmdl
 relationship 5f8a6a3e-1c2d-4c1e-9a0b-0a1b2c3d4e5f
-	fromColumn: 'Fato Vendas'.id_cliente
-	toColumn: 'Dim Cliente'.id_cliente
+	fromColumn: ft_vendas.id_cliente
+	toColumn: dm_cliente.id_cliente
 
 relationship 7b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e
 	isActive: false
-	fromColumn: 'Fato Vendas'.'Data Entrega'
-	toColumn: Calendario.Data
+	fromColumn: ft_vendas.'Data Entrega'
+	toColumn: dm_calendario.Data
 ```
 Optional: `crossFilteringBehavior: bothDirections` (avoid), `toCardinality: many` (avoid).
 Relationship names: any unique id (Desktop uses GUIDs).
@@ -164,7 +165,7 @@ Relationship names: any unique id (Desktop uses GUIDs).
 role 'Gestor Filial'
 	modelPermission: read
 
-	tablePermission 'Dim Filial' = 'Dim Filial'[email_gestor] = USERPRINCIPALNAME ()
+	tablePermission dm_filial = dm_filial[email_gestor] = USERPRINCIPALNAME ()
 ```
 
 ## Calculation group
@@ -176,10 +177,10 @@ table 'Inteligência de Tempo'
 
 		calculationItem Atual = SELECTEDMEASURE ()
 
-		calculationItem AA = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( 'Calendario'[Data] ) )
+		calculationItem AA = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )
 
 		calculationItem 'Var %' =
-				VAR _aa = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( 'Calendario'[Data] ) )
+				VAR _aa = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )
 				RETURN DIVIDE ( SELECTEDMEASURE () - _aa, _aa )
 			formatStringDefinition = "0.0%"
 

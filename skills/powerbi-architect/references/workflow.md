@@ -72,7 +72,7 @@ on the 8‑px grid naming the planned visual and fields, plus a footer with the 
   numerics used only by measures, `sortByColumn` for month/weekday names and ordinal buckets).
 - Relationships: dimension `1` → fact `*`, single direction. Date relationship on the main date.
 - Measures in a dedicated measure table (`_Medidas` / `_Measures`), with description, format, folder.
-- Helper tables: `Calendario` (or source date dim), `_Documentacao`, `_Cargas` (see `documentation.md`).
+- Helper tables: `dm_calendario` (or source date dim), `_Documentacao`, `_Cargas` (see `documentation.md`).
 - With the MCP: open the PBIP folder, apply changes in a transaction, run DAX checks, save.
 
 ### Phase 4 — Report
@@ -100,7 +100,7 @@ catalog update. Ask the user to export the `.pbit` (*File › Export › Power B
 **Gate 1 message (keep it short):**
 ```
 Design + prototype ready for approval — <dashboard>
-• Model: 1 fact (<grain>), 3 dimensions, Calendario · 19 columns imported (of 63 available)
+• Model: 1 fact (<grain>), 3 dimensions, dm_calendario · 19 columns imported (of 63 available)
 • Metrics: 8 (Valores 3 · Indicadores 2 · Contagens 2 · Textos 1)
 • Pages: Visão Geral (question: …), Documentação
 • Open decisions: <1–3 bullets, each with your recommendation>

@@ -47,7 +47,7 @@ calculated tables some data types may come back blank — keep text columns.
 - **Measures:** one business sentence + exclusions. *"Saldo em aberto com vencimento anterior à data
   da carga. Exclui títulos cancelados."* Not: *"CALCULATE of SUM with filter"*.
 - **Tables:** content · grain · source file · connection. *"Parcelas de títulos a receber. Grão: 1
-  linha por parcela · Fonte: trabalho-da-ia/sql/Fato Titulos.sql · Conexão: erp"*.
+  linha por parcela · Fonte: trabalho-da-ia/sql/ft_titulos.sql · Conexão: erp"*.
 - **Columns:** only when the name is not self‑explanatory (codes, buckets, flags).
 
 ## 3. README sections (in the project language)
