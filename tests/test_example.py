@@ -1,5 +1,6 @@
 """Knowledge graph regressions on examples/contas-a-receber. Standard library only."""
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -38,7 +39,7 @@ class TestExampleGraph(unittest.TestCase):
 
     def test_report_is_much_smaller_than_sources(self):
         line = next(ln for ln in self.report.splitlines() if ln.startswith("**Token budget:**"))
-        numbers = [int(n.replace(",", "")) for n in __import__("re").findall(r"≈ ([\d,]+)", line)]
+        numbers = [int(n.replace(",", "")) for n in re.findall(r"≈ ([\d,]+)", line)]
         source, report = numbers[0], numbers[1]
         self.assertGreater(source / report, 8, line)
 
