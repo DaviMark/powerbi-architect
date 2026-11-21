@@ -1,0 +1,51 @@
+name: skill-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  skill:
+    name: SKILL.md · links · audit script
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s tests -v
+
+  pbiviz:
+    name: Reference custom visual builds with official tools
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "22"
+      - name: Scaffold with pbiviz and apply the template
+        run: |
+          npm install -g powerbi-visuals-tools@7
+          mkdir /tmp/v && cd /tmp/v
+          pbiviz new ciVisual
+          T=$GITHUB_WORKSPACE/skills/powerbi-architect/templates/pbiviz-bullet-kpi
+          cp -r $T/src $T/style $T/stringResources $T/capabilities.json ciVisual/
+          cd ciVisual
+          npm install --no-audit --no-fund d3-selection d3-scale @types/d3-selection @types/d3-scale
+          node -e "const f='pbiviz.json',p=require('./'+f);p.author={name:'ci',email:'ci@example.com'};p.visual.description='ci';p.visual.supportUrl='https://example.com';require('fs').writeFileSync(f,JSON.stringify(p,null,2))"
+      - name: Lint (official config) and package
+        working-directory: /tmp/v/ciVisual
+        run: |
+          npx eslint .
+          pbiviz package
+          ls dist/*.pbiviz

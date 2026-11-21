@@ -1,0 +1,150 @@
+{
+    "dataRoles": [
+        {
+            "displayName": "Category",
+            "displayNameKey": "Role_Category",
+            "name": "category",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Actual",
+            "displayNameKey": "Role_Actual",
+            "name": "actual",
+            "kind": "Measure"
+        },
+        {
+            "displayName": "Target",
+            "displayNameKey": "Role_Target",
+            "name": "target",
+            "kind": "Measure"
+        },
+        {
+            "displayName": "Tooltips",
+            "displayNameKey": "Role_Tooltips",
+            "name": "tooltips",
+            "kind": "Measure"
+        }
+    ],
+    "dataViewMappings": [
+        {
+            "conditions": [
+                {
+                    "category": {
+                        "max": 1
+                    },
+                    "actual": {
+                        "max": 1
+                    },
+                    "target": {
+                        "max": 1
+                    }
+                }
+            ],
+            "categorical": {
+                "categories": {
+                    "for": {
+                        "in": "category"
+                    },
+                    "dataReductionAlgorithm": {
+                        "top": {
+                            "count": 50
+                        }
+                    }
+                },
+                "values": {
+                    "select": [
+                        {
+                            "bind": {
+                                "to": "actual"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "target"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "tooltips"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "objects": {
+        "bars": {
+            "properties": {
+                "actualColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "targetColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "trackColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "labels": {
+            "properties": {
+                "show": {
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "fontSize": {
+                    "type": {
+                        "formatting": {
+                            "fontSize": true
+                        }
+                    }
+                },
+                "color": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "supportsHighlight": true,
+    "supportsLandingPage": true,
+    "supportsEmptyDataView": true,
+    "supportsKeyboardFocus": true,
+    "supportsMultiVisualSelection": true,
+    "suppressDefaultTitle": false,
+    "privileges": [],
+    "tooltips": {
+        "supportedTypes": {
+            "default": true,
+            "canvas": true
+        },
+        "roles": [
+            "tooltips"
+        ]
+    }
+}

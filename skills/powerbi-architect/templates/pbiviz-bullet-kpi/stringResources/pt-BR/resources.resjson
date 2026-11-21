@@ -1,0 +1,11 @@
+{
+  "Role_Category": "Categoria",
+  "Role_Actual": "Realizado",
+  "Role_Target": "Meta",
+  "Role_Tooltips": "Dicas de ferramenta",
+  "Landing_Title": "Bullet KPI",
+  "Landing_Hint": "Adicione uma Categoria, a medida Realizado e (opcional) a Meta.",
+  "Tip_Actual": "Realizado",
+  "Tip_Target": "Meta",
+  "Tip_Category": "Categoria"
+}

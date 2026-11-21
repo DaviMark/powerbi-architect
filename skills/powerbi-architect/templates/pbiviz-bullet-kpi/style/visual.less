@@ -1,0 +1,29 @@
+.bullet-root {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    font-family: "Segoe UI", wf_segoe-ui_normal, helvetica, arial, sans-serif;
+}
+
+.bullet-landing {
+    display: none;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #5B6470;
+    font-size: 12px;
+    text-align: center;
+    padding: 12px;
+}
+
+.bullet-row {
+    cursor: pointer;
+    outline: none;
+
+    &:focus-visible .bullet-track {
+        stroke: #1B1F24;
+        stroke-width: 2px;
+    }
+}

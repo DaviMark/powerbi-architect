@@ -1,0 +1,11 @@
+{
+  "Role_Category": "Category",
+  "Role_Actual": "Actual",
+  "Role_Target": "Target",
+  "Role_Tooltips": "Tooltips",
+  "Landing_Title": "Bullet KPI",
+  "Landing_Hint": "Add a Category, an Actual measure and (optionally) a Target measure.",
+  "Tip_Actual": "Actual",
+  "Tip_Target": "Target",
+  "Tip_Category": "Category"
+}
