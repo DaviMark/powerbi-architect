@@ -5,6 +5,24 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
+### Adicionado
+- Padrão visual inspirado no Twenty, o CRM open source: estrutura de página com sidebar de 220 px e
+  navegação de páginas, painel branco com cantos de 8 px e barra do topo de 56 px (caminho da página, data
+  da carga e filtros compactos), com a posição de cada peça em `references/report-design.md`.
+- Escala tipográfica (9 · 10 · 12 · 20 pt), fonte padrão Segoe UI quando o projeto não tem identidade
+  visual, grade de 4 px e uma seção de harmonia com a verificação final antes da entrega.
+- Convenção de nomes de tabela: `ft_<assunto>` para fatos e `dm_<entidade>` para dimensões.
+- Auditoria: regras `PBI046` (slicer grande demais), `PBI047` (fonte fora da escala), `PBI048` (visual
+  fora da grade de 4 px), `PBI049` (tabela sem `ft_`/`dm_`), `PBI050` (mais de 2 slicers na página),
+  `PBI051` (mais de uma família de fonte, ou fonte fora do padrão) e `PBI052` (visual fora da página).
+- `tools/preview_pbir.py`: prévia do layout de um relatório PBIR em HTML, sem o Power BI Desktop.
+### Alterado
+- Tema refeito com os neutros e as cores do Twenty, mantendo contraste de 4,5:1 no texto; estilos
+  prontos para navegação de páginas, cartões, tabelas, slicers, caixas de texto e formas.
+- Projeto de exemplo e modelos de página PBIR com a estrutura nova e as tabelas renomeadas
+  (`ft_titulos`, `dm_cliente`, `dm_regional`, `dm_calendario`).
+- A regra de no máximo 8 visuais por página (auditoria e grafo) deixa de contar os slicers, que têm
+  limite próprio.
 
 ## [1.2.0] — 2026-11-21
 ### Adicionado
