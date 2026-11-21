@@ -1,0 +1,18 @@
+name: Dúvida
+description: Como instalar ou usar a skill?
+title: "[Dúvida] "
+labels: ["dúvida"]
+body:
+  - type: markdown
+    attributes:
+      value: Confira o [README](https://github.com/DaviMark/powerbi-architect#readme) primeiro. English is welcome too.
+  - type: textarea
+    id: question
+    attributes:
+      label: Dúvida
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Agente, sistema operacional e versão da skill

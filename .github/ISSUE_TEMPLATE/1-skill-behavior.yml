@@ -1,0 +1,67 @@
+name: Comportamento da IA
+description: A IA não seguiu a skill (modelo mal desenhado, DAX ruim, etapas a mais no Power Query, visual errado...)
+title: "[Comportamento] "
+labels: ["comportamento-da-skill", "triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por testar a skill! English is welcome too.
+        **Não cole dados reais, nomes de servidor, credenciais ou nomes de empresa.** Anonimize antes.
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Agente / ferramenta
+      options:
+        - Claude Code
+        - GitHub Copilot
+        - Cursor
+        - OpenAI Codex
+        - Gemini CLI
+        - Outro (descreva abaixo)
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Modelo
+      placeholder: o nome do modelo mostrado pelo seu agente
+  - type: input
+    id: version
+    attributes:
+      label: Versão da skill
+      description: "`metadata.version` no SKILL.md, ou a tag da release"
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: Prompt
+      description: O que você pediu ao agente (anonimizado).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Esperado (segundo a skill)
+      description: Qual princípio, referência ou item do checklist deveria ter sido aplicado? Coloque o link se puder.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: O que o agente fez
+      description: Cole a parte relevante da resposta, DAX, M, TMDL ou PBIR (anonimizado).
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Verificações
+      options:
+        - label: A skill estava instalada e carregada (o agente a mencionou ou seguiu outras regras dela)
+          required: true
+        - label: Removi dados reais, servidores e credenciais desta issue
+          required: true

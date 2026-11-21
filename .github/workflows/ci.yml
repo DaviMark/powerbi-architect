@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   skill:
-    name: SKILL.md · links · audit script
+    name: SKILL.md · links · script de auditoria
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,7 +23,7 @@ jobs:
       - run: python -m unittest discover -s tests -v
 
   pbiviz:
-    name: Reference custom visual builds with official tools
+    name: Visual de referência compila com as ferramentas oficiais
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
-      - name: Scaffold with pbiviz and apply the template
+      - name: Criar projeto com pbiviz e aplicar o template
         run: |
           npm install -g powerbi-visuals-tools@7
           mkdir /tmp/v && cd /tmp/v
@@ -43,7 +43,7 @@ jobs:
           cd ciVisual
           npm install --no-audit --no-fund d3-selection d3-scale @types/d3-selection @types/d3-scale
           node -e "const f='pbiviz.json',p=require('./'+f);p.author={name:'ci',email:'ci@example.com'};p.visual.description='ci';p.visual.supportUrl='https://example.com';require('fs').writeFileSync(f,JSON.stringify(p,null,2))"
-      - name: Lint (official config) and package
+      - name: Lint (configuração oficial) e empacotamento
         working-directory: /tmp/v/ciVisual
         run: |
           npx eslint .

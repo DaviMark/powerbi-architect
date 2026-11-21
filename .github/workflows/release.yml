@@ -1,0 +1,41 @@
+name: release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Release no GitHub com o zip da skill
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s tests -v
+      - name: A tag deve bater com a versão do SKILL.md e ter entrada no CHANGELOG
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          V="${TAG#v}"
+          grep -q "version: \"$V\"" skills/powerbi-architect/SKILL.md \
+            || { echo "::error::metadata.version no SKILL.md não é $V"; exit 1; }
+          awk -v v="$V" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "::error::CHANGELOG.md não tem seção para [$V]"; exit 1; }
+      - name: Empacotar e publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          (cd skills && zip -qr "../powerbi-architect-$TAG.zip" powerbi-architect)
+          gh release create "$TAG" "powerbi-architect-$TAG.zip" --title "Power BI Architect $TAG" --notes-file notes.md --verify-tag

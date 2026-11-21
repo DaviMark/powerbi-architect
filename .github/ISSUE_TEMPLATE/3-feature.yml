@@ -1,0 +1,34 @@
+name: Ideia / melhoria
+description: Novo padrão de DAX, conector, arquétipo de página, referência, achado do grafo, tradução...
+title: "[Ideia] "
+labels: ["melhoria", "triagem"]
+body:
+  - type: markdown
+    attributes:
+      value: English is welcome too.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: Com o que um desenvolvedor Power BI sofre hoje, com ou sem a skill?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: O que a skill deveria ensinar ou fazer? Onde isso ficaria (SKILL.md, uma referência, um script)?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Você abriria um PR?
+      options:
+        - "Sim"
+        - "Talvez, com orientação"
+        - "Não"
