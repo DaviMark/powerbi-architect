@@ -23,21 +23,24 @@ sidebar and keep the panel and top bar). Canvas 1280×720, positions in px:
 | App mark | 16, 20, 16, 16 | rounded square in the accent colour, or the 16 px logo |
 | App name | 40, 16, 172, 24 | text box, 10 pt Segoe UI Semibold, `#333333` |
 | Section label | 8, 52, 204, 24 | text box, 9 pt, `#757575` ("Páginas", "Apoio") |
-| Page navigator | 8, 76, 204, 28·n + 2·(n−1) | vertical, 28 px items, 2 px gap, radius 8, text 10 pt left-aligned with 8 px margin; default `#666666` on transparent, hover `#EBEBEB`, selected `#E3E3E3` + `#333333` semibold |
+| Page navigator | 8, 76, 204, 32·n | vertical, 32 px items, radius 8, text 10 pt left-aligned with a 32 px margin; default `#666666` on transparent, hover `#EBEBEB`, selected `#E3E3E3` + `#333333` semibold. Only visible pages (drill-through and tooltip pages are hidden) |
+| Page icons | 16, 84 + 32·i, 16, 16 | one 16 px Tabler icon per visible page, grey, centred on its navigator item ([templates/icons](../templates/icons/README.md)) |
 | Panel | 220, 12, 1048, 696 | shape with container background `#FFFFFF`, border 1 px `#EBEBEB`, radius 8 |
-| Breadcrumb | 232, 28, ≤ 520, 24 | text box: `<Report>  /  ` 12 pt `#757575` + page name 12 pt semibold `#333333` |
+| Breadcrumb | 232, 28, ≤ 520, 24 | text box: `<Report>  /  ` 12 pt `#757575` + page name 12 pt semibold `#333333`; on drill-through pages a 24 px back arrow at 232 and the breadcrumb at 264 (`<Report> / <Parent> / <Page>`) |
 | Top bar right | right edge 1256, y 20–28 | "Updated at" text (9 pt `#757575`, card without chrome) and ≤ 2 compact slicers (176×40) |
 | Hairline | 220, 68, 1048, 1 | shape fill `#EBEBEB` |
 | Content | 232, 80, 1024, 616 | everything else lives here, 16 px gutters |
 
-The theme in [templates/theme/](../templates/theme/powerbi-architect-acessivel.json) already styles the
+`scripts/pbir_layout.py` writes all of this from a layout spec. The theme in [templates/theme/](../templates/theme/powerbi-architect-acessivel.json) already styles the
 navigator, cards, tables, slicers, text boxes and shapes this way; the example
 [examples/contas-a-receber](../../../examples/contas-a-receber) and the page templates in
 [templates/pbir-pages/](../templates/pbir-pages/README.md) implement the shell. Copy them, do not redraw it.
 
 **Components inside the content area:**
 - KPI card: white, hairline border, radius 8; label 9 pt `#666666` (container title); value 20 pt
-  semibold `#333333`; optional variation line 9 pt in good/bad colour. Height 88, 4 per row.
+  semibold `#333333`; one 9 pt line at the bottom (12 px in, 20 px high): context ("R$ 14,4 mi ainda a
+  vencer", grey) or distance to target / previous period with ▲/▼ coloured by a measure that knows
+  whether up is good ([dax.md](dax.md) › KPI lines). Height 88, 4 per row.
 - Chart card: title 10 pt semibold, sentence case, left; data labels instead of axes; no gridlines,
   no axis titles, legend only with 2+ series (top-left, 9 pt).
 - Table: header 9 pt semibold `#666666`, values 9 pt `#333333`, horizontal hairlines `#F1F1F1` only,
@@ -96,14 +99,16 @@ For each page, fill this before placing any visual:
 ```
 
 ## 4. Page archetypes
-| Archetype | Use | Structure |
+Ready as layout spec rows and as PBIR in [templates/pbir-pages/](../templates/pbir-pages/README.md):
+
+| Archetype | Use | Rows in the content area |
 |---|---|---|
-| **Overview** | executive, recurring meeting | headline + 4 KPIs + 2 explanations + trend |
-| **Diagnostic** | "why did it change?" | KPI with variance + decomposition/waterfall + breakdowns |
-| **Operational list** | daily action | filters + prioritized table with conditional formatting |
-| **Drill‑through detail** | one entity (customer, product) | entity header + KPIs + history + transactions |
-| **Tooltip page** | context on hover | 320×240, 1–2 tiny visuals |
-| **Documentation** | trust | metrics catalog + loads + last refresh (mandatory) |
+| **Overview** | executive, recurring meeting | 4 KPIs (88) · trend 2/3 + buckets 1/3 (248) · ranking with tooltip page (248) |
+| **Diagnostic** | "where / why?" | waterfall of the parts 2/3 + breakdown 1/3 (300) · table with one conditional colour (300) |
+| **Operational list** | daily action | one prioritized table (616), one column coloured by a measure, drill-through by right click |
+| **Drill‑through detail** | one entity (customer, product) | back arrow + breadcrumb · 4 KPIs (88) · history 1/2 + breakdown 1/2 (512); hidden page |
+| **Tooltip page** | context on hover | 320×240, one small visual, white background; hidden page |
+| **Documentation** | trust | metrics catalog 3/5 + loads 2/5 (616) (mandatory) |
 
 Navigation: page tabs are enough for ≤ 6 pages. Use buttons/bookmarks only when they reduce clicks.
 
@@ -149,12 +154,17 @@ Limits enforced by the audit (`PBI047`): text boxes ≤ 14 pt, KPI values ≤ 24
   brand's, keeping the contrast.
 
 ## 7. Visual craft
+The theme sets these defaults; only override per visual with a reason.
 - **Bars**: start at zero; sort by value (except time/ordinal); data labels on, value axis off;
   horizontal bars for long category names.
-- **Lines**: time on X; ≤ 4 series; label the last point; no markers unless sparse data.
+- **Lines**: time on X; ≤ 4 series; 2 px stroke, no markers (theme); label the last point; title from a
+  measure that states the current value.
+- **Waterfall**: parts that add up to a total (aging buckets, variance by driver); sentiment colours
+  follow the metric (more overdue = red: set `increase` red); total in grey.
 - **Cards**: one number + short label; show variance as a second line (`▲ 4,2% vs AA`) via measure.
-- **Tables**: right‑align numbers; conditional formatting on one column max; totals intentional;
-  column widths fit content; ≤ 7 columns visible.
+- **Tables**: right‑align numbers; one column coloured by a measure at most (`highlight` in the layout
+  spec), the colour measure returns a hex that passes 4.5:1; horizontal hairlines only; totals
+  intentional; column widths fit content; ≤ 7 columns visible.
 - **Matrix**: subtotals only where they mean something; stepped layout; collapse by default.
 - **Pies/donuts**: only for 2–3 parts of a whole that sum to 100 %.
 - **Maps**: only when location *is* the insight.
@@ -180,10 +190,18 @@ Limits enforced by the audit (`PBI047`): text boxes ≤ 14 pt, KPI values ≤ 24
 - Titles and subtitles meaningful for screen readers.
 
 ## 10. Mobile
-If users open it on phones, create the mobile layout: headline, 2–4 KPIs stacked, one trend,
-filters at the top. Don't shrink the desktop page.
+If users open it on phones, give every page a phone layout (`mobile.json` next to each visual). The
+layout engine writes it: slicers on top, then each KPI full width (88), then the charts and tables full
+width (≤ 240 high), on a 320 px wide canvas with 8 px margins; the sidebar, panel and top-bar chrome are
+left out. Check it with `preview_pbir.py --mobile`, and once in Desktop's mobile layout view (the phone
+canvas size has not been verified against Desktop yet). Never shrink the desktop page.
 
 ## 11. Harmony: the pass before you show anyone
+**Look before you judge.** Render every page with `scripts/preview_pbir.py` (with a `--sample` file so
+labels have real length) and look at the images: what does the eye land on first, is anything cramped,
+truncated, floating or louder than it should be? An agent that has not looked at the page has not
+reviewed it. Then go through the list:
+
 Design it as if the most demanding product designer you can imagine will review it: everything has a
 reason, nothing is louder than it needs to be, and the page feels inevitable.
 
@@ -198,8 +216,11 @@ reason, nothing is louder than it needs to be, and the page feels inevitable.
    carry no meaning, no duplicated labels.
 6. **Consistency across pages.** Same shell, same positions for the same things (filters always in the
    top bar, updated-at always top-right), same colours for the same meaning.
-7. **Run the audit** (`scripts/audit_pbip.py`): `PBI046`–`PBI052` catch oversized slicers, large fonts,
-   off-grid visuals, extra slicers, mixed fonts and visuals outside the page.
+7. **Words.** Titles, labels, measure names and empty states follow [copywriting.md](copywriting.md).
+8. **Run the audit** with `--min-harmony 90`: `PBI046`–`PBI058` catch oversized slicers, large fonts,
+   off-grid visuals, extra slicers, mixed fonts, visuals outside the page, wrong tab order, low-contrast
+   text, generic or missing titles, axis titles and too many colours. Each page gets a harmony score
+   (100 minus 20 per blocker, 10 per important finding, 4 per suggestion); deliver at 90 or more.
 
 ## 12. Review ritual (before Gate 2)
 1. Squint test: does the eye land on the headline first?
