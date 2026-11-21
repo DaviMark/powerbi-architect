@@ -123,15 +123,21 @@ Calculation groups, field parameters, visual calculations and DAX functions (onl
 Think like a product designer obsessed with the user: start from the decision the person must make
 and work backwards to the pixels. Remove until it breaks, then add back one thing.
 
-- **Never generic, never the default Microsoft look.** Every report is a branded product: app shell
-  (brand-color sidebar with logo and page navigator, white top bar with breadcrumb, period and Filters),
-  white rounded cards on a soft canvas, brand color ramp. Spec: [references/report-design.md](references/report-design.md) §0.
-- 1280×720, 8‑px grid, 20‑px margins, 16‑px gutters; aligned edges; consistent visual heights.
-- KPI cards: label · value · variation vs. previous period with arrow, colored by the metric's direction.
-- Header: conclusion title · subtitle with the question · "Updated at" · at most 2 slicers.
-- Color: primary = focus, grey = context, green/red only for good/bad, ≤ 6 categories.
+- **Never generic, never the default Microsoft look.** Every report is a calm, precise product in the
+  style of Twenty (the open-source CRM): grey canvas, quiet 220 px sidebar with the page navigator,
+  white panel (radius 8, hairline border) with a 56 px top bar (breadcrumb · updated at · ≤ 2 compact
+  slicers), small type, one accent colour. Exact positions: [references/report-design.md](references/report-design.md) §0.
+  Start from the theme and page templates in `templates/`; do not redraw the shell.
+- 1280×720, **4 px grid**, 12 px panel padding, 16 px gutters; aligned edges; rows of 88 · 248 · 248.
+- **Type:** one family. No brand font → Segoe UI + Segoe UI Semibold. Sizes 9 (body) · 10 (titles) ·
+  12 (page title) · 20 (KPI value); never above 14 in text boxes or 24 anywhere.
+- **Filters stay small:** dropdown slicers 176×40 px in the top bar, at most 2 per page.
+- KPI cards: label · value · variation vs. previous period, colored by the metric's direction.
+- Color: one accent for focus, greys for context, green/red only for good/bad, ≤ 6 categories.
 - Direct data labels over axes and legends; sort by value; no 3D, gradients, shadows, pies > 3 slices.
 - Accessibility: contrast ≥ 4.5:1, alt text, tab order, color never the only signal, readable at 100 %.
+- **Harmony pass** before showing anyone: one font, one accent, one gutter, one radius; every edge aligned;
+  run the audit (`PBI046`–`PBI052` check slicer size, font size, grid, slicer count, fonts, page bounds).
 
 Full guide with layouts and page archetypes: [references/report-design.md](references/report-design.md).
 
