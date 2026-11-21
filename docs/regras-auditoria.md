@@ -16,6 +16,8 @@ use `--fail-on important` num pipeline mais rígido ou `--fail-on never` só par
 
 ## Regras
 
+Os códigos `PBI044` e `PBI045` estão reservados para as regras propostas nas issues abertas.
+
 | Código | Severidade | Princípio | O que verifica | Como corrigir | Regra do BPA |
 |---|---|---|---|---|---|
 | PBI001 | Bloqueador | governança | Arquivo de dados ou configuração local dentro do projeto | Remova `.pbix`, `.abf` e `localSettings.json` do repositório e coloque-os no `.gitignore`. | — |
@@ -49,6 +51,13 @@ use `--fail-on important` num pipeline mais rígido ou `--fail-on never` só par
 | PBI041 | Sugestão | 7 | Visual customizado em uso | Registre o motivo em um ADR (árvore de decisão da skill). | — |
 | PBI042 | Sugestão | 1 | Página com nome genérico | Dê à página o nome da pergunta que ela responde. | — |
 | PBI043 | Sugestão | 8 | Projeto sem README.md | Crie o README ao lado do `.pbip` (o que é, como usar, cargas, métricas). | — |
+| PBI046 | Importante | 6 | Slicer grande demais | Slicer suspenso (dropdown ou intervalo) até 240×48 px; em lista, até 320×320 px. Filtro é coadjuvante, não protagonista. | — |
+| PBI047 | Importante | 6 | Fonte maior que a escala tipográfica | Caixas de texto até 14 pt, valor de KPI até 24 pt, todo o resto até 12 pt (escala em `references/report-design.md`). | — |
+| PBI048 | Sugestão | 6 | Visual fora da grade de 4 px | Use posição e tamanho múltiplos de 4 px para que as bordas se alinhem. Linhas de 1 px são exceção. | — |
+| PBI049 | Importante | 2 | Tabela sem o prefixo `ft_` (fato) ou `dm_` (dimensão) | Fatos começam com `ft_` e dimensões (inclusive a de datas) com `dm_`, em minúsculas e com `_`: `ft_vendas`, `dm_cliente`. Tabelas auxiliares começam com `_`. | — |
+| PBI050 | Importante | 6 | Mais de 2 slicers na página | Deixe no máximo 2 na página; o resto vai para o painel de filtros. | — |
+| PBI051 | Sugestão | 6 | Mais de uma família de fonte, ou fonte fora do padrão profissional | Uma família (Segoe UI, em dois pesos), a não ser que a identidade visual da empresa defina outra. Evite DIN, Comic Sans, Impact e similares. | — |
+| PBI052 | Importante | 6 | Visual fora da página | Mantenha todo visual dentro da largura e da altura da página. | — |
 
 ## Como silenciar uma regra
 

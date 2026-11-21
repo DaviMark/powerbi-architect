@@ -32,10 +32,13 @@ Responde a quatro perguntas de cobrança, para a diretoria financeira, com carga
 
 | Tabela | Tipo | Grão | Fonte | Modo |
 |---|---|---|---|---|
-| Fato Titulos | fato | 1 linha por parcela | `dw.fato_titulos_receber` | Import |
-| Dim Cliente | dimensão | 1 linha por cliente | `dw.dim_cliente` | Import |
-| Dim Regional | dimensão | 1 linha por regional | `dw.dim_regional` | Import |
-| Calendario | dimensão de datas | 1 linha por dia | calculada (DAX) | Import |
+| ft_titulos | fato | 1 linha por parcela | `dw.fato_titulos_receber` | Import |
+| dm_cliente | dimensão | 1 linha por cliente | `dw.dim_cliente` | Import |
+| dm_regional | dimensão | 1 linha por regional | `dw.dim_regional` | Import |
+| dm_calendario | dimensão de datas | 1 linha por dia | calculada (DAX) | Import |
+
+Fatos começam com `ft_` e dimensões com `dm_`; as tabelas auxiliares (`_Medidas`, `_Documentacao`,
+`_Cargas`) começam com `_`.
 
 Cada tabela de fonte tem **uma etapa** no Power Query: `Value.NativeQuery` com o SQL e os parâmetros.
 Filtros, nomes de colunas e faixas de atraso são resolvidos no SQL.
@@ -60,6 +63,10 @@ O catálogo completo, com a expressão DAX, fica na página **Documentação** (
   (`tools/validate_schemas.py`) e a auditoria não encontra nenhum problema. O projeto **não foi aberto no
   Power BI Desktop** durante a criação; se você abrir e o Desktop reescrever algum arquivo, abra uma issue.
 
+- Layout no padrão do Twenty: sidebar de 220 px com a navegação, painel branco com cantos de 8 px, barra do
+  topo de 56 px com o caminho da página, a data da carga e um filtro compacto (176×40). Tudo numa grade de
+  4 px, com espaçamento de 16 px entre os cartões.
+- Tipografia: Segoe UI em dois pesos, de 9 a 20 pt.
 ## Segurança e privacidade
 
 Sem dados pessoais. A função `Gestor Regional` aplica segurança por linha: cada gestor vê só a própria
@@ -70,5 +77,5 @@ regional, pelo e-mail do usuário logado.
 ```bash
 python skills/powerbi-architect/scripts/audit_pbip.py examples/contas-a-receber
 python skills/powerbi-architect/scripts/pbi_graph.py build examples/contas-a-receber --out .tmp/graph
-python skills/powerbi-architect/scripts/pbi_graph.py impact "Fato Titulos[Dias Atraso]"
+python skills/powerbi-architect/scripts/pbi_graph.py impact "ft_titulos[Dias Atraso]"
 ```

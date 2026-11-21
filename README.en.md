@@ -51,8 +51,8 @@ TMDL model, PBIR report, SQL loads, `ficha.toml`, docs. It writes `powerbi-graph
 - `graph.json` (GraphRAG-ready) and `graph.html` (interactive, offline).
 
 The agent reads the report and the card instead of dozens of `*.tmdl`/`visual.json` files. On the
-small [example project](examples/contas-a-receber), ~10.5k tokens of source become a ~0.9k-token report and a
-~1.2k-token card (12× fewer); savings grow with project size. For
+small [example project](examples/contas-a-receber), ~18.9k tokens of source become a ~1k-token report and a
+~1.3k-token card (19× fewer); savings grow with project size. For
 targeted lookups it runs `query`, `explain`, `impact` ("what breaks if I change this measure?") and
 `path`.
 

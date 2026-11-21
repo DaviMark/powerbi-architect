@@ -108,16 +108,16 @@ def col(name, dtype, *, hidden=False, fmt=None, sort_by=None, key=False, inferre
 
 def sql_partition(table, sql):
     body = sql.replace('"', '""')
-    return (f"\tpartition '{table}' = m\n\t\tmode: import\n\t\tsource =\n"
+    return (f"\tpartition {table} = m\n\t\tmode: import\n\t\tsource =\n"
             f"\t\t\t\tlet\n"
             f"\t\t\t\t    Fonte = Value.NativeQuery(Sql.Database(Servidor, Banco), \"{body}\", null, [EnableFolding = true])\n"
             f"\t\t\t\tin\n\t\t\t\t    Fonte\n")
 
 
-write(D / "tables" / "Fato Titulos.tmdl",
+write(D / "tables" / "ft_titulos.tmdl",
       "/// Parcelas de títulos a receber em aberto ou pagas nos últimos 24 meses.\n"
       "/// Grão: 1 linha por parcela · Fonte: dw.fato_titulos_receber · Conexão: dw\n"
-      "table 'Fato Titulos'\n\n"
+      "table ft_titulos\n\n"
       + col("id_cliente", "int64", hidden=True) + "\n"
       + col("id_regional", "int64", hidden=True) + "\n"
       + col("Data Vencimento", "dateTime", hidden=True, fmt="dd/mm/yyyy") + "\n"
@@ -127,35 +127,35 @@ write(D / "tables" / "Fato Titulos.tmdl",
       + "\t/// Faixa de atraso: A vencer, 1-30, 31-60, 61-90, 90+.\n"
       + col("Faixa Atraso", "string", sort_by="Faixa Atraso Ordem") + "\n"
       + col("Faixa Atraso Ordem", "int64", hidden=True) + "\n"
-      + sql_partition("Fato Titulos",
+      + sql_partition("ft_titulos",
                       "SELECT t.id_cliente, t.id_regional, t.data_vencimento AS [Data Vencimento], "
                       "t.valor_aberto AS [Valor Aberto], t.dias_atraso AS [Dias Atraso], "
                       "t.faixa_atraso AS [Faixa Atraso], t.faixa_atraso_ordem AS [Faixa Atraso Ordem] "
                       "FROM dw.fato_titulos_receber AS t WHERE t.valor_aberto > 0"))
 
-write(D / "tables" / "Dim Cliente.tmdl",
+write(D / "tables" / "dm_cliente.tmdl",
       "/// Clientes com título a receber.\n"
       "/// Grão: 1 linha por cliente · Fonte: dw.dim_cliente · Conexão: dw\n"
-      "table 'Dim Cliente'\n\n"
+      "table dm_cliente\n\n"
       + col("id_cliente", "int64", hidden=True, key=True) + "\n"
       + col("Cliente", "string") + "\n"
       + col("Segmento", "string") + "\n"
-      + sql_partition("Dim Cliente",
+      + sql_partition("dm_cliente",
                       "SELECT c.id_cliente, c.nome_fantasia AS Cliente, c.segmento AS Segmento FROM dw.dim_cliente AS c"))
 
-write(D / "tables" / "Dim Regional.tmdl",
+write(D / "tables" / "dm_regional.tmdl",
       "/// Regionais de venda e o e-mail do gestor (usado na segurança por linha).\n"
       "/// Grão: 1 linha por regional · Fonte: dw.dim_regional · Conexão: dw\n"
-      "table 'Dim Regional'\n\n"
+      "table dm_regional\n\n"
       + col("id_regional", "int64", hidden=True, key=True) + "\n"
       + col("Regional", "string") + "\n"
       + col("Email Gestor", "string", hidden=True) + "\n"
-      + sql_partition("Dim Regional",
+      + sql_partition("dm_regional",
                       "SELECT r.id_regional, r.nome AS Regional, r.email_gestor AS [Email Gestor] FROM dw.dim_regional AS r"))
 
-write(D / "tables" / "Calendario.tmdl",
+write(D / "tables" / "dm_calendario.tmdl",
       "/// Calendário de 24 meses até o fim do ano corrente. Marcado como tabela de datas.\n"
-      "table Calendario\n\tdataCategory: Time\n\n"
+      "table dm_calendario\n\tdataCategory: Time\n\n"
       + col("Data", "dateTime", key=True, fmt="dd/mm/yyyy", inferred=True) + "\n"
       + col("Ano", "int64", fmt="0", inferred=True) + "\n"
       + col("Mês Nº", "int64", hidden=True, inferred=True) + "\n"
@@ -163,7 +163,7 @@ write(D / "tables" / "Calendario.tmdl",
       + col("Ano-Mês Nº", "int64", hidden=True, inferred=True) + "\n"
       + col("Ano-Mês", "string", sort_by="Ano-Mês Nº", inferred=True) + "\n"
       + "\thierarchy 'Ano > Mês'\n\n\t\tlevel Ano\n\t\t\tcolumn: Ano\n\n\t\tlevel Mês\n\t\t\tcolumn: Mês\n\n"
-      + "\tpartition Calendario = calculated\n\t\tmode: import\n\t\tsource =\n"
+      + "\tpartition dm_calendario = calculated\n\t\tmode: import\n\t\tsource =\n"
       + "\t\t\t\tVAR _fim = DATE ( YEAR ( TODAY () ), 12, 31 )\n"
       + "\t\t\t\tVAR _inicio = DATE ( YEAR ( TODAY () ) - 1, 1, 1 )\n"
       + "\t\t\t\tRETURN\n"
@@ -179,15 +179,17 @@ write(D / "tables" / "Calendario.tmdl",
 
 MEASURES = [
     ("Valor Aberto", "Saldo em aberto das parcelas, vencidas ou a vencer.",
-     "SUM ( 'Fato Titulos'[Valor Aberto] )", r"\R\$ #,0", "Valores"),
+     "SUM ( ft_titulos[Valor Aberto] )", r"\R\$ #,0", "Valores"),
     ("Valor Vencido", "Saldo em aberto das parcelas com vencimento anterior à data da carga.",
-     "CALCULATE ( [Valor Aberto], 'Fato Titulos'[Dias Atraso] > 0 )", r"\R\$ #,0", "Valores"),
+     "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 0 )", r"\R\$ #,0", "Valores"),
     ("% Vencido", "Parcela do saldo em aberto que já venceu.",
      "DIVIDE ( [Valor Vencido], [Valor Aberto] )", "0.0%", "Indicadores"),
     ("Dias Atraso Medio", "Média de dias de atraso das parcelas vencidas, ponderada pelo saldo em aberto.",
-     "DIVIDE (\n\t\t\tSUMX (\n\t\t\t\tFILTER ( 'Fato Titulos', 'Fato Titulos'[Dias Atraso] > 0 ),\n"
-     "\t\t\t\t'Fato Titulos'[Dias Atraso] * 'Fato Titulos'[Valor Aberto]\n\t\t\t),\n\t\t\t[Valor Vencido]\n\t\t)",
+     "DIVIDE (\n\t\t\tSUMX (\n\t\t\t\tFILTER ( ft_titulos, ft_titulos[Dias Atraso] > 0 ),\n"
+     "\t\t\t\tft_titulos[Dias Atraso] * ft_titulos[Valor Aberto]\n\t\t\t),\n\t\t\t[Valor Vencido]\n\t\t)",
      "#,0", "Indicadores"),
+    ("Texto Atualizacao", "Data e hora da última carga, para a barra do topo.",
+     "\"Atualizado em \" & FORMAT ( MAX ( '_Medidas'[Data Carga] ), \"dd/mm/yyyy hh:nn\" )", None, "Títulos"),
     ("Titulo Vencido", "Título dinâmico da página Visão Geral: valor vencido e participação no saldo.",
      "\"Vencido: \" & FORMAT ( [Valor Vencido], \"R$ #,0\" ) & \" (\" & FORMAT ( [% Vencido], \"0.0%\" ) & \" do saldo)\"",
      None, "Títulos"),
@@ -245,15 +247,15 @@ write(D / "tables" / "_Cargas.tmdl",
 
 write(D / "relationships.tmdl", "".join(
     f"relationship {hid('rel', f, t)}\n\tfromColumn: {f}\n\ttoColumn: {t}\n\n" for f, t in (
-        ("'Fato Titulos'.id_cliente", "'Dim Cliente'.id_cliente"),
-        ("'Fato Titulos'.id_regional", "'Dim Regional'.id_regional"),
-        ("'Fato Titulos'.'Data Vencimento'", "Calendario.Data"),
+        ("ft_titulos.id_cliente", "dm_cliente.id_cliente"),
+        ("ft_titulos.id_regional", "dm_regional.id_regional"),
+        ("ft_titulos.'Data Vencimento'", "dm_calendario.Data"),
     )).rstrip("\n") + "\n")
 
 write(D / "roles" / "Gestor Regional.tmdl",
       "/// Cada gestor vê apenas a própria regional.\n"
       "role 'Gestor Regional'\n\tmodelPermission: read\n\n"
-      "\ttablePermission 'Dim Regional' = 'Dim Regional'[Email Gestor] = USERPRINCIPALNAME ()\n")
+      "\ttablePermission dm_regional = dm_regional[Email Gestor] = USERPRINCIPALNAME ()\n")
 
 # ----------------------------------------------------------------------------- report (PBIR)
 R = RP / "definition"
@@ -276,8 +278,16 @@ wjson(R / "report.json", {
 })
 
 
+# ----------------------------------------------------------------------------- report helpers
+INK, INK2, INK3, LINE, ACCENT = "#333333", "#666666", "#757575", "#EBEBEB", "#3E63DD"
+
+
 def lit(v: str):
     return {"expr": {"Literal": {"Value": v}}}
+
+
+def color(hex_):
+    return {"solid": {"color": lit(f"'{hex_}'")}}
 
 
 def field(kind, entity, prop):
@@ -288,21 +298,37 @@ def proj(kind, entity, prop):
     return {"field": field(kind, entity, prop), "queryRef": f"{entity}.{prop}", "nativeQueryRef": prop}
 
 
-def container(page, vid, x, y, w, h, z, visual):
+def container(vid, x, y, w, h, z, visual):
     return {"$schema": f"{SCHEMA}/item/report/definition/visualContainer/1.1.0/schema.json",
             "name": vid, "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": z},
             "visual": visual}
 
 
-def textbox(text, size="20pt", bold=True):
-    style = {"fontSize": size}
-    if bold:
-        style["fontWeight"] = "bold"
-    return {"visualType": "textbox", "objects": {"general": [{"properties": {"paragraphs": [
-        {"textRuns": [{"value": text, "textStyle": style}]}]}}]}, "drillFilterOtherVisuals": True}
+def text_run(value, size, ink, semibold=False):
+    return {"value": value, "textStyle": {"fontFamily": "Segoe UI Semibold" if semibold else "Segoe UI",
+                                          "fontSize": f"{size}pt", "color": ink}}
 
 
-def data_visual(vtype, roles, alt, title=None, title_measure=None, sort=None, extra_objects=None):
+def textbox(*runs):
+    return {"visualType": "textbox",
+            "objects": {"general": [{"properties": {"paragraphs": [{"textRuns": list(runs)}]}}]},
+            "drillFilterOtherVisuals": True}
+
+
+def shape(fill, *, panel=False, rounded=False):
+    v = {"visualType": "shape",
+         "objects": {"shape": [{"properties": {"tileShape": lit("'rectangleRounded'" if rounded else "'rectangle'")}}],
+                     "fill": [{"properties": {"show": lit("true"), "fillColor": color(fill)}}],
+                     "outline": [{"properties": {"show": lit("false")}}]},
+         "drillFilterOtherVisuals": True}
+    if panel:   # the white content panel: background and hairline border on the container, radius 8
+        v["visualContainerObjects"] = {
+            "background": [{"properties": {"show": lit("true"), "color": color("#FFFFFF")}}],
+            "border": [{"properties": {"show": lit("true"), "color": color(LINE), "radius": lit("8D")}}]}
+    return v
+
+
+def data_visual(vtype, roles, alt, title=None, title_measure=None, sort=None, objects=None, chrome=True):
     v = {"visualType": vtype, "query": {"queryState": roles}}
     if sort:
         v["query"]["sortDefinition"] = {"sort": [{"field": field(*sort[0]), "direction": sort[1]}],
@@ -312,77 +338,101 @@ def data_visual(vtype, roles, alt, title=None, title_measure=None, sort=None, ex
         vco["title"] = [{"properties": {"show": lit("true"), "text": {"expr": field("Measure", "_Medidas", title_measure)}}}]
     elif title:
         vco["title"] = [{"properties": {"show": lit("true"), "text": lit(f"'{title}'")}}]
+    if not chrome:  # sits directly on the top bar: no card around it
+        vco["title"] = [{"properties": {"show": lit("false")}}]
+        vco["background"] = [{"properties": {"show": lit("false")}}]
+        vco["border"] = [{"properties": {"show": lit("false")}}]
     v["visualContainerObjects"] = vco
-    if extra_objects:
-        v["objects"] = extra_objects
+    if objects:
+        v["objects"] = objects
     v["drillFilterOtherVisuals"] = True
     return v
 
 
+# ----------------------------------------------------------------------------- shell (Twenty-style)
+# Canvas 1280x720, 4 px grid. Sidebar 220 on the grey canvas; white panel x 220..1268, y 12..708 (12 px
+# margins = Twenty spacing 3); top bar 56 px (y 12..68, content centred on y 40) inside the panel; content x 232..1256 (1024), y 80..696 (616).
 M = "_Medidas"
+APP = "Contas a receber"
 pages = []
 
 
-def page(display, visuals):
+def shell(display, with_slicer):
+    items = [
+        ("painel", (220, 12, 1048, 696), shape("#FFFFFF", panel=True)),
+        ("logo", (16, 20, 16, 16), shape(ACCENT, rounded=True)),
+        ("app", (40, 16, 172, 24), textbox(text_run(APP, 10, INK, semibold=True))),
+        ("secao", (8, 52, 204, 24), textbox(text_run("Páginas", 9, INK3))),
+        ("navegacao", (8, 76, 204, 88), {"visualType": "pageNavigator", "drillFilterOtherVisuals": True}),
+        ("caminho", (232, 28, 520, 24), textbox(text_run(f"{APP}  /  ", 12, INK3),
+                                                 text_run(display, 12, INK, semibold=True))),
+        ("linha", (220, 68, 1048, 1), shape(LINE)),
+        ("atualizado", (864 if with_slicer else 1056, 28, 200, 24), data_visual(
+            "card", {"Values": {"projections": [proj("Measure", M, "Texto Atualizacao")]}},
+            "Data e hora da última carga", chrome=False,
+            objects={"labels": [{"properties": {"fontSize": lit("9D"), "color": color(INK3),
+                                                "fontFamily": lit("'Segoe UI'")}}]})),
+    ]
+    if with_slicer:
+        items.append(("segmento", (1080, 20, 176, 40), data_visual(
+            "slicer", {"Values": {"projections": [proj("Column", "dm_cliente", "Segmento")]}},
+            "Filtro de segmento de cliente",
+            objects={"data": [{"properties": {"mode": lit("'Dropdown'")}}]})))
+    return items
+
+
+def page(display, content, with_slicer=True):
     pid = hid("page", display)
     pages.append(pid)
     wjson(R / "pages" / pid / "page.json", {
         "$schema": f"{SCHEMA}/item/report/definition/page/1.1.0/schema.json",
         "name": pid, "displayName": display, "displayOption": "FitToPage", "height": 720, "width": 1280})
-    for i, (vid_key, pos, visual) in enumerate(visuals):
-        vid = hid("visual", display, vid_key)
-        wjson(R / "pages" / pid / "visuals" / vid / "visual.json",
-              container(pid, vid, *pos, (i + 1) * 1000, visual))
+    for i, (key, pos, visual) in enumerate(shell(display, with_slicer) + content):
+        vid = hid("visual", display, key)
+        wjson(R / "pages" / pid / "visuals" / vid / "visual.json", container(vid, *pos, i * 1000, visual))
 
 
 cards = [("Valor Aberto", "Saldo em aberto"), ("Valor Vencido", "Vencido"),
-         ("% Vencido", "% do saldo vencido"), ("Dias Atraso Medio", "Dias de atraso (média ponderada)")]
+         ("% Vencido", "% do saldo vencido"), ("Dias Atraso Medio", "Dias de atraso, média ponderada")]
 page("Visão Geral", [
-    ("titulo", (24, 16, 1232, 48), textbox("Contas a receber · posição na data da carga")),
-    *[(f"card-{m}", (24 + i * 312, 80, 296, 104), data_visual(
+    *[(f"card-{m}", (232 + i * 260, 80, 244, 88), data_visual(
         "card", {"Values": {"projections": [proj("Measure", M, m)]}}, f"{t}, na data da carga", title=t))
       for i, (m, t) in enumerate(cards)],
-    ("tendencia", (24, 200, 808, 248), data_visual(
-        "lineChart", {"Category": {"projections": [proj("Column", "Calendario", "Ano-Mês")]},
+    ("tendencia", (232, 184, 672, 248), data_visual(
+        "lineChart", {"Category": {"projections": [proj("Column", "dm_calendario", "Ano-Mês")]},
                       "Y": {"projections": [proj("Measure", M, "Valor Vencido")]}},
         "Valor vencido por mês de vencimento, últimos 24 meses", title_measure="Titulo Vencido",
-        sort=(("Column", "Calendario", "Ano-Mês"), "Ascending"))),
-    ("segmento", (848, 200, 408, 56), data_visual(
-        "slicer", {"Values": {"projections": [proj("Column", "Dim Cliente", "Segmento")]}},
-        "Filtro de segmento de cliente", title="Segmento",
-        extra_objects={"data": [{"properties": {"mode": lit("'Dropdown'")}}]})),
-    ("faixa", (848, 272, 408, 176), data_visual(
-        "clusteredColumnChart", {"Category": {"projections": [proj("Column", "Fato Titulos", "Faixa Atraso")]},
+        sort=(("Column", "dm_calendario", "Ano-Mês"), "Ascending"))),
+    ("faixa", (920, 184, 336, 248), data_visual(
+        "clusteredColumnChart", {"Category": {"projections": [proj("Column", "ft_titulos", "Faixa Atraso")]},
                                  "Y": {"projections": [proj("Measure", M, "Valor Vencido")]}},
         "Valor vencido por faixa de atraso, em reais", title="Vencido por faixa de atraso",
-        sort=(("Column", "Fato Titulos", "Faixa Atraso"), "Ascending"))),
-    ("regional", (24, 464, 1232, 232), data_visual(
-        "clusteredBarChart", {"Category": {"projections": [proj("Column", "Dim Regional", "Regional")]},
+        sort=(("Column", "ft_titulos", "Faixa Atraso"), "Ascending"))),
+    ("regional", (232, 448, 1024, 248), data_visual(
+        "clusteredBarChart", {"Category": {"projections": [proj("Column", "dm_regional", "Regional")]},
                               "Y": {"projections": [proj("Measure", M, "Valor Vencido")]}},
         "Valor vencido por regional, do maior para o menor", title="Vencido por regional",
         sort=(("Measure", M, "Valor Vencido"), "Descending"))),
 ])
 page("Clientes", [
-    ("titulo", (24, 16, 1232, 48), textbox("Clientes que concentram o valor vencido")),
-    ("tabela", (24, 80, 1232, 616), data_visual(
+    ("tabela", (232, 80, 1024, 616), data_visual(
         "tableEx", {"Values": {"projections": [
-            proj("Column", "Dim Cliente", "Cliente"), proj("Column", "Dim Cliente", "Segmento"),
+            proj("Column", "dm_cliente", "Cliente"), proj("Column", "dm_cliente", "Segmento"),
             proj("Measure", M, "Valor Vencido"), proj("Measure", M, "% Vencido"),
             proj("Measure", M, "Dias Atraso Medio")]}},
-        "Tabela de clientes ordenada pelo valor vencido", title="Clientes por valor vencido",
+        "Tabela de clientes ordenada pelo valor vencido", title="Clientes que concentram o valor vencido",
         sort=(("Measure", M, "Valor Vencido"), "Descending"))),
 ])
 page("Documentação", [
-    ("titulo", (24, 16, 1232, 48), textbox("Documentação · Contas a receber")),
-    ("medidas", (24, 80, 728, 616), data_visual(
+    ("medidas", (232, 80, 608, 616), data_visual(
         "tableEx", {"Values": {"projections": [proj("Column", "_Documentacao", c) for c in
                                                ("Pasta", "Medida", "Descrição", "Expressão DAX")]}},
         "Catálogo de medidas com pasta, descrição e expressão DAX", title="Medidas")),
-    ("cargas", (768, 80, 488, 616), data_visual(
+    ("cargas", (856, 80, 400, 616), data_visual(
         "tableEx", {"Values": {"projections": [proj("Column", "_Cargas", c) for c in
                                                ("Tabela", "Descrição", "Armazenamento", "Última Carga")]}},
         "Tabelas carregadas e data da última carga", title="Cargas")),
-])
+], with_slicer=False)
 wjson(R / "pages" / "pages.json", {
     "$schema": f"{SCHEMA}/item/report/definition/pagesMetadata/1.0.0/schema.json",
     "pageOrder": pages, "activePageName": pages[0]})

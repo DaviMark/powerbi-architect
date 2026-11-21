@@ -130,14 +130,14 @@ offline e lê só metadados. O resultado vai para `powerbi-graph/`:
 | `graph.json` · `graph.html` | grafo completo (pronto para GraphRAG) e visualização interativa offline |
 
 A IA lê o relatório e o card em vez de dezenas de `*.tmdl` e `visual.json`. No
-[projeto de exemplo](examples/contas-a-receber), que é pequeno, ~10,5 mil tokens de fonte viram um
-relatório de ~0,9 mil e um card de ~1,2 mil (12 vezes menos); a economia cresce com o tamanho do projeto.
+[projeto de exemplo](examples/contas-a-receber), que é pequeno, ~18,9 mil tokens de fonte viram um
+relatório de ~1 mil e um card de ~1,3 mil (19 vezes menos); a economia cresce com o tamanho do projeto.
 Os comandos abaixo funcionam sobre ele. Para buscas pontuais:
 
 ```bash
 python .claude/skills/powerbi-architect/scripts/pbi_graph.py query   "o que alimenta a página Visão Geral?"
 python .claude/skills/powerbi-architect/scripts/pbi_graph.py explain "Valor Vencido"
-python .claude/skills/powerbi-architect/scripts/pbi_graph.py impact  "Fato Titulos[Dias Atraso]"   # o que quebra se eu mudar
+python .claude/skills/powerbi-architect/scripts/pbi_graph.py impact  "ft_titulos[Dias Atraso]"   # o que quebra se eu mudar
 python .claude/skills/powerbi-architect/scripts/pbi_graph.py path    "Regional" "Valor Vencido"
 ```
 
