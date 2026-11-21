@@ -1,5 +1,6 @@
 """scripts/make_theme.py. Standard library only."""
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -15,8 +16,10 @@ import make_theme  # noqa: E402
 
 
 def run(script, *args):
+    # cp1252 is the default console encoding on Windows: the script must not crash on symbols like ≥.
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252"}
     return subprocess.run([sys.executable, str(SCRIPTS / script), *map(str, args)], capture_output=True,
-                          text=True, encoding="utf-8")
+                          text=True, encoding="utf-8", env=env)
 
 
 def visuals(report: Path):

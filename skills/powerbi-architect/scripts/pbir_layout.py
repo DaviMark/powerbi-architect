@@ -434,6 +434,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--theme", type=Path, help="theme JSON to register as the custom theme")
     ap.add_argument("--check", action="store_true", help="validate the spec without writing")
     args = ap.parse_args(argv)
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
+        except ValueError:
+            pass
     try:
         spec = json.loads(args.spec.read_text(encoding="utf-8"))
         b = Builder(spec)
