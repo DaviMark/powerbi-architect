@@ -15,7 +15,25 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 - Auditoria: regras `PBI046` (slicer grande demais), `PBI047` (fonte fora da escala), `PBI048` (visual
   fora da grade de 4 px), `PBI049` (tabela sem `ft_`/`dm_`), `PBI050` (mais de 2 slicers na página),
   `PBI051` (mais de uma família de fonte, ou fonte fora do padrão) e `PBI052` (visual fora da página).
-- `tools/preview_pbir.py`: prévia do layout de um relatório PBIR em HTML, sem o Power BI Desktop.
+- `scripts/pbir_layout.py`: gera as páginas PBIR a partir de um layout descrito em JSON (linhas de
+  visuais), com todas as posições na grade de 4 px, a estrutura da página, ícones na navegação, KPIs com
+  linha de contexto ou meta, gráficos, tabelas com uma cor condicional, páginas de drill-through com botão
+  de voltar, páginas de tooltip e layout de celular (`mobile.json`).
+- `scripts/preview_pbir.py`: prévia das páginas sem o Power BI Desktop, com dados de amostra (`--sample`),
+  layout de celular (`--mobile`) e uma imagem por página (`--png`, com o Edge ou o Chrome da máquina). O
+  `SKILL.md` passa a exigir que a IA olhe cada página antes de entregar.
+- `scripts/make_theme.py`: tema a partir da cor da marca, escurecida até passar no contraste, com 6 cores
+  de categoria sem as cores de status e recusa de fontes que o Power BI não renderiza.
+- Auditoria: regras `PBI053` (ordem do teclado), `PBI054` (contraste do texto), `PBI055` (título
+  automático), `PBI056` (visual sem título), `PBI057` (título de eixo) e `PBI058` (mais de 6 cores), e a
+  nota de harmonia de 0 a 100 por página, com `--min-harmony`.
+- Ícones de navegação (Tabler, licença MIT), seis arquétipos de página (visão geral, diagnóstico, lista
+  operacional, detalhe por drill-through, tooltip e documentação) e três visuais modernos experimentais
+  (cartão novo, slicer em botões e botão com ícone), ainda não conferidos no Power BI Desktop.
+- Referência `copywriting.md` (títulos, nomes de medida, números e textos) e padrão de DAX para as linhas
+  dos KPIs (contexto, meta e variação, com cor conforme o sentido bom da métrica).
+- Avaliações de design E11 e E12, corrigidas pelas próprias ferramentas: com a skill, 8 de 8 itens e
+  harmonia 100; sem a skill, 3 de 8 e harmonia 0 e 22 (`evals/results/2026-11-21-design`).
 ### Alterado
 - Tema refeito com os neutros e as cores do Twenty, mantendo contraste de 4,5:1 no texto; estilos
   prontos para navegação de páginas, cartões, tabelas, slicers, caixas de texto e formas.
@@ -23,6 +41,12 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   (`ft_titulos`, `dm_cliente`, `dm_regional`, `dm_calendario`).
 - A regra de no máximo 8 visuais por página (auditoria e grafo) deixa de contar os slicers, que têm
   limite próprio.
+- O tema ganhou padrões de gráfico (linha de 2 px sem marcadores, cores de cascata, espaçamento das
+  barras) e a navegação com espaço para os ícones.
+- Projeto de exemplo gerado pelo `pbir_layout.py` a partir de `layout.json`, agora com seis páginas e
+  medidas de contexto e meta para os KPIs; a medida `Dias Atraso Medio` passa a se chamar
+  `Atraso Médio (dias)`.
+- Linhas de texto sem moldura (variação do KPI, data da carga) não contam como visuais separados.
 
 ## [1.2.0] — 2026-11-21
 ### Adicionado
