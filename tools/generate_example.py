@@ -184,10 +184,39 @@ MEASURES = [
      "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 0 )", r"\R\$ #,0", "Valores"),
     ("% Vencido", "Parcela do saldo em aberto que já venceu.",
      "DIVIDE ( [Valor Vencido], [Valor Aberto] )", "0.0%", "Indicadores"),
-    ("Dias Atraso Medio", "Média de dias de atraso das parcelas vencidas, ponderada pelo saldo em aberto.",
+    ("Atraso Médio (dias)", "Média de dias de atraso das parcelas vencidas, ponderada pelo saldo em aberto.",
      "DIVIDE (\n\t\t\tSUMX (\n\t\t\t\tFILTER ( ft_titulos, ft_titulos[Dias Atraso] > 0 ),\n"
      "\t\t\t\tft_titulos[Dias Atraso] * ft_titulos[Valor Aberto]\n\t\t\t),\n\t\t\t[Valor Vencido]\n\t\t)",
      "#,0", "Indicadores"),
+    ("Valor a Vencer", "Saldo em aberto das parcelas que ainda não venceram.",
+     "[Valor Aberto] - [Valor Vencido]", r"\R\$ #,0", "Valores"),
+    ("Clientes Vencidos", "Quantidade de clientes com pelo menos uma parcela vencida.",
+     "CALCULATE ( DISTINCTCOUNT ( ft_titulos[id_cliente] ), ft_titulos[Dias Atraso] > 0 )", "#,0", "Indicadores"),
+    ("Meta % Vencido", "Meta da diretoria para a parcela vencida do saldo.", "0.15", "0%", "Metas"),
+    ("Meta Dias Atraso", "Meta da diretoria para o atraso médio, em dias.", "30", "#,0", "Metas"),
+    ("Texto A Vencer", "Linha de contexto do KPI de saldo: quanto ainda não venceu.",
+     "FORMAT ( [Valor a Vencer], \"R$ #,0\" ) & \" ainda a vencer\"", None, "Textos"),
+    ("Texto Clientes Vencidos", "Linha de contexto do KPI de vencido: quantos clientes estão em atraso.",
+     "FORMAT ( [Clientes Vencidos], \"#,0\" ) & \" clientes com parcela vencida\"", None, "Textos"),
+    ("Texto Var % Vencido", "Distância do % vencido para a meta, em pontos percentuais, com seta.",
+     "VAR _d = [% Vencido] - [Meta % Vencido] RETURN IF ( ISBLANK ( [% Vencido] ), BLANK (), "
+     "IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & "
+     "IF ( _d > 0, \"acima\", \"abaixo\" ) & \" da meta de \" & FORMAT ( [Meta % Vencido], \"0%\" ) )",
+     None, "Textos"),
+    ("Cor Var % Vencido", "Cor da linha de meta do % vencido: vermelho acima da meta, verde abaixo.",
+     "IF ( [% Vencido] > [Meta % Vencido], \"#CE2C31\", \"#00824D\" )", None, "Cores"),
+    ("Texto Var Dias Atraso", "Distância do atraso médio para a meta, em dias, com seta.",
+     "VAR _d = [Atraso Médio (dias)] - [Meta Dias Atraso] RETURN IF ( ISBLANK ( [Atraso Médio (dias)] ), BLANK (), "
+     "IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"#,0\" ) & \" dias \" & "
+     "IF ( _d > 0, \"acima\", \"abaixo\" ) & \" da meta de \" & FORMAT ( [Meta Dias Atraso], \"#,0\" ) )",
+     None, "Textos"),
+    ("Cor Var Dias Atraso", "Cor da linha de meta do atraso médio: vermelho acima da meta, verde abaixo.",
+     "IF ( [Atraso Médio (dias)] > [Meta Dias Atraso], \"#CE2C31\", \"#00824D\" )", None, "Cores"),
+    ("Cor % Vencido", "Cor do % vencido em tabelas: vermelho quando passa da meta.",
+     "IF ( [% Vencido] > [Meta % Vencido], \"#CE2C31\", \"#333333\" )", None, "Cores"),
+    ("Cor Atraso", "Cor do atraso médio em tabelas: vermelho acima de 60 dias, âmbar acima de 30.",
+     "SWITCH ( TRUE (), [Atraso Médio (dias)] > 60, \"#CE2C31\", [Atraso Médio (dias)] > 30, \"#AD6200\", \"#333333\" )",
+     None, "Cores"),
     ("Texto Atualizacao", "Data e hora da última carga, para a barra do topo.",
      "\"Atualizado em \" & FORMAT ( MAX ( '_Medidas'[Data Carga] ), \"dd/mm/yyyy hh:nn\" )", None, "Títulos"),
     ("Titulo Vencido", "Título dinâmico da página Visão Geral: valor vencido e participação no saldo.",
@@ -258,182 +287,19 @@ write(D / "roles" / "Gestor Regional.tmdl",
       "\ttablePermission dm_regional = dm_regional[Email Gestor] = USERPRINCIPALNAME ()\n")
 
 # ----------------------------------------------------------------------------- report (PBIR)
+# Pages come from layout.json through the skill's layout engine (scripts/pbir_layout.py).
+import sys  # noqa: E402
+
+sys.path.insert(0, str(Path("skills/powerbi-architect/scripts").resolve()))
+import pbir_layout  # noqa: E402
+
 R = RP / "definition"
 wjson(R / "version.json", {"$schema": f"{SCHEMA}/item/report/definition/versionMetadata/1.0.0/schema.json",
                            "version": "2.0.0"})
-theme_src = Path("skills/powerbi-architect/templates/theme/powerbi-architect-acessivel.json")
-theme_name = theme_src.name
-(RP / "StaticResources" / "RegisteredResources").mkdir(parents=True, exist_ok=True)
-shutil.copyfile(theme_src, RP / "StaticResources" / "RegisteredResources" / theme_name)
-wjson(R / "report.json", {
-    "$schema": f"{SCHEMA}/item/report/definition/report/1.0.0/schema.json",
-    "themeCollection": {"customTheme": {"name": theme_name, "reportVersionAtImport": "5.59",
-                                        "type": "RegisteredResources"}},
-    "layoutOptimization": "None",
-    "resourcePackages": [{"name": "RegisteredResources", "type": "RegisteredResources",
-                          "items": [{"name": theme_name, "path": theme_name, "type": "CustomTheme"}]}],
-    "settings": {"useStylableVisualContainerHeader": True, "exportDataMode": "AllowSummarized",
-                 "defaultDrillFilterOtherVisuals": True, "allowChangeFilterTypes": True,
-                 "useEnhancedTooltips": True},
-})
-
-
-# ----------------------------------------------------------------------------- report helpers
-INK, INK2, INK3, LINE, ACCENT = "#333333", "#666666", "#757575", "#EBEBEB", "#3E63DD"
-
-
-def lit(v: str):
-    return {"expr": {"Literal": {"Value": v}}}
-
-
-def color(hex_):
-    return {"solid": {"color": lit(f"'{hex_}'")}}
-
-
-def field(kind, entity, prop):
-    return {kind: {"Expression": {"SourceRef": {"Entity": entity}}, "Property": prop}}
-
-
-def proj(kind, entity, prop):
-    return {"field": field(kind, entity, prop), "queryRef": f"{entity}.{prop}", "nativeQueryRef": prop}
-
-
-def container(vid, x, y, w, h, z, visual):
-    return {"$schema": f"{SCHEMA}/item/report/definition/visualContainer/1.1.0/schema.json",
-            "name": vid, "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": z},
-            "visual": visual}
-
-
-def text_run(value, size, ink, semibold=False):
-    return {"value": value, "textStyle": {"fontFamily": "Segoe UI Semibold" if semibold else "Segoe UI",
-                                          "fontSize": f"{size}pt", "color": ink}}
-
-
-def textbox(*runs):
-    return {"visualType": "textbox",
-            "objects": {"general": [{"properties": {"paragraphs": [{"textRuns": list(runs)}]}}]},
-            "drillFilterOtherVisuals": True}
-
-
-def shape(fill, *, panel=False, rounded=False):
-    v = {"visualType": "shape",
-         "objects": {"shape": [{"properties": {"tileShape": lit("'rectangleRounded'" if rounded else "'rectangle'")}}],
-                     "fill": [{"properties": {"show": lit("true"), "fillColor": color(fill)}}],
-                     "outline": [{"properties": {"show": lit("false")}}]},
-         "drillFilterOtherVisuals": True}
-    if panel:   # the white content panel: background and hairline border on the container, radius 8
-        v["visualContainerObjects"] = {
-            "background": [{"properties": {"show": lit("true"), "color": color("#FFFFFF")}}],
-            "border": [{"properties": {"show": lit("true"), "color": color(LINE), "radius": lit("8D")}}]}
-    return v
-
-
-def data_visual(vtype, roles, alt, title=None, title_measure=None, sort=None, objects=None, chrome=True):
-    v = {"visualType": vtype, "query": {"queryState": roles}}
-    if sort:
-        v["query"]["sortDefinition"] = {"sort": [{"field": field(*sort[0]), "direction": sort[1]}],
-                                        "isDefaultSort": True}
-    vco = {"general": [{"properties": {"altText": lit(f"'{alt}'")}}]}
-    if title_measure:
-        vco["title"] = [{"properties": {"show": lit("true"), "text": {"expr": field("Measure", "_Medidas", title_measure)}}}]
-    elif title:
-        vco["title"] = [{"properties": {"show": lit("true"), "text": lit(f"'{title}'")}}]
-    if not chrome:  # sits directly on the top bar: no card around it
-        vco["title"] = [{"properties": {"show": lit("false")}}]
-        vco["background"] = [{"properties": {"show": lit("false")}}]
-        vco["border"] = [{"properties": {"show": lit("false")}}]
-    v["visualContainerObjects"] = vco
-    if objects:
-        v["objects"] = objects
-    v["drillFilterOtherVisuals"] = True
-    return v
-
-
-# ----------------------------------------------------------------------------- shell (Twenty-style)
-# Canvas 1280x720, 4 px grid. Sidebar 220 on the grey canvas; white panel x 220..1268, y 12..708 (12 px
-# margins = Twenty spacing 3); top bar 56 px (y 12..68, content centred on y 40) inside the panel; content x 232..1256 (1024), y 80..696 (616).
-M = "_Medidas"
-APP = "Contas a receber"
-pages = []
-
-
-def shell(display, with_slicer):
-    items = [
-        ("painel", (220, 12, 1048, 696), shape("#FFFFFF", panel=True)),
-        ("logo", (16, 20, 16, 16), shape(ACCENT, rounded=True)),
-        ("app", (40, 16, 172, 24), textbox(text_run(APP, 10, INK, semibold=True))),
-        ("secao", (8, 52, 204, 24), textbox(text_run("Páginas", 9, INK3))),
-        ("navegacao", (8, 76, 204, 88), {"visualType": "pageNavigator", "drillFilterOtherVisuals": True}),
-        ("caminho", (232, 28, 520, 24), textbox(text_run(f"{APP}  /  ", 12, INK3),
-                                                 text_run(display, 12, INK, semibold=True))),
-        ("linha", (220, 68, 1048, 1), shape(LINE)),
-        ("atualizado", (864 if with_slicer else 1056, 28, 200, 24), data_visual(
-            "card", {"Values": {"projections": [proj("Measure", M, "Texto Atualizacao")]}},
-            "Data e hora da última carga", chrome=False,
-            objects={"labels": [{"properties": {"fontSize": lit("9D"), "color": color(INK3),
-                                                "fontFamily": lit("'Segoe UI'")}}]})),
-    ]
-    if with_slicer:
-        items.append(("segmento", (1080, 20, 176, 40), data_visual(
-            "slicer", {"Values": {"projections": [proj("Column", "dm_cliente", "Segmento")]}},
-            "Filtro de segmento de cliente",
-            objects={"data": [{"properties": {"mode": lit("'Dropdown'")}}]})))
-    return items
-
-
-def page(display, content, with_slicer=True):
-    pid = hid("page", display)
-    pages.append(pid)
-    wjson(R / "pages" / pid / "page.json", {
-        "$schema": f"{SCHEMA}/item/report/definition/page/1.1.0/schema.json",
-        "name": pid, "displayName": display, "displayOption": "FitToPage", "height": 720, "width": 1280})
-    for i, (key, pos, visual) in enumerate(shell(display, with_slicer) + content):
-        vid = hid("visual", display, key)
-        wjson(R / "pages" / pid / "visuals" / vid / "visual.json", container(vid, *pos, i * 1000, visual))
-
-
-cards = [("Valor Aberto", "Saldo em aberto"), ("Valor Vencido", "Vencido"),
-         ("% Vencido", "% do saldo vencido"), ("Dias Atraso Medio", "Dias de atraso, média ponderada")]
-page("Visão Geral", [
-    *[(f"card-{m}", (232 + i * 260, 80, 244, 88), data_visual(
-        "card", {"Values": {"projections": [proj("Measure", M, m)]}}, f"{t}, na data da carga", title=t))
-      for i, (m, t) in enumerate(cards)],
-    ("tendencia", (232, 184, 672, 248), data_visual(
-        "lineChart", {"Category": {"projections": [proj("Column", "dm_calendario", "Ano-Mês")]},
-                      "Y": {"projections": [proj("Measure", M, "Valor Vencido")]}},
-        "Valor vencido por mês de vencimento, últimos 24 meses", title_measure="Titulo Vencido",
-        sort=(("Column", "dm_calendario", "Ano-Mês"), "Ascending"))),
-    ("faixa", (920, 184, 336, 248), data_visual(
-        "clusteredColumnChart", {"Category": {"projections": [proj("Column", "ft_titulos", "Faixa Atraso")]},
-                                 "Y": {"projections": [proj("Measure", M, "Valor Vencido")]}},
-        "Valor vencido por faixa de atraso, em reais", title="Vencido por faixa de atraso",
-        sort=(("Column", "ft_titulos", "Faixa Atraso"), "Ascending"))),
-    ("regional", (232, 448, 1024, 248), data_visual(
-        "clusteredBarChart", {"Category": {"projections": [proj("Column", "dm_regional", "Regional")]},
-                              "Y": {"projections": [proj("Measure", M, "Valor Vencido")]}},
-        "Valor vencido por regional, do maior para o menor", title="Vencido por regional",
-        sort=(("Measure", M, "Valor Vencido"), "Descending"))),
-])
-page("Clientes", [
-    ("tabela", (232, 80, 1024, 616), data_visual(
-        "tableEx", {"Values": {"projections": [
-            proj("Column", "dm_cliente", "Cliente"), proj("Column", "dm_cliente", "Segmento"),
-            proj("Measure", M, "Valor Vencido"), proj("Measure", M, "% Vencido"),
-            proj("Measure", M, "Dias Atraso Medio")]}},
-        "Tabela de clientes ordenada pelo valor vencido", title="Clientes que concentram o valor vencido",
-        sort=(("Measure", M, "Valor Vencido"), "Descending"))),
-])
-page("Documentação", [
-    ("medidas", (232, 80, 608, 616), data_visual(
-        "tableEx", {"Values": {"projections": [proj("Column", "_Documentacao", c) for c in
-                                               ("Pasta", "Medida", "Descrição", "Expressão DAX")]}},
-        "Catálogo de medidas com pasta, descrição e expressão DAX", title="Medidas")),
-    ("cargas", (856, 80, 400, 616), data_visual(
-        "tableEx", {"Values": {"projections": [proj("Column", "_Cargas", c) for c in
-                                               ("Tabela", "Descrição", "Armazenamento", "Última Carga")]}},
-        "Tabelas carregadas e data da última carga", title="Cargas")),
-], with_slicer=False)
-wjson(R / "pages" / "pages.json", {
-    "$schema": f"{SCHEMA}/item/report/definition/pagesMetadata/1.0.0/schema.json",
-    "pageOrder": pages, "activePageName": pages[0]})
+if (R / "report.json").exists():
+    (R / "report.json").unlink()
+spec = json.loads((ROOT / "layout.json").read_text(encoding="utf-8"))
+builder = pbir_layout.Builder(spec)
+builder.build(RP)
+builder.register_resources(RP, Path("skills/powerbi-architect/templates/theme/powerbi-architect-acessivel.json"))
 print("ok", sum(1 for _ in ROOT.rglob("*") if _.is_file()), "files")

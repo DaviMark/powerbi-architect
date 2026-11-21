@@ -46,7 +46,7 @@ class TestExampleGraph(unittest.TestCase):
     def test_readme_commands_work(self):
         """The commands shown in README.md must answer on the example."""
         impact = graph(self.repo, "impact", "ft_titulos[Dias Atraso]").stdout
-        for expected in ("Valor Vencido", "Dias Atraso Medio", "Visão Geral"):
+        for expected in ("Valor Vencido", "Atraso Médio (dias)", "Visão Geral"):
             self.assertIn(expected, impact)
         self.assertIn("ft_titulos", graph(self.repo, "explain", "Valor Vencido").stdout)
         self.assertIn("Valor Vencido", graph(self.repo, "path", "Regional", "Valor Vencido").stdout)

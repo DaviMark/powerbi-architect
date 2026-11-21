@@ -17,7 +17,7 @@ table _Medidas
 		displayFolder: Indicadores
 
 	/// Média de dias de atraso das parcelas vencidas, ponderada pelo saldo em aberto.
-	measure 'Dias Atraso Medio' =
+	measure 'Atraso Médio (dias)' =
 			DIVIDE (
 				SUMX (
 					FILTER ( ft_titulos, ft_titulos[Dias Atraso] > 0 ),
@@ -27,6 +27,58 @@ table _Medidas
 			)
 		formatString: #,0
 		displayFolder: Indicadores
+
+	/// Saldo em aberto das parcelas que ainda não venceram.
+	measure 'Valor a Vencer' = [Valor Aberto] - [Valor Vencido]
+		formatString: \R\$ #,0
+		displayFolder: Valores
+
+	/// Quantidade de clientes com pelo menos uma parcela vencida.
+	measure 'Clientes Vencidos' = CALCULATE ( DISTINCTCOUNT ( ft_titulos[id_cliente] ), ft_titulos[Dias Atraso] > 0 )
+		formatString: #,0
+		displayFolder: Indicadores
+
+	/// Meta da diretoria para a parcela vencida do saldo.
+	measure 'Meta % Vencido' = 0.15
+		formatString: 0%
+		displayFolder: Metas
+
+	/// Meta da diretoria para o atraso médio, em dias.
+	measure 'Meta Dias Atraso' = 30
+		formatString: #,0
+		displayFolder: Metas
+
+	/// Linha de contexto do KPI de saldo: quanto ainda não venceu.
+	measure 'Texto A Vencer' = FORMAT ( [Valor a Vencer], "R$ #,0" ) & " ainda a vencer"
+		displayFolder: Textos
+
+	/// Linha de contexto do KPI de vencido: quantos clientes estão em atraso.
+	measure 'Texto Clientes Vencidos' = FORMAT ( [Clientes Vencidos], "#,0" ) & " clientes com parcela vencida"
+		displayFolder: Textos
+
+	/// Distância do % vencido para a meta, em pontos percentuais, com seta.
+	measure 'Texto Var % Vencido' = VAR _d = [% Vencido] - [Meta % Vencido] RETURN IF ( ISBLANK ( [% Vencido] ), BLANK (), IF ( _d > 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _d ) * 100, "0.0" ) & " p.p. " & IF ( _d > 0, "acima", "abaixo" ) & " da meta de " & FORMAT ( [Meta % Vencido], "0%" ) )
+		displayFolder: Textos
+
+	/// Cor da linha de meta do % vencido: vermelho acima da meta, verde abaixo.
+	measure 'Cor Var % Vencido' = IF ( [% Vencido] > [Meta % Vencido], "#CE2C31", "#00824D" )
+		displayFolder: Cores
+
+	/// Distância do atraso médio para a meta, em dias, com seta.
+	measure 'Texto Var Dias Atraso' = VAR _d = [Atraso Médio (dias)] - [Meta Dias Atraso] RETURN IF ( ISBLANK ( [Atraso Médio (dias)] ), BLANK (), IF ( _d > 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _d ), "#,0" ) & " dias " & IF ( _d > 0, "acima", "abaixo" ) & " da meta de " & FORMAT ( [Meta Dias Atraso], "#,0" ) )
+		displayFolder: Textos
+
+	/// Cor da linha de meta do atraso médio: vermelho acima da meta, verde abaixo.
+	measure 'Cor Var Dias Atraso' = IF ( [Atraso Médio (dias)] > [Meta Dias Atraso], "#CE2C31", "#00824D" )
+		displayFolder: Cores
+
+	/// Cor do % vencido em tabelas: vermelho quando passa da meta.
+	measure 'Cor % Vencido' = IF ( [% Vencido] > [Meta % Vencido], "#CE2C31", "#333333" )
+		displayFolder: Cores
+
+	/// Cor do atraso médio em tabelas: vermelho acima de 60 dias, âmbar acima de 30.
+	measure 'Cor Atraso' = SWITCH ( TRUE (), [Atraso Médio (dias)] > 60, "#CE2C31", [Atraso Médio (dias)] > 30, "#AD6200", "#333333" )
+		displayFolder: Cores
 
 	/// Data e hora da última carga, para a barra do topo.
 	measure 'Texto Atualizacao' = "Atualizado em " & FORMAT ( MAX ( '_Medidas'[Data Carga] ), "dd/mm/yyyy hh:nn" )
