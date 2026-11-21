@@ -22,6 +22,11 @@ Responde a quatro perguntas de cobrança, para a diretoria financeira, com carga
 
 ## Como usar
 
+![Prévia do layout da página Visão Geral, sem dados](../../docs/assets/exemplo-visao-geral.png)
+
+*Prévia do layout gerada por `tools/preview_pbir.py` a partir dos arquivos PBIR, sem dados: as barras,
+linhas e valores são marcadores de posição.*
+
 | Página | Pergunta |
 |---|---|
 | Visão Geral | Quanto está vencido, onde e há quanto tempo |
@@ -58,15 +63,15 @@ O catálogo completo, com a expressão DAX, fica na página **Documentação** (
 
 - Modelo estrela com grão declarado, relacionamentos 1:* em direção única, auto date/time desligado.
 - Só as colunas usadas por medidas, visuais, relacionamentos, ordenação ou segurança.
+- Layout no padrão do Twenty: sidebar de 220 px com a navegação, painel branco com cantos de 8 px, barra do
+  topo de 56 px com o caminho da página, a data da carga e um filtro compacto (176×40). Tudo numa grade de
+  4 px, com espaçamento de 16 px entre os cartões.
+- Tipografia: Segoe UI em dois pesos, de 9 a 20 pt.
 - Tema: [`powerbi-architect-acessivel.json`](../../skills/powerbi-architect/templates/theme/powerbi-architect-acessivel.json).
 - **Validação:** todos os arquivos JSON passam nos schemas oficiais da Microsoft
   (`tools/validate_schemas.py`) e a auditoria não encontra nenhum problema. O projeto **não foi aberto no
   Power BI Desktop** durante a criação; se você abrir e o Desktop reescrever algum arquivo, abra uma issue.
 
-- Layout no padrão do Twenty: sidebar de 220 px com a navegação, painel branco com cantos de 8 px, barra do
-  topo de 56 px com o caminho da página, a data da carga e um filtro compacto (176×40). Tudo numa grade de
-  4 px, com espaçamento de 16 px entre os cartões.
-- Tipografia: Segoe UI em dois pesos, de 9 a 20 pt.
 ## Segurança e privacidade
 
 Sem dados pessoais. A função `Gestor Regional` aplica segurança por linha: cada gestor vê só a própria

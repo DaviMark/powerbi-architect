@@ -66,6 +66,16 @@ trabalhar de trás para frente até o pixel; dizer **não** ao visual a mais, à
 tooltip que explica. Arquétipos de página, sistema de layout, tipografia, cor, acessibilidade e um
 ritual de revisão estão em [`references/report-design.md`](skills/powerbi-architect/references/report-design.md).
 
+O padrão visual segue a interface do Twenty, o CRM open source: fundo cinza, sidebar discreta com a
+navegação, painel branco com borda fina, barra do topo com o caminho da página e filtros compactos, uma só
+família de fonte (Segoe UI) em tamanhos pequenos e uma cor de destaque. A auditoria aponta filtro grande
+demais, fonte fora da escala e visual fora da grade de 4 px.
+
+![Prévia do layout do projeto de exemplo, sem dados](docs/assets/exemplo-visao-geral.png)
+
+<sub>Prévia do layout do [projeto de exemplo](examples/contas-a-receber), gerada a partir dos arquivos PBIR,
+sem dados.</sub>
+
 ## Visual customizado só quando precisa
 
 <picture>

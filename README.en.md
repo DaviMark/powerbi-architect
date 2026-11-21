@@ -75,6 +75,13 @@ Code `SessionStart` + after edits, and git `post-commit/merge/checkout`. Everyth
   ([rules, in Portuguese](docs/regras-auditoria.md)).
 - `templates/pbir-pages/` and `templates/theme/` — schema-validated PBIR pages and an accessible theme.
 - `examples/contas-a-receber/` — a complete PBIP project that follows every rule.
+
+Reports follow the look of Twenty, the open-source CRM: grey canvas, quiet sidebar with the page navigator,
+white panel with hairline borders, a thin top bar with breadcrumb and compact filters, one font family
+(Segoe UI) in small sizes, one accent colour. Tables are named `ft_<subject>` (facts) and `dm_<entity>`
+(dimensions). The audit flags oversized slicers, fonts outside the type scale and visuals off the 4 px grid.
+
+![Layout preview of the example project, no data](docs/assets/exemplo-visao-geral.png)
 - `scripts/pbi_graph.py` — offline knowledge graph + query/explain/impact/path (installed automatically).
 
 Uses the Microsoft **Power BI Modeling MCP** when available (model edits + DAX validation).
