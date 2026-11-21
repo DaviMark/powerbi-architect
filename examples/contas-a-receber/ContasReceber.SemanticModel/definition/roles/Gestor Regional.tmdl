@@ -1,0 +1,5 @@
+/// Cada gestor vê apenas a própria regional.
+role 'Gestor Regional'
+	modelPermission: read
+
+	tablePermission 'Dim Regional' = 'Dim Regional'[Email Gestor] = USERPRINCIPALNAME ()

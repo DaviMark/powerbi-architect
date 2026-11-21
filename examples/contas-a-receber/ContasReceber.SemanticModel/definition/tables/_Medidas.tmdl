@@ -1,0 +1,46 @@
+/// Medidas do relatório e data da última carga.
+table _Medidas
+
+	/// Saldo em aberto das parcelas, vencidas ou a vencer.
+	measure 'Valor Aberto' = SUM ( 'Fato Titulos'[Valor Aberto] )
+		formatString: \R\$ #,0
+		displayFolder: Valores
+
+	/// Saldo em aberto das parcelas com vencimento anterior à data da carga.
+	measure 'Valor Vencido' = CALCULATE ( [Valor Aberto], 'Fato Titulos'[Dias Atraso] > 0 )
+		formatString: \R\$ #,0
+		displayFolder: Valores
+
+	/// Parcela do saldo em aberto que já venceu.
+	measure '% Vencido' = DIVIDE ( [Valor Vencido], [Valor Aberto] )
+		formatString: 0.0%
+		displayFolder: Indicadores
+
+	/// Média de dias de atraso das parcelas vencidas, ponderada pelo saldo em aberto.
+	measure 'Dias Atraso Medio' =
+			DIVIDE (
+				SUMX (
+					FILTER ( 'Fato Titulos', 'Fato Titulos'[Dias Atraso] > 0 ),
+					'Fato Titulos'[Dias Atraso] * 'Fato Titulos'[Valor Aberto]
+				),
+				[Valor Vencido]
+			)
+		formatString: #,0
+		displayFolder: Indicadores
+
+	/// Título dinâmico da página Visão Geral: valor vencido e participação no saldo.
+	measure 'Titulo Vencido' = "Vencido: " & FORMAT ( [Valor Vencido], "R$ #,0" ) & " (" & FORMAT ( [% Vencido], "0.0%" ) & " do saldo)"
+		displayFolder: Títulos
+
+	column 'Data Carga'
+		dataType: dateTime
+		isHidden
+		formatString: dd/mm/yyyy hh:nn
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Data Carga]
+
+	partition _Medidas = calculated
+		mode: import
+		source = ROW ( "Data Carga", UTCNOW () - 3 / 24 )

@@ -59,9 +59,19 @@ A skill segue o [Versionamento Semântico](https://semver.org/lang/pt-BR/):
 | **minor** | nova orientação, referências, recursos ou achados nos scripts |
 | **patch** | correções e esclarecimentos |
 
-Para publicar, o mantenedor move `[Não publicado]` para uma nova versão no `CHANGELOG.md`, atualiza
-`metadata.version` no `SKILL.md` e envia uma tag `vX.Y.Z`. O workflow `release` confere as duas coisas,
-roda os testes e publica uma release no GitHub com o arquivo `powerbi-architect-vX.Y.Z.zip`.
+Para publicar, o mantenedor move `[Não publicado]` para uma nova versão no `CHANGELOG.md`, atualiza a
+versão no `SKILL.md` (`metadata.version`) e em `.claude-plugin/plugin.json` e `marketplace.json`, e envia
+uma tag `vX.Y.Z`. O workflow `release` confere tudo isso, roda os testes e publica uma release no GitHub
+com o arquivo `powerbi-architect-vX.Y.Z.zip` e um atestado de procedência, que qualquer pessoa confere
+com `gh attestation verify`.
+
+Ferramentas de desenvolvimento (precisam de rede e de `pip install jsonschema`):
+
+```bash
+python tools/validate_schemas.py               # exemplo e modelos de página contra os schemas da Microsoft
+python tools/validate_schemas.py --references  # exemplos JSON das referências
+python tools/generate_example.py               # recria examples/contas-a-receber
+```
 
 ## Conduta
 

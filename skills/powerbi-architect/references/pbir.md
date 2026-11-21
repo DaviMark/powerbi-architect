@@ -15,6 +15,9 @@ StaticResources/SharedResources/BaseThemes/*.json     base theme (don't edit)
 StaticResources/RegisteredResources/*                 custom theme, images
 ```
 
+Ready pages: [templates/pbir-pages/](../templates/pbir-pages/README.md) (overview with KPIs, detail
+table, documentation), schema-validated. Accessible theme: [templates/theme/](../templates/theme/powerbi-architect-acessivel.json).
+
 ## Golden rules
 1. **Keep the `$schema` versions already used** in the report you are editing. Power BI Desktop
    rejects files whose schema version is newer than it knows, and upgrades older ones when saving.

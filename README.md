@@ -43,6 +43,10 @@ dentro do **[Power BI Workspaces](https://github.com/DaviMark/powerbi-workspaces
 | Visual customizado | "vou criar um .pbiviz" | árvore de decisão: nativo → formatação → AppSource → só então `.pbiviz`, com ADR |
 | Entrega | "pronto!" | gate de aprovação, conferência de números, página **Documentação**, checklist honesto |
 
+**Medido, não prometido.** Nas [avaliações publicadas](evals/results/2026-11-21/README.md), a mesma IA
+atendeu **16 de 18** itens esperados com a skill e **6 de 18** sem ela (8 de 10 casos aprovados contra 2),
+com correção às cegas. As respostas brutas estão no repositório.
+
 ## Os oito princípios
 
 1. **Pergunta primeiro** — todo objeto e todo visual responde uma pergunta de negócio.
@@ -78,6 +82,17 @@ O CI deste repositório reconstrói o pacote a cada mudança.
 
 ## Instalação
 
+**Claude Code**, em um comando:
+
+```text
+/plugin install powerbi-architect --marketplace DaviMark/powerbi-architect
+```
+
+**Sem terminal** (Claude.ai e outras ferramentas que aceitam upload de skill): baixe
+`powerbi-architect-vX.Y.Z.zip` na [última release](https://github.com/DaviMark/powerbi-architect/releases/latest).
+
+**Todas as IAs no seu repositório** (Claude Code, GitHub Copilot, Cursor, Codex, Gemini CLI):
+
 ```bash
 git clone https://github.com/DaviMark/powerbi-architect.git
 ```
@@ -95,6 +110,10 @@ repositório (abaixo). Nada é baixado. Para só copiar arquivos, use `--no-grap
 (PowerShell). Para gerar o grafo sem hooks, use `--no-hooks` ou `-NoHooks`.
 Depois é só pedir trabalho de Power BI — a IA carrega a skill sozinha (ou diga *"use a skill powerbi-architect"*).
 
+**Atualizar:** `git pull` na pasta clonada e depois `install.sh /caminho/do/repo --update` (ou
+`install.ps1 -Target C:\caminho\do\repo -Update`). Só as instalações mais antigas são trocadas. Para ver a
+versão instalada sem mudar nada, use `--status` (ou `-Status`).
+
 > Usa o **Power BI Modeling MCP** da Microsoft? A skill detecta e prefere o MCP para alterar o
 > modelo e **executar DAX de validação**; sem ele, edita TMDL/PBIR direto, com segurança.
 
@@ -110,8 +129,10 @@ offline e lê só metadados. O resultado vai para `powerbi-graph/`:
 | `wiki/<modelo>.md` | card por modelo: tabelas, colunas, DAX, relacionamentos, páginas e campos de cada visual |
 | `graph.json` · `graph.html` | grafo completo (pronto para GraphRAG) e visualização interativa offline |
 
-A IA lê o relatório e o card em vez de dezenas de `*.tmdl` e `visual.json`. No dashboard de exemplo,
-~66 mil tokens de fonte viram um relatório de ~1,2 mil e um card de ~2 mil. Para buscas pontuais:
+A IA lê o relatório e o card em vez de dezenas de `*.tmdl` e `visual.json`. No
+[projeto de exemplo](examples/contas-a-receber), que é pequeno, ~10,5 mil tokens de fonte viram um
+relatório de ~0,9 mil e um card de ~1,2 mil (12 vezes menos); a economia cresce com o tamanho do projeto.
+Os comandos abaixo funcionam sobre ele. Para buscas pontuais:
 
 ```bash
 python .claude/skills/powerbi-architect/scripts/pbi_graph.py query   "o que alimenta a página Visão Geral?"
@@ -146,15 +167,27 @@ skills/powerbi-architect/
 │   ├── documentation.md            página Documentação (INFO.VIEW), README, descrições
 │   ├── refactoring.md              legado → padrão com paridade numérica
 │   ├── graph.md                    grafo de conhecimento: o que lê, saídas, comandos, hooks
+│   ├── semantic-features.md        calculation groups, field parameters, visual calculations, funções DAX
+│   ├── fabric-and-cicd.md          Direct Lake, Git do Fabric, deployment pipelines, CI
 │   ├── performance.md · security.md · quality-checklist.md
-├── templates/pbiviz-bullet-kpi/    ← visual customizado de referência (verificado)
+├── templates/
+│   ├── pbir-pages/                 ← páginas prontas: visão geral com KPIs, detalhe, documentação
+│   ├── theme/                      ← tema acessível (contraste conferido, schema oficial)
+│   └── pbiviz-bullet-kpi/          ← visual customizado de referência (verificado)
 └── scripts/
     ├── audit_pbip.py               ← auditoria de qualquer pasta PBIP (Python puro, offline)
     └── pbi_graph.py                ← grafo de conhecimento + query/explain/impact/path (Python puro, offline)
+
+examples/contas-a-receber/          ← projeto PBIP completo que segue todas as regras
 ```
+
+A auditoria aponta cada problema com código, arquivo e linha, e diz qual regra do Best Practice
+Analyzer do Tabular Editor é equivalente. Gera também SARIF, para os achados aparecerem nos pull requests
+do GitHub. Lista de regras e como silenciar uma delas: [docs/regras-auditoria.md](docs/regras-auditoria.md).
 
 ```bash
 python skills/powerbi-architect/scripts/audit_pbip.py caminho/do/projeto-pbip
+python skills/powerbi-architect/scripts/audit_pbip.py caminho/do/projeto-pbip --sarif > auditoria.sarif
 ```
 
 ## Segurança
@@ -170,8 +203,12 @@ Detalhes em [SECURITY.md](SECURITY.md).
 
 ## Qualidade da skill
 
-- [`evals/`](evals/README.md) — cenários com comportamento esperado para comparar IAs com e sem a skill.
-- CI: valida o `SKILL.md`, links, o script de auditoria e **reconstrói o `.pbiviz`** com as ferramentas oficiais.
+- [`evals/`](evals/README.md): dez cenários com comportamento esperado, os materiais de apoio e os
+  [resultados publicados](evals/results/2026-11-21/README.md), com as respostas brutas.
+- CI no Linux e no Windows, do Python 3.9 ao 3.13: testes da auditoria, do grafo e dos instaladores sobre o
+  projeto de exemplo; todo exemplo de código das referências conferido; JSON validado pelos schemas da
+  Microsoft; **`.pbiviz` reconstruído** com as ferramentas oficiais.
+- Próximos passos: [ROADMAP.md](ROADMAP.md).
 
 ## Contribua
 
