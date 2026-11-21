@@ -63,4 +63,13 @@ Code `SessionStart` + after edits, and git `post-commit/merge/checkout`. Everyth
 
 Uses the Microsoft **Power BI Modeling MCP** when available (model edits + DAX validation).
 
+## Contributing
+
+DAX patterns, connectors, page archetypes, translations and evals are welcome, in English or Portuguese.
+Agent ignored the skill? Something broken? Have an idea or eval results?
+[Open an issue](https://github.com/DaviMark/powerbi-architect/issues/new/choose) using the matching
+template. Read [CONTRIBUTING.md](CONTRIBUTING.md) before your first PR; questions go to
+[SUPPORT.md](SUPPORT.md), vulnerabilities to [SECURITY.md](SECURITY.md). Release notes:
+[CHANGELOG.md](CHANGELOG.md).
+
 MIT licensed. Power BI is a Microsoft trademark; this project is independent.

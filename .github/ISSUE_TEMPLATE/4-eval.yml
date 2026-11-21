@@ -1,0 +1,40 @@
+name: Resultado de avaliação
+description: Compartilhe uma comparação com e sem a skill (evals/cases.md) ou proponha um caso novo
+title: "[Avaliação] "
+labels: ["avaliação"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Veja [evals/README.md](https://github.com/DaviMark/powerbi-architect/blob/main/evals/README.md).
+        Os resultados orientam a próxima versão. Sem dados reais, por favor.
+  - type: input
+    id: case
+    attributes:
+      label: Caso
+      placeholder: "E04 · Measure quality (ou 'caso novo')"
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Agente, modelo e versão da skill
+      placeholder: "Claude Code · <modelo> · 1.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Resultados
+      description: Pontue cada item "must" e "must not" (0/1), sem e com a skill.
+      value: |
+        | Item | Sem a skill | Com a skill |
+        |---|---|---|
+        | Must: ... | 0 | 1 |
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Observações
+      description: Tokens, tempo, surpresas, sugestões de novos itens "must" / "must not".
