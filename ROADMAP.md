@@ -14,6 +14,11 @@ abra uma com o formulário **Ideia / melhoria**. Itens marcados com `good first 
 - **Grafo com modelos de mesmo nome.** Dois modelos chamados igual em pastas diferentes hoje se misturam
   no relatório do grafo; o nome precisa incluir a pasta.
 
+- **Conferir no Desktop os visuais modernos e o layout de celular.** O cartão novo, o slicer em botões,
+  o botão com ícone e o tamanho da tela de celular foram montados a partir dos schemas, sem o Desktop.
+- **Avaliação de design com outro modelo.** O caso E11 usou o modelo do exemplo, para o qual a skill já
+  traz um layout pronto; repetir com um modelo diferente.
+
 ## Depois
 
 - **Mais regras na auditoria**, a partir das regras do Best Practice Analyzer que ainda não têm
