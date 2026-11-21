@@ -4,6 +4,7 @@ Report each item as PASS / WARN (with reason) / FAIL. Severity: **B** blocker ·
 
 ## Model
 - [B] Star schema; each fact has a stated grain; dimensions conformed
+- [I] Tables named `ft_<subject>` (facts) and `dm_<entity>` (dimensions); helpers prefixed `_`
 - [B] Only used columns imported (audit done; cut list documented)
 - [B] One Power Query step per source table; no hard‑coded servers (parameters)
 - [B] Auto date/time off; one marked date table; relationships dimension → fact, single direction

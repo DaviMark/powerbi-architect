@@ -16,7 +16,7 @@
 Write the grain as a sentence **before** choosing columns: "1 row per invoice line per day".
 - Mixed grains in one table (headers + lines, budget monthly + actuals daily) → split into facts.
 - Need to compare facts at different grains (budget vs actual)? Share dimensions at the coarser level
-  (e.g. a `Month` key in `Calendario`) and relate each fact at its own grain.
+  (e.g. a `Month` key in `dm_calendario`) and relate each fact at its own grain.
 
 ## 3. Facts & dimensions
 | Fact | Dimension |
@@ -51,8 +51,8 @@ Write the grain as a sentence **before** choosing columns: "1 row per invoice li
   calculated table (no Power Query) bounded by the fact:
 
 ```dax
-VAR _inicio = DATE ( YEAR ( MIN ( 'Fato Vendas'[Data] ) ), 1, 1 )
-VAR _fim    = DATE ( YEAR ( MAX ( 'Fato Vendas'[Data] ) ), 12, 31 )
+VAR _inicio = DATE ( YEAR ( MIN ( ft_vendas[Data] ) ), 1, 1 )
+VAR _fim    = DATE ( YEAR ( MAX ( ft_vendas[Data] ) ), 12, 31 )
 RETURN
     ADDCOLUMNS (
         SELECTCOLUMNS ( CALENDAR ( _inicio, _fim ), "Data", [Date] ),
@@ -73,7 +73,7 @@ For every candidate column ask: *is it used by a measure, a visual, a relationsh
 the user asked for, or RLS?* If not, don't import it. Typical cuts:
 - audit columns (`created_by`, `updated_at`), technical GUIDs, row versions
 - free‑text comments/descriptions (unless the report shows them)
-- columns derivable from others at query time (`year`, `month` already in Calendario)
+- columns derivable from others at query time (`year`, `month` already in dm_calendario)
 - duplicated names in facts when the dimension already has them
 - high‑precision decimals → round at the source; datetime → date
 
@@ -95,12 +95,21 @@ Record the choice as an ADR when not Import.
 - **Aggregations**: imported summary table at a coarser grain mapped to the DQ detail.
 - **Pre‑aggregate at the source** when the report never needs the detail.
 
-## 9. Naming
-- Tables: `Fato <Assunto>`, `Dim <Entidade>`, `Calendario`; helpers prefixed `_` (English projects:
-  `Fact Sales`, `Dim Customer`, `Date`, `_Measures`). Be consistent within a project.
-- Columns and measures: business language, Title Case, units in the name when ambiguous
-  (`Prazo Médio (dias)`), `%` prefix for ratios (`% Vencido`).
-- Keys `id_<entity>` hidden. No technical prefixes (`dim_`, `fct_`, `vl_`) visible to users.
+## 9. Naming (mandatory)
+- **Tables:** lowercase snake case with a role prefix, in the project language.
+  - Facts: `ft_<subject>` (`ft_vendas`, `ft_titulos`, `ft_saldos_diarios`).
+  - Dimensions: `dm_<entity>` (`dm_cliente`, `dm_produto`, `dm_regional`); the date dimension is
+    `dm_calendario` (`dm_date` in English projects).
+  - Bridges (only by design, ADR): `ft_` if they carry measures, otherwise `dm_<a>_<b>`.
+  - Helpers that are not part of the star: `_` prefix (`_Medidas`, `_Documentacao`, `_Cargas`).
+  - The SQL file of a table has the same name: `sql/ft_vendas.sql`.
+  Users never read table names in a well-built report: they see measures, display folders and friendly
+  column names, so the prefixes cost nothing and make every model readable at a glance. The audit
+  enforces them (rule `PBI049`).
+- **Columns and measures:** business language, Title Case, units in the name when ambiguous
+  (`Prazo Médio (dias)`), `%` prefix for ratios (`% Vencido`). No technical prefixes on what users see
+  (`vl_`, `qt_`, `dt_`).
+- **Keys:** `id_<entity>`, hidden.
 
 ## 10. Anti‑patterns (and the fix)
 | Smell | Fix |

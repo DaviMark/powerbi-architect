@@ -43,6 +43,7 @@ Talk to the user in **their language**. Write documentation in the project langu
    If you cannot name the question, do not build it.
 2. **Star schema.** Facts with a declared grain + conformed dimensions. One‑to‑many, single direction,
    integer keys. A dedicated date dimension; auto date/time **off**. Bridges only by design (ADR).
+   Tables are named `ft_<subject>` (facts) and `dm_<entity>` (dimensions, `dm_calendario` for dates).
 3. **Import the minimum.** Only columns used by a measure, visual, relationship, sort or RLS rule.
    No `SELECT *`. No audit columns, free text, GUIDs or high‑cardinality IDs that are not keys.
 4. **Zero logic in Power Query.** One step per table: connector + native SQL with parameters.
@@ -79,7 +80,7 @@ Never skip the two human gates. Never claim numbers are correct without a check 
 - **Fact vs dimension:** numbers you aggregate → fact; things you filter/group by → dimension.
   Low‑cardinality attributes with no other use may stay in the fact (degenerate dimension).
 - **Many facts?** Share dimensions (conformed). Different grains → separate facts, never mix.
-- **Dates:** relate the fact's main date to `Calendario/Date`; extra dates as inactive relationships +
+- **Dates:** relate the fact's main date to `dm_calendario[Data]`; extra dates as inactive relationships +
   `USERELATIONSHIP`, or role‑playing only when the user filters by both at once.
 - **Storage:** Import by default. DirectQuery only for freshness/size requirements, with
   aggregations or composite design (ADR). Direct Lake when the source is a Fabric lakehouse/warehouse:
@@ -106,7 +107,7 @@ Mapping table (question → best native visual and why): [references/visual-sele
 
 ```tmdl
 	/// Business definition in one sentence (this text appears in the Documentation page).
-	measure 'Valor Vencido' = CALCULATE ( [Saldo em Aberto], 'Fato Titulos'[Dias Atraso] > 0 )
+	measure 'Valor Vencido' = CALCULATE ( [Saldo em Aberto], ft_titulos[Dias Atraso] > 0 )
 		formatString: \R\$ #,0
 		displayFolder: Valores
 ```

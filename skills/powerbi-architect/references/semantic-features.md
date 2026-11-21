@@ -31,7 +31,7 @@ Rules:
 ```dax
 -- calculation item YoY % with a guard for measures that must not be compared
 VAR _cur = SELECTEDMEASURE ()
-VAR _py = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( Calendario[Data] ) )
+VAR _py = CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )
 RETURN IF ( ISSELECTEDMEASURE ( [Meta] ), BLANK (), DIVIDE ( _cur - _py, _py ) )
 ```
 

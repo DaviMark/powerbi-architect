@@ -25,40 +25,40 @@ Never repeat a base aggregation inside another measure; reference the base measu
 
 ```dax
 -- Base
-Receita = SUM ( 'Fato Vendas'[Valor] )
-Pedidos = DISTINCTCOUNT ( 'Fato Vendas'[id_pedido] )
+Receita = SUM ( ft_vendas[Valor] )
+Pedidos = DISTINCTCOUNT ( ft_vendas[id_pedido] )
 
 -- Filtered (column predicate, not FILTER over the table)
-Receita Online = CALCULATE ( [Receita], 'Dim Canal'[Canal] = "Online" )
+Receita Online = CALCULATE ( [Receita], dm_canal[Canal] = "Online" )
 
 -- Ratio
 Ticket Médio = DIVIDE ( [Receita], [Pedidos] )
 % Online = DIVIDE ( [Receita Online], [Receita] )
 
 -- Share of total (respecting slicers on other dimensions)
-% do Total Clientes = DIVIDE ( [Receita], CALCULATE ( [Receita], ALLSELECTED ( 'Dim Cliente' ) ) )
+% do Total Clientes = DIVIDE ( [Receita], CALCULATE ( [Receita], ALLSELECTED ( dm_cliente ) ) )
 
 -- Ranking
 Ranking Cliente =
 IF (
-    ISINSCOPE ( 'Dim Cliente'[Cliente] ),
-    RANKX ( ALLSELECTED ( 'Dim Cliente'[Cliente] ), [Receita], , DESC, DENSE )
+    ISINSCOPE ( dm_cliente[Cliente] ),
+    RANKX ( ALLSELECTED ( dm_cliente[Cliente] ), [Receita], , DESC, DENSE )
 )
 
 -- Weighted average
 Prazo Médio (dias) =
 DIVIDE (
-    SUMX ( 'Fato Titulos', 'Fato Titulos'[Saldo] * 'Fato Titulos'[Dias] ),
-    SUM ( 'Fato Titulos'[Saldo] )
+    SUMX ( ft_titulos, ft_titulos[Saldo] * ft_titulos[Dias] ),
+    SUM ( ft_titulos[Saldo] )
 )
 
 -- Distinct with condition
-Clientes Ativos = CALCULATE ( DISTINCTCOUNT ( 'Fato Vendas'[id_cliente] ), KEEPFILTERS ( 'Fato Vendas'[Valor] > 0 ) )
+Clientes Ativos = CALCULATE ( DISTINCTCOUNT ( ft_vendas[id_cliente] ), KEEPFILTERS ( ft_vendas[Valor] > 0 ) )
 
 -- Semi‑additive (balance = last date with data)
 Saldo Final =
-VAR _ultima = LASTNONBLANK ( 'Calendario'[Data], CALCULATE ( COUNTROWS ( 'Fato Saldos' ) ) )
-RETURN CALCULATE ( SUM ( 'Fato Saldos'[Saldo] ), _ultima )
+VAR _ultima = LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( ft_saldos ) ) )
+RETURN CALCULATE ( SUM ( ft_saldos[Saldo] ), _ultima )
 
 -- Target vs actual
 % Atingimento = DIVIDE ( [Receita], [Meta] )
@@ -68,18 +68,18 @@ Desvio Meta = [Receita] - [Meta]
 ## 4. Time intelligence (requires a marked date table)
 
 ```dax
-Receita AA     = CALCULATE ( [Receita], SAMEPERIODLASTYEAR ( 'Calendario'[Data] ) )
-Receita YTD    = TOTALYTD ( [Receita], 'Calendario'[Data] )
+Receita AA     = CALCULATE ( [Receita], SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )
+Receita YTD    = TOTALYTD ( [Receita], dm_calendario[Data] )
 Var % AA       = DIVIDE ( [Receita] - [Receita AA], [Receita AA] )
-Receita 12M    = CALCULATE ( [Receita], DATESINPERIOD ( 'Calendario'[Data], MAX ( 'Calendario'[Data] ), -12, MONTH ) )
-Receita Mês Anterior = CALCULATE ( [Receita], DATEADD ( 'Calendario'[Data], -1, MONTH ) )
+Receita 12M    = CALCULATE ( [Receita], DATESINPERIOD ( dm_calendario[Data], MAX ( dm_calendario[Data] ), -12, MONTH ) )
+Receita Mês Anterior = CALCULATE ( [Receita], DATEADD ( dm_calendario[Data], -1, MONTH ) )
 ```
 
 - Avoid showing future periods: guard with
-  `IF ( MIN ( 'Calendario'[Data] ) <= [Última Data com Dados], <expr> )` where
-  `Última Data com Dados = CALCULATE ( MAX ( 'Fato Vendas'[Data] ), REMOVEFILTERS () )`.
-- Secondary dates: `CALCULATE ( [Receita], USERELATIONSHIP ( 'Fato Vendas'[Data Entrega], 'Calendario'[Data] ) )`.
-- Fiscal years: `TOTALYTD ( [Receita], 'Calendario'[Data], "06-30" )`.
+  `IF ( MIN ( dm_calendario[Data] ) <= [Última Data com Dados], <expr> )` where
+  `Última Data com Dados = CALCULATE ( MAX ( ft_vendas[Data] ), REMOVEFILTERS () )`.
+- Secondary dates: `CALCULATE ( [Receita], USERELATIONSHIP ( ft_vendas[Data Entrega], dm_calendario[Data] ) )`.
+- Fiscal years: `TOTALYTD ( [Receita], dm_calendario[Data], "06-30" )`.
 - Many time variants of many measures → a **calculation group** (see §6) instead of N×M measures.
 
 ## 5. Text & UX measures
@@ -88,7 +88,7 @@ Título Página =
 "Receita de " & FORMAT ( [Receita], "R$ #,0" ) & " · " &
 FORMAT ( [Var % AA], "+0.0%;-0.0%" ) & " vs ano anterior"
 
-Seleção Atual = IF ( ISFILTERED ( 'Dim Filial'[Regional] ), SELECTEDVALUE ( 'Dim Filial'[Regional], "Várias regionais" ), "Todas as regionais" )
+Seleção Atual = IF ( ISFILTERED ( dm_filial[Regional] ), SELECTEDVALUE ( dm_filial[Regional], "Várias regionais" ), "Todas as regionais" )
 
 Cor Variação = IF ( [Var % AA] >= 0, "#1E8E3E", "#D93025" )   -- use in conditional formatting (field value)
 ```
