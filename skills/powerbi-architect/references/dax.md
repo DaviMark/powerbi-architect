@@ -95,6 +95,7 @@ Cor Variação = IF ( [Var % AA] >= 0, "#1E8E3E", "#D93025" )   -- use in condit
 Text measures have no formatString; put them in folder `Textos`.
 
 ## 6. Calculation groups, field parameters, visual calculations
+Full rules and examples: [semantic-features.md](semantic-features.md).
 - **Calculation groups** — time intelligence or currency conversion applied to any measure.
   Use `SELECTEDMEASURE()`; set `formatStringDefinition` for % items. Document the precedence.
 - **Field parameters** — let users switch measure/dimension in one visual instead of duplicating

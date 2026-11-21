@@ -82,7 +82,8 @@ Never skip the two human gates. Never claim numbers are correct without a check 
 - **Dates:** relate the fact's main date to `Calendario/Date`; extra dates as inactive relationships +
   `USERELATIONSHIP`, or role‑playing only when the user filters by both at once.
 - **Storage:** Import by default. DirectQuery only for freshness/size requirements, with
-  aggregations or composite design (ADR). Direct Lake when the source is a Fabric lakehouse/warehouse.
+  aggregations or composite design (ADR). Direct Lake when the source is a Fabric lakehouse/warehouse:
+  rules, guardrails and CI/CD in [references/fabric-and-cicd.md](references/fabric-and-cicd.md).
 - **Cardinality is cost:** split datetime into date (+ time only if needed), round decimals, avoid
   unique text columns.
 
@@ -113,6 +114,8 @@ Mapping table (question → best native visual and why): [references/visual-sele
 `DIVIDE` for ratios · `VAR`/`RETURN` for anything used twice · column predicates instead of
 `FILTER(table)` · no `IFERROR` · time intelligence over the marked date table · dynamic titles as
 measures · no measure that only re‑labels another. Patterns and anti‑patterns: [references/dax.md](references/dax.md).
+Calculation groups, field parameters, visual calculations and DAX functions (only to remove duplication):
+[references/semantic-features.md](references/semantic-features.md).
 
 ## 6. Report design — the short version
 
@@ -140,7 +143,8 @@ Full guide with layouts and page archetypes: [references/report-design.md](refer
   Copy‑ready JSON for card, bar, column, line, table, matrix, slicer, textbox: [references/pbir.md](references/pbir.md).
 - **The `.pbip` must open after every edit** (the user may open it at any moment). Validate JSON, run the
   project's validator (`pbw validar`) or
-  `python scripts/audit_pbip.py <project-folder>` from this skill.
+  `python scripts/audit_pbip.py <project-folder>` from this skill (`--help`: rule codes, `--json`, `--sarif`,
+  suppression). Ready PBIR pages and an accessible theme: [templates/pbir-pages/](templates/pbir-pages/README.md).
 
 ## 8. Refactoring legacy dashboards
 
