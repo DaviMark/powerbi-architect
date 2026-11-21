@@ -149,6 +149,38 @@ class TestRules(unittest.TestCase):
                 self.assertIn(expected, rules)
 
 
+    def test_accessibility_title_and_colour_rules(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            page_dir = next(pj.parent / "visuals" for pj in (p / "ContasReceber.Report").rglob("page.json")
+                            if json.loads(pj.read_text(encoding="utf-8"))["displayName"] == "Visão Geral")
+            files = sorted(page_dir.rglob("visual.json"))
+            charts = [f for f in files if '"clusteredBarChart"' in f.read_text(encoding="utf-8")
+                      or '"lineChart"' in f.read_text(encoding="utf-8")]
+            bar = json.loads(charts[0].read_text(encoding="utf-8"))
+            vco = bar["visual"]["visualContainerObjects"]
+            vco["title"] = [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
+                                            "text": {"expr": {"Literal": {"Value": "'Soma de Valor por Regional'"}}}}}]
+            bar["visual"]["objects"] = {
+                "valueAxis": [{"properties": {"showAxisTitle": {"expr": {"Literal": {"Value": "true"}}}}}],
+                "labels": [{"properties": {"color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#BBBBBB'"}}}}}}}],
+                "dataPoint": [{"properties": {"fill": {"solid": {"color": {"expr": {"Literal": {"Value": f"'{c}'"}}}}}}}
+                              for c in ("#E11D48", "#F59E0B", "#10B981", "#6366F1", "#EC4899", "#14B8A6", "#84CC16")]}
+            bar["position"]["tabOrder"] = -1                                    # PBI053: jumps ahead
+            charts[0].write_text(json.dumps(bar), encoding="utf-8")             # PBI054, PBI055, PBI057, PBI058
+            line = json.loads(charts[1].read_text(encoding="utf-8"))
+            line["visual"]["visualContainerObjects"].pop("title")               # PBI056
+            charts[1].write_text(json.dumps(line), encoding="utf-8")
+            r = run(p, "--json", "--min-harmony", "90")
+            rules = {f["rule"] for f in json.loads(r.stdout)}
+            for expected in ("PBI053", "PBI054", "PBI055", "PBI056", "PBI057", "PBI058"):
+                self.assertIn(expected, rules)
+            self.assertEqual(r.returncode, 1)                                   # harmony below 90
+            text = run(p).stdout
+            self.assertRegex(text, r"Harmony: Visão Geral \d+")
+            self.assertNotIn("Visão Geral 100", text)
+
+
 class TestSuppression(unittest.TestCase):
     def broken(self, d: str) -> Path:
         p = copy_example(d)
