@@ -71,6 +71,7 @@ Ferramentas de desenvolvimento (precisam de rede e de `pip install jsonschema`):
 python tools/validate_schemas.py               # exemplo e modelos de página contra os schemas da Microsoft
 python tools/validate_schemas.py --references  # exemplos JSON das referências
 python tools/generate_example.py               # recria examples/contas-a-receber
+python tools/preview_pbir.py <Nome>.Report     # prévia do layout em HTML, sem o Power BI Desktop (sem rede)
 ```
 
 ## Conduta
