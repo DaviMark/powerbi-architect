@@ -81,7 +81,13 @@ white panel with hairline borders, a thin top bar with breadcrumb and compact fi
 (Segoe UI) in small sizes, one accent colour. Tables are named `ft_<subject>` (facts) and `dm_<entity>`
 (dimensions). The audit flags oversized slicers, fonts outside the type scale and visuals off the 4 px grid.
 
-![Layout preview of the example project, no data](docs/assets/exemplo-visao-geral.png)
+![Overview page of the example project, with sample data](docs/assets/exemplo-visao-geral.png)
+
+The agent never lays out a report by eye: it describes pages as rows of visuals and
+`scripts/pbir_layout.py` computes every position on the 4 px grid (shell, icons, KPI lines, charts,
+tables, drill-through, tooltip and phone layouts); `scripts/preview_pbir.py` draws each page so the agent
+looks at it before delivering; `scripts/make_theme.py` builds a brand theme with checked contrast; and
+`scripts/audit_pbip.py` scores each page's harmony from 0 to 100 (deliver at 90+).
 - `scripts/pbi_graph.py` — offline knowledge graph + query/explain/impact/path (installed automatically).
 
 Uses the Microsoft **Power BI Modeling MCP** when available (model edits + DAX validation).

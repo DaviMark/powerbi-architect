@@ -132,3 +132,32 @@ Write the DAX checks (in `trabalho-da-ia/conferencia.md`) with:
 - **Identities**: parts sum to the whole (`[A] + [B] = [Total]`), shares sum to 100 %.
 - **Edge filters**: empty period, single customer, future dates.
 Run them with the MCP (`dax_query_operations`) or ask the user to run in DAX query view.
+
+## KPI lines (context, target, variation)
+A KPI card shows one value and one 9 pt line under it. The line is a **text measure**; its colour is a
+**colour measure** that knows whether the metric is good when it goes up or down. Keep both in display
+folders `Textos` and `Cores`, with descriptions.
+
+```dax
+-- distance to target, for a metric where lower is better (overdue %)
+Texto Var % Vencido =
+VAR _d = [% Vencido] - [Meta % Vencido]
+RETURN
+    IF ( ISBLANK ( [% Vencido] ), BLANK (),
+        IF ( _d > 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _d ) * 100, "0.0" ) & " p.p. "
+            & IF ( _d > 0, "acima", "abaixo" ) & " da meta de " & FORMAT ( [Meta % Vencido], "0%" ) )
+
+Cor Var % Vencido = IF ( [% Vencido] > [Meta % Vencido], "#CE2C31", "#00824D" )   -- up is bad
+
+-- variation vs previous period, for a metric where higher is better (revenue)
+Texto Var Receita =
+VAR _ant = CALCULATE ( [Receita], DATEADD ( dm_calendario[Data], -1, MONTH ) )
+VAR _v = DIVIDE ( [Receita] - _ant, _ant )
+RETURN IF ( ISBLANK ( _v ), "Sem mês anterior", IF ( _v >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _v ), "0.0%" ) & " vs mês anterior" )
+
+Cor Var Receita = IF ( [Receita] >= CALCULATE ( [Receita], DATEADD ( dm_calendario[Data], -1, MONTH ) ), "#00824D", "#CE2C31" )
+```
+
+Rules: arrows are the geometric characters ▲ ▼ (never emoji); colours are the theme's good `#00824D`
+and bad `#CE2C31`, or neutral `#757575` for context lines; numbers in the line use the same format as
+the card; a context line ("312 clientes com parcela vencida") is better than a meaningless variation.
