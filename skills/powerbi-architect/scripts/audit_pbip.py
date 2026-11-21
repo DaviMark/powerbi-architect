@@ -406,7 +406,15 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI050": ("IMPORTANT", "6", "More than 2 slicers on a page", ()),
     "PBI051": ("SUGGESTION", "6", "More than one font family, or a font outside the professional set", ()),
     "PBI052": ("IMPORTANT", "6", "Visual outside the page", ()),
+    "PBI053": ("SUGGESTION", "a11y", "Keyboard (tab) order differs from the reading order", ()),
+    "PBI054": ("IMPORTANT", "a11y", "Text colour below 4.5:1 contrast on white", ()),
+    "PBI055": ("SUGGESTION", "6", "Generic auto-generated title (\"Sum of … by …\")", ()),
+    "PBI056": ("SUGGESTION", "6", "Data visual without a title", ()),
+    "PBI057": ("SUGGESTION", "6", "Axis title shown", ()),
+    "PBI058": ("SUGGESTION", "6", "More than 6 colours on a page", ()),
 }
+# Harmony score: 100 per page minus these penalties for each finding on that page.
+HARMONY_PENALTY = {"BLOCKER": 20, "IMPORTANT": 10, "SUGGESTION": 4}
 BPA_TO_PBI: dict[str, set[str]] = {}
 for _rid, (_sev, _law, _title, _bpa) in RULES.items():
     for _b in _bpa:
@@ -534,6 +542,74 @@ def font_usage(visual: dict) -> tuple[list[float], set[str]]:
     return sizes, families
 
 
+def chromeless(container: dict) -> bool:
+    """A data visual with no title, background or border annotates another element (a KPI's variation
+    line, the "updated at" text): it does not count as a separate visual on the page."""
+    vco = (container.get("visual") or {}).get("visualContainerObjects") or {}
+
+    def off(obj: str) -> bool:
+        v = ((vco.get(obj) or [{}])[0].get("properties", {}).get("show") or {})
+        return str(v.get("expr", {}).get("Literal", {}).get("Value", "")).lower() == "false"
+    return off("title") and off("background") and off("border")
+
+
+GENERIC_TITLE = re.compile(r"^(sum|count|average|min|max|soma|contagem|média|media|mínimo|máximo|total) (of|de) .+ "
+                           r"(by|por) ", re.I)
+TEXT_COLOUR_KEYS = {"fontColor", "labelColor", "titleFontColor", "valueFontColor"}
+FILL_KEYS = {"fill", "fillColor", "defaultColor", "increaseFill", "decreaseFill", "totalFill", "otherFill"}
+
+
+def _hex(o) -> str | None:
+    """'#RRGGBB' from a literal colour expression, a {"solid": …} wrapper or a plain string."""
+    if isinstance(o, dict):
+        if "solid" in o:
+            return _hex(o["solid"].get("color"))
+        v = o.get("expr", {}).get("Literal", {}).get("Value") if "expr" in o else None
+        return _hex(v) if v is not None else None
+    if isinstance(o, str):
+        m = re.match(r"^'?(#[0-9A-Fa-f]{6})'?$", o.strip())
+        return m.group(1).upper() if m else None
+    return None
+
+
+def _luminance(h: str) -> float:
+    def lin(c):
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+
+
+def contrast_on_white(h: str) -> float:
+    return 1.05 / (_luminance(h) + 0.05)
+
+
+def colour_usage(visual: dict) -> tuple[set[str], set[str]]:
+    """(text colours, fill colours) set as literals on one visual."""
+    text, fills = set(), set()
+
+    def walk(o, parent=""):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                h = _hex(v) if (k in TEXT_COLOUR_KEYS or k in FILL_KEYS or k == "color") else None
+                if h:
+                    if k in TEXT_COLOUR_KEYS or (k == "color" and parent in ("labels", "categoryLabels", "textStyle")):
+                        text.add(h)
+                    elif k in FILL_KEYS:
+                        fills.add(h)
+                walk(v, k if k not in ("properties",) else parent)
+        elif isinstance(o, list):
+            for x in o:
+                walk(x, parent)
+
+    walk(visual)
+    return text, fills
+
+
+def is_neutral(h: str) -> bool:
+    r, g, b = (int(h[i:i + 2], 16) for i in (1, 3, 5))
+    return max(r, g, b) - min(r, g, b) < 12
+
+
 def family_of(font: str) -> str:
     return "segoe ui" if font.startswith("segoe ui") else font
 
@@ -595,7 +671,6 @@ def audit(root: Path, config: dict | None = None) -> list:
         for t in model.tables:
             path = rel(t.file)
             t_ign = model_ign | ignored_rules(t.annotations)
-            types = {c.name: c.data_type for c in t.columns}
             for p in t.partitions:
                 if p.kind != "m":
                     continue
@@ -632,7 +707,9 @@ def audit(root: Path, config: dict | None = None) -> list:
             for m in t.measures:
                 m_ign = t_ign | ignored_rules(m.annotations)
                 code = strip_dax(m.expression)
-                is_text = "FORMAT" in m.expression.upper() or m.expression.lstrip().startswith('"')
+                is_text = ("FORMAT" in m.expression.upper() or m.expression.lstrip().startswith('"')
+                           or re.search(r'"#[0-9A-Fa-f]{6}"', m.expression) is not None
+                           or re.search(r'"\s*&|&\s*"', m.expression) is not None)
                 if not m.description:
                     add("PBI005", path, f"measure [{m.name}] missing description", m.line, m_ign)
                 if not (m.format_string or is_text):
@@ -707,6 +784,8 @@ def audit(root: Path, config: dict | None = None) -> list:
             if GENERIC_PAGE.match(display.strip()):
                 add("PBI042", rel(pj), f"page '{display}' — name it after the question it answers")
             data_visuals = slicers = 0
+            tab_items: list[tuple[float, float, float, str]] = []
+            page_fills: set[str] = set()
             for vj in sorted(pj.parent.glob("visuals/*/visual.json")):
                 try:
                     container = _json.loads(vj.read_text(encoding="utf-8-sig"))
@@ -727,6 +806,19 @@ def audit(root: Path, config: dict | None = None) -> list:
                 if off and min(w, h) > 2:
                     add("PBI048", where_v, f"{vtype or 'visual'} on page '{display}': {', '.join(off)} not a "
                                            "multiple of 4 px — align it to the grid")
+                text_cols, fill_cols = colour_usage(v)
+                page_fills |= {c for c in fill_cols if not is_neutral(c)}
+                low = sorted(c for c in text_cols if contrast_on_white(c) < 4.5)
+                if low:
+                    add("PBI054", where_v, f"{vtype} on page '{display}': text colour {', '.join(low)} has "
+                                           f"{contrast_on_white(low[0]):.1f}:1 on white (minimum 4.5:1)")
+                vco_ = v.get("visualContainerObjects", {}) or {}
+                for axis in ("valueAxis", "categoryAxis"):
+                    shown = (((v.get("objects", {}) or {}).get(axis) or [{}])[0].get("properties", {})
+                             .get("showAxisTitle", {}).get("expr", {}).get("Literal", {}).get("Value"))
+                    if str(shown).lower() == "true":
+                        add("PBI057", where_v, f"{vtype} on page '{display}' shows the {axis} title — the visual "
+                                               "title already says what is measured")
                 sizes, families = font_usage(v)
                 report_families |= {family_of(f) for f in families}
                 limit = MAX_PT["textbox"] if vtype == "textbox" else (
@@ -736,6 +828,7 @@ def audit(root: Path, config: dict | None = None) -> list:
                                            f"keep it ≤ {limit} pt (see the type scale)")
                 if vtype in SLICERS:
                     slicers += 1
+                    tab_items.append((pos.get("tabOrder", pos.get("z", 0)), y, x, vtype))
                     mode = (((v.get("objects", {}).get("data") or [{}])[0].get("properties", {})
                              .get("mode", {}).get("expr", {}).get("Literal", {}).get("Value", "")) or "").strip("'")
                     compact = mode in ("Dropdown", "Between", "Before", "After")
@@ -744,9 +837,22 @@ def audit(root: Path, config: dict | None = None) -> list:
                         add("PBI046", where_v, f"{mode or 'list'} slicer on page '{display}' is {w:g}×{h:g} px "
                                                f"— keep it within {max_w}×{max_h} px")
                     continue
-                if not vtype or vtype in DECORATIVE:
+                if not vtype or vtype in DECORATIVE or chromeless(container):
                     continue
                 data_visuals += 1
+                tab_items.append((pos.get("tabOrder", pos.get("z", 0)), y, x, vtype))
+                tprops = ((vco_.get("title") or [{}])[0].get("properties", {}))
+                title_show = str(tprops.get("show", {}).get("expr", {}).get("Literal", {}).get("Value", "")).lower()
+                title_text = tprops.get("text", {})
+                literal = str(title_text.get("expr", {}).get("Literal", {}).get("Value", "")).strip("'") \
+                    if isinstance(title_text, dict) else ""
+                has_title = title_show != "false" and bool(literal or "Measure" in str(title_text))
+                if not has_title:
+                    add("PBI056", where_v, f"{vtype} on page '{display}' has no title — say what it shows, "
+                                           "in a sentence")
+                elif literal and GENERIC_TITLE.match(literal):
+                    add("PBI055", where_v, f"{vtype} on page '{display}': title '{literal}' is auto-generated — "
+                                           "write the question or the conclusion")
                 alt = (v.get("visualContainerObjects", {}).get("general", [{}]) or [{}])[0] \
                     .get("properties", {}).get("altText")
                 if not alt:
@@ -755,6 +861,14 @@ def audit(root: Path, config: dict | None = None) -> list:
                     add("PBI040", rel(vj), f"{vtype} on page '{display}' — ≤ 3 slices, otherwise a sorted bar")
             if data_visuals > 8:
                 add("PBI018", rel(pj), f"page '{display}' has {data_visuals} data visuals (target ≤ 8)")
+            by_tab = [t[3] + str(t[1:3]) for t in sorted(tab_items)]
+            by_reading = [t[3] + str(t[1:3]) for t in sorted(tab_items, key=lambda t: (t[1], t[2]))]
+            if by_tab != by_reading:
+                add("PBI053", rel(pj), f"page '{display}': keyboard order does not follow the reading order "
+                                       "(top to bottom, left to right) — set tabOrder accordingly")
+            if len(page_fills) > 6:
+                add("PBI058", rel(pj), f"page '{display}' uses {len(page_fills)} colours "
+                                       f"({', '.join(sorted(page_fills))}) — keep ≤ 6, colour only what matters")
             if slicers > 2:
                 add("PBI050", rel(pj), f"page '{display}' has {slicers} slicers — keep ≤ 2 on the page, "
                                        "move the rest to the filter pane")
@@ -770,6 +884,28 @@ def audit(root: Path, config: dict | None = None) -> list:
             add("PBI043", rel(pbip.parent) or ".", f"no README.md next to {pbip.name}")
     order = {s: i for i, s in enumerate(SEVERITIES)}
     out.sort(key=lambda x: (order[x["severity"]], x["where"], x["line"], x["rule"]))
+    return out
+
+
+def harmony(root: Path, issues: list) -> list[tuple[str, str, int]]:
+    """(report, page, score) for every page: 100 minus HARMONY_PENALTY for each finding on that page."""
+    out = []
+
+    def order(pj: Path) -> tuple:
+        try:
+            meta = _json.loads((pj.parent.parent / "pages.json").read_text(encoding="utf-8-sig"))
+            return (str(pj.parents[3]), meta.get("pageOrder", []).index(pj.parent.name))
+        except (ValueError, OSError):
+            return (str(pj.parents[3]), 10 ** 6)
+    for pj in sorted(root.rglob("*.Report/definition/pages/*/page.json"), key=order):
+        try:
+            name = _json.loads(pj.read_text(encoding="utf-8-sig")).get("displayName", pj.parent.name)
+        except ValueError:
+            continue
+        page_dir = pj.parent.relative_to(root).as_posix() + "/"
+        report = pj.parents[3].name
+        hits = [i for i in issues if i["where"].startswith(page_dir) or i["where"] == page_dir + "page.json"]
+        out.append((report, name, max(0, 100 - sum(HARMONY_PENALTY[i["severity"]] for i in hits))))
     return out
 
 
@@ -810,6 +946,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--fail-on", choices=["blocker", "important", "suggestion", "never"], default="blocker",
                     help="lowest severity that makes the exit code 1 (default: blocker)")
     ap.add_argument("--list-rules", action="store_true", help="list every rule and exit")
+    ap.add_argument("--min-harmony", type=int, metavar="N",
+                    help="also fail when a page's harmony score is below N (the skill asks for 90)")
     ap.add_argument("--version", action="version", version=f"%(prog)s {skill_version()}")
     args = ap.parse_args(argv)
     if hasattr(_sys.stdout, "reconfigure"):
@@ -847,6 +985,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{i['rule']}  {i['severity']:<10} {where}  —  {i['message']}")
         b = sum(1 for i in issues if i["severity"] == "BLOCKER")
         print(f"\n{len(issues)} finding(s), {b} blocker(s).")
+        scores = harmony(root, issues)
+        if scores:
+            print("Harmony: " + " · ".join(f"{p} {s}" for _, p, s in scores))
+    if args.min_harmony is not None and any(s < args.min_harmony for _, _, s in harmony(root, issues)):
+        return 1
     if args.fail_on == "never":
         return 0
     limit = SEVERITIES.index(args.fail_on.upper())
