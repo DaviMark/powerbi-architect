@@ -90,6 +90,25 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
 |---|---|
 | ![Página Diagnóstico com cascata, barras e tabela](docs/assets/exemplo-diagnostico.png) | ![Layout de celular da Visão Geral](docs/assets/exemplo-celular.png) |
 
+### Reestilizar um relatório que já existe
+
+Não precisa começar do zero. `pbir_layout.py --extract` lê um relatório PBIR com qualquer layout, agrupa
+os visuais em linhas pela posição e escreve a especificação equivalente. Também troca pizza por barra
+ordenada, descarta a decoração e lista o que precisa de uma pessoa, como texto alternativo, rótulos e a
+medida de "atualizado em". Depois é só gerar de novo na mesma pasta:
+
+```bash
+python skills/powerbi-architect/scripts/pbir_layout.py --extract MeuRelatorio.Report --out layout.json
+python skills/powerbi-architect/scripts/pbir_layout.py layout.json MeuRelatorio.Report
+```
+
+| Antes (harmonia 0) | Depois (harmonia 96) |
+|---|---|
+| ![Relatório legado com título grande, pizza e filtro ocupando um canto](docs/assets/reestilizar-antes.png) | ![O mesmo relatório reestilizado com sidebar, barra do topo e barras ordenadas](docs/assets/reestilizar-depois.png) |
+
+As páginas são reescritas, então faça um commit antes. Indicadores (bookmarks) que apontam para os
+visuais antigos precisam ser refeitos.
+
 ## Visual customizado só quando precisa
 
 <picture>
@@ -207,7 +226,7 @@ skills/powerbi-architect/
 └── scripts/
     ├── audit_pbip.py               ← auditoria de qualquer pasta PBIP, com nota de harmonia por página
     ├── pbi_graph.py                ← grafo de conhecimento + query/explain/impact/path
-    ├── pbir_layout.py              ← gera as páginas PBIR a partir de um layout em JSON
+    ├── pbir_layout.py              ← gera as páginas a partir de um layout em JSON; --extract reestiliza
     ├── preview_pbir.py             ← prévia das páginas em HTML, sem o Power BI Desktop
     └── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
 

@@ -4,6 +4,7 @@
 Python 3.9+ standard library only. Offline. Writes only inside the <Name>.Report folder it is given.
 
     python pbir_layout.py <spec.json> <Name>.Report [--theme theme.json] [--check]
+    python pbir_layout.py --extract <Name>.Report [--out layout.json]     # restyle an existing report
 
 You describe each page as rows of visuals; the script computes every position on the 4 px grid and
 writes the app shell of references/report-design.md §0 (sidebar with icons and page navigator, white
@@ -43,11 +44,20 @@ Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, wat
 A field parameter is just a column: use its column as "category" or "rows" and put a slicer on it.
 Every data visual needs "alt" (alt text) and "title" or "titleMeasure" (kpi uses "label").
 Row heights plus 16 px gutters must fit the 616 px content area. --check validates without writing.
+Measures outside the "measures" table: "measureHome": {"Receita": "Vendas"}.
+
+--extract reads an existing PBIR report (any layout) and writes the spec that rebuilds it on the
+standard: visuals grouped into rows by position, widths turned into split weights, heights fitted to
+the content area, titles, alt text, sorting, tooltips and drill-through kept; pies become sorted bars;
+decoration (shapes, text boxes, images, buttons) is dropped. Notes on stderr list what needs a human.
+Build the spec into the same folder to restyle it (pages are rewritten: commit first).
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import math
+from fractions import Fraction
 import json
 import re
 import shutil
@@ -89,6 +99,7 @@ class Builder:
     def __init__(self, spec: dict):
         self.spec = spec
         self.measures = spec.get("measures", "_Medidas")
+        self.measure_home = spec.get("measureHome", {})   # measures that live outside "measures"
         self.app = spec.get("app", "Relatório")
         self.page_ids = {p["name"]: hid("page", p["name"]) for p in spec["pages"]}
         self.icons_used: set[str] = set()
@@ -98,7 +109,7 @@ class Builder:
         m = re.match(r"^(.+?)\[(.+)\]$", name)
         if m:
             return "Column", m.group(1).strip("'"), m.group(2)
-        return "Measure", self.measures, name
+        return "Measure", self.measure_home.get(name, self.measures), name
 
     def field(self, name: str):
         kind, entity, prop = self.ref(name)
@@ -464,10 +475,352 @@ class Builder:
         rj_path.write_text(json.dumps(rj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
 
 
+# ---------------------------------------------------------------------- extract (restyle)
+DECORATION = {"shape", "textbox", "image", "pageNavigator", "actionButton", "basicShape", "bookmarkNavigator"}
+CARDS = {"card", "cardVisual", "multiRowCard"}
+AS_CHART = {"lineChart": "lineChart", "areaChart": "lineChart", "stackedAreaChart": "lineChart",
+            "clusteredBarChart": "clusteredBarChart", "barChart": "clusteredBarChart",
+            "hundredPercentStackedBarChart": "clusteredBarChart",
+            "clusteredColumnChart": "clusteredColumnChart", "columnChart": "clusteredColumnChart",
+            "hundredPercentStackedColumnChart": "clusteredColumnChart", "waterfallChart": "waterfallChart",
+            "pieChart": "clusteredBarChart", "donutChart": "clusteredBarChart", "funnel": "clusteredBarChart",
+            "treemap": "clusteredBarChart"}
+DEFAULT_ICONS = ["layout-dashboard", "chart-bar", "list-details", "file-description", "user"]
+
+
+def _lit(o):
+    try:
+        v = o["expr"]["Literal"]["Value"]
+    except (KeyError, TypeError):
+        return None
+    return v[1:-1].replace("''", "'") if isinstance(v, str) and v.startswith("'") else v
+
+
+def _prop(objs: dict, obj: str, name: str):
+    try:
+        return objs[obj][0]["properties"].get(name)
+    except (KeyError, IndexError, TypeError):
+        return None
+
+
+class Extractor:
+    def __init__(self, report: Path):
+        self.report = report
+        self.notes: list[str] = []
+        self.measure_tables: dict[str, str] = {}
+
+    def name(self, f: dict, where: str) -> str:
+        """Spec name of a PBIR field expression: bare measure name or Table[Column]."""
+        kind = next(iter(f), "")
+        body = f.get(kind, {})
+        if kind == "Measure":
+            ent = body["Expression"]["SourceRef"].get("Entity", "")
+            self.measure_tables[body["Property"]] = ent
+            return body["Property"]
+        if kind == "Column":
+            return f"{body['Expression']['SourceRef'].get('Entity', '')}[{body['Property']}]"
+        if kind == "Aggregation":
+            col = self.name(body.get("Expression", {}), where)
+            self.notes.append(f"{where}: implicit aggregation of {col}; create an explicit measure and use it")
+            return col
+        if kind == "HierarchyLevel":
+            h = body["Expression"]["Hierarchy"]
+            ent = h["Expression"]["SourceRef"].get("Entity", "")
+            return f"{ent}[{body['Level']}]"
+        raise SpecError(f"{where}: unsupported field {kind}")
+
+    def roles(self, vis: dict, where: str) -> dict:
+        qs = (vis.get("query") or {}).get("queryState") or {}
+        return {r: [self.name(p["field"], where) for p in v.get("projections", [])] for r, v in qs.items()}
+
+    def title(self, vis: dict) -> tuple[str | None, str | None]:
+        vco = vis.get("visualContainerObjects") or {}
+        text = _prop(vco, "title", "text")
+        if isinstance(text, dict) and "Measure" in (text.get("expr") or {}):
+            return None, self.name(text["expr"], "title")
+        return _lit(text), None
+
+    @staticmethod
+    def chromeless(vis: dict) -> bool:
+        vco = vis.get("visualContainerObjects") or {}
+        return str(_lit(_prop(vco, "title", "show"))).lower() == "false" and \
+            str(_lit(_prop(vco, "background", "show"))).lower() == "false"
+
+    def sort(self, vis: dict):
+        try:
+            s = vis["query"]["sortDefinition"]["sort"][0]
+        except (KeyError, IndexError, TypeError):
+            return None, None
+        return self.name(s["field"], "sort"), s.get("direction", "Ascending")
+
+    def visual(self, vis: dict, where: str, page_names: dict) -> dict | None:
+        t = vis.get("visualType", "")
+        r = self.roles(vis, where)
+        title, title_measure = self.title(vis)
+        alt = _lit(_prop(vis.get("visualContainerObjects") or {}, "general", "altText"))
+        if not alt:
+            first = (r.get("Values") or r.get("Indicator") or r.get("Y") or [None])[0]
+            alt = title or (first if t in CARDS or t == "kpi" else None) or t
+            self.notes.append(f"{where}: no alt text; used '{alt}', write a real one")
+        out: dict = {}
+        if t in CARDS:
+            m = (r.get("Values") or r.get("Data") or r.get("Fields") or [None])[0]
+            if not m:
+                return None
+            out = {"type": "kpi", "measure": m, "label": title or m}
+        elif t == "kpi":
+            out = {"type": "kpiTrend", "measure": r["Indicator"][0], "label": title or r["Indicator"][0]}
+            if r.get("TrendLine"):
+                out["trend"] = r["TrendLine"][0]
+            if r.get("Goal"):
+                out["goal"] = r["Goal"][0]
+        elif t in AS_CHART:
+            cat = (r.get("Category") or r.get("Series") or [None])[0]
+            vals = r.get("Y") or r.get("Values") or []
+            if not cat or not vals:
+                self.notes.append(f"{where}: {t} without a category or values; skipped")
+                return None
+            out = {"type": AS_CHART[t], "category": cat, "values": vals}
+            if t in ("pieChart", "donutChart", "funnel", "treemap"):
+                out["sort"] = "desc"
+                self.notes.append(f"{where}: {t} became a bar chart sorted by value")
+            else:
+                by, direction = self.sort(vis)
+                if by == cat:
+                    out["sort"] = "category"
+                elif by:
+                    out["sort"] = "desc" if direction == "Descending" else "asc"
+                elif AS_CHART[t] == "lineChart":
+                    out["sort"] = "category"
+            if t == "waterfallChart":
+                sc = (vis.get("objects") or {}).get("sentimentColors")
+                if sc:
+                    props = sc[0].get("properties", {})
+                    out["sentiment"] = {k[:-4]: _lit(v["solid"]["color"]) for k, v in props.items()
+                                        if k.endswith("Fill") and _lit(v["solid"]["color"])}
+        elif t in ("lineClusteredColumnComboChart", "lineStackedColumnComboChart"):
+            out = {"type": "combo", "category": r["Category"][0], "values": r.get("Y", []),
+                   "lineValues": r.get("Y2", [])}
+        elif t == "scatterChart":
+            out = {"type": "scatter", "details": (r.get("Category") or r.get("Details") or [""])[0],
+                   "x": r["X"][0], "y": r["Y"][0]}
+            if r.get("Size"):
+                out["size"] = r["Size"][0]
+        elif t in ("tableEx", "pivotTable"):
+            if t == "tableEx":
+                out = {"type": "tableEx", "columns": r.get("Values", [])}
+            else:
+                out = {"type": "matrix", "rows": r.get("Rows", []), "values": r.get("Values", [])}
+                if r.get("Columns"):
+                    out["columns"] = r["Columns"]
+            by, direction = self.sort(vis)
+            if by:
+                out["sortBy"] = f"{by} {'desc' if direction == 'Descending' else 'asc'}"
+            for item in (vis.get("objects") or {}).get("values", []):
+                fc = (item.get("properties") or {}).get("fontColor") or {}
+                expr = (fc.get("solid") or {}).get("color", {}).get("expr", {})
+                sel = (item.get("selector") or {}).get("metadata", "")
+                if "Measure" in expr and sel:
+                    out["highlight"] = {"column": sel.split(".", 1)[1], "colorMeasure": self.name(expr, where)}
+        elif t == "slicer":
+            return {"type": "slicer", "field": (r.get("Values") or [""])[0]}
+        else:
+            self.notes.append(f"{where}: {t or 'unknown'} is not in the layout engine; rebuild it by hand")
+            return None
+        if out["type"] not in ("kpi", "kpiTrend"):
+            if title_measure:
+                out["titleMeasure"] = title_measure
+            else:
+                out["title"] = title or alt
+        if out["type"] not in ("kpi", "kpiTrend") or alt != out.get("label"):
+            out["alt"] = alt
+        tip = _prop(vis.get("visualContainerObjects") or {}, "visualTooltip", "section")
+        if _lit(tip) in page_names:
+            out["tooltipPage"] = page_names[_lit(tip)]
+        return out
+
+    def page(self, pdir: Path, pdata: dict, page_names: dict, icon: str, shared_slicers: list) -> dict:
+        name = pdata.get("displayName", pdir.name)
+        binding = (pdata.get("pageBinding") or {}).get("type")
+        page: dict = {"name": name}
+        items = []
+        for f in sorted((pdir / "visuals").glob("*/visual.json")):
+            c = json.loads(f.read_text(encoding="utf-8-sig"))
+            vis = c.get("visual")
+            if vis and vis.get("visualType") == "textbox" and c.get("position", {}).get("y", 99) < CONTENT_Y - 8:
+                runs = [r.get("value", "") for para in (_prop(vis.get("objects") or {}, "general", "paragraphs") or [])
+                        for r in para.get("textRuns", [])]
+                pos = c["position"]
+                if pos.get("x", 0) < 220 and pos.get("y", 0) < 48 and pos.get("width", 999) <= 212 and runs:        # app name in the sidebar
+                    self.app = self.app or "".join(runs).strip()
+                elif len(runs) == 3 and binding == "Drillthrough":                # App / Parent / Page
+                    page["parent"] = runs[1].strip().rstrip("/").strip()
+            if not vis or vis.get("visualType") in DECORATION:
+                continue
+            items.append((c.get("position", {}), vis, f"{name}/{f.parent.name}"))
+        top = [(p, v, w) for p, v, w in items if p.get("y", 0) + p.get("height", 0) <= CONTENT_Y - 8]
+        body = [i for i in items if i not in top]
+        slicers = []
+        for p, v, w in top:                               # top bar of a report built by this engine
+            if v["visualType"] == "slicer":
+                slicers.append(self.roles(v, w)["Values"][0])
+            elif v["visualType"] == "card" and self.chromeless(v):
+                self.updated = self.roles(v, w)["Values"][0]
+        cards = [(p, v, w) for p, v, w in body if v["visualType"] in CARDS and not self.chromeless(v)]
+        variations = {}
+        for p, v, w in body:                              # variation lines inside KPI cards
+            if v["visualType"] == "card" and self.chromeless(v):
+                host = next((c for c in cards if c[0]["x"] <= p["x"] <= c[0]["x"] + c[0]["width"]
+                             and c[0]["y"] <= p["y"] <= c[0]["y"] + c[0]["height"]), None)
+                if host:
+                    m = self.roles(v, w)["Values"][0]
+                    color_ = _prop(v.get("objects") or {}, "labels", "color") or {}
+                    expr = (color_.get("solid") or {}).get("color", {}).get("expr", {})
+                    variations[host[2]] = (m, self.name(expr, w) if "Measure" in expr else None)
+        body = [(p, v, w) for p, v, w in body if not (v["visualType"] == "card" and self.chromeless(v))]
+        loose_slicers = [(p, v, w) for p, v, w in body if v["visualType"] == "slicer"]
+        body = [i for i in body if i not in loose_slicers]
+        for p, v, w in loose_slicers:
+            f = self.roles(v, w).get("Values", [None])[0]
+            if f and f not in slicers:
+                slicers.append(f)
+        if binding == "Tooltip":
+            page["kind"] = "tooltip"
+            specs = [s for s in (self.visual(v, w, page_names) for _, v, w in body) if s]
+            if len(specs) > 1:
+                self.notes.append(f"{name}: tooltip page keeps only its first visual (of {len(specs)})")
+            page["visuals"] = specs[:1]
+            return page
+        if binding == "Drillthrough":
+            page["kind"] = "drillthrough"
+            try:
+                page["drillField"] = self.name(pdata["pageBinding"]["parameters"][0]["fieldExpr"], name)
+            except (KeyError, IndexError):
+                f = (pdata.get("filterConfig") or {}).get("filters", [{}])[0].get("field")
+                if f:
+                    page["drillField"] = self.name(f, name)
+        else:
+            page["icon"] = icon
+        if slicers[2:]:
+            self.notes.append(f"{name}: {len(slicers)} slicers; kept {slicers[:2]}, move the rest to the filter pane")
+        if slicers[:2] != shared_slicers:
+            page["slicers"] = slicers[:2]
+        page["rows"] = self.rows(body, page_names, variations, name)
+        return page
+
+    def rows(self, body, page_names, variations, page_name) -> list[dict]:
+        body = sorted(body, key=lambda i: (i[0].get("y", 0), i[0].get("x", 0)))
+        groups: list[list] = []
+        for item in body:
+            p = item[0]
+            if groups:
+                g = groups[-1]
+                top = min(q[0].get("y", 0) for q in g)
+                bottom = max(q[0].get("y", 0) + q[0].get("height", 0) for q in g)
+                mid = p.get("y", 0) + p.get("height", 0) / 2
+                if top <= mid < bottom:
+                    g.append(item)
+                    continue
+            groups.append([item])
+        rows = []
+        for g in groups:
+            g.sort(key=lambda i: i[0].get("x", 0))
+            specs, widths = [], []
+            for p, v, w in g:
+                s = self.visual(v, w, page_names)
+                if not s:
+                    continue
+                if s["type"] == "kpi" and w in variations:
+                    s["variation"], color_ = variations[w]
+                    if color_:
+                        s["variationColor"] = color_
+                specs.append(s)
+                widths.append(p.get("width", 1))
+            if not specs:
+                continue
+            row = {"_h": max(p.get("height", 0) for p, _, _ in g), "visuals": specs}
+            if len(set(widths)) > 1:
+                fr = [Fraction(x / min(widths)).limit_denominator(4) for x in widths]
+                lcm = 1
+                for f in fr:
+                    lcm = lcm * f.denominator // math.gcd(lcm, f.denominator)
+                row["split"] = [int(f * lcm) for f in fr]
+                if len(set(row["split"])) == 1:
+                    del row["split"]
+            seen: dict[str, int] = {}
+            for sp in specs:
+                first = (sp.get("measure") or sp.get("category") or sp.get("details")
+                         or (sp.get("columns") or sp.get("rows") or [""])[0])
+                k = f"{sp['type']}-{first}"
+                seen[k] = seen.get(k, 0) + 1
+                if seen[k] > 1:
+                    sp["key"] = f"{k}-{seen[k]}"
+            rows.append(row)
+        kpi_rows = [r for r in rows if all(v["type"] == "kpi" for v in r["visuals"])]
+        free = CONTENT_H - GUTTER * max(len(rows) - 1, 0) - 88 * len(kpi_rows)
+        rest = [r for r in rows if r not in kpi_rows]
+        total = sum(r["_h"] for r in rest) or 1
+        for r in rows:
+            h = r.pop("_h")
+            r_h = 88 if r in kpi_rows else int(free * h / total) // 4 * 4
+            if r not in kpi_rows and r_h < 160:
+                self.notes.append(f"{page_name}: a row is only {r_h} px high; split the page in two")
+            r["height"] = max(r_h, 40)
+        return [{"height": r["height"], **({"split": r["split"]} if "split" in r else {}), "visuals": r["visuals"]}
+                for r in rows]
+
+    def run(self) -> dict:
+        pages_dir = self.report / "definition" / "pages"
+        meta = json.loads((pages_dir / "pages.json").read_text(encoding="utf-8-sig"))
+        order = meta.get("pageOrder") or sorted(p.name for p in pages_dir.iterdir() if p.is_dir())
+        datas = {pid: json.loads((pages_dir / pid / "page.json").read_text(encoding="utf-8-sig")) for pid in order}
+        page_names = {pid: d.get("displayName", pid) for pid, d in datas.items()}
+        self.updated = None
+        self.app = None
+        first_slicers: list = []
+        pages, icon_i = [], 0
+        for pid in order:
+            visible = not (datas[pid].get("pageBinding") or {}).get("type")
+            icon = DEFAULT_ICONS[icon_i % len(DEFAULT_ICONS)]
+            page = self.page(pages_dir / pid, datas[pid], page_names, icon, first_slicers if pages else [])
+            if not pages and "slicers" in page:
+                first_slicers = page.pop("slicers")
+            icon_i += visible
+            pages.append(page)
+        for p in pages:
+            if "slicers" in p and p["slicers"] == first_slicers:
+                del p["slicers"]
+        counts: dict[str, int] = {}
+        for ent in self.measure_tables.values():
+            counts[ent] = counts.get(ent, 0) + 1
+        home = max(counts, key=counts.get) if counts else "_Medidas"
+        stem = self.report.name[:-len(".Report")] if self.report.name.endswith(".Report") else self.report.name
+        spec = {"app": self.app or re.sub(r"(?<=[a-z])(?=[A-Z])", " ", stem), "measures": home}
+        others = {m: e for m, e in self.measure_tables.items() if e != home}
+        if others:
+            spec["measureHome"] = dict(sorted(others.items()))
+        if self.updated:
+            spec["updated"] = self.updated
+        else:
+            self.notes.append("no 'updated at' measure; add one (references/dax.md) and set \"updated\"")
+        spec["slicers"] = first_slicers
+        spec["pages"] = pages
+        return spec
+
+
+def extract(report: Path) -> tuple[dict, list[str]]:
+    ex = Extractor(report)
+    spec = ex.run()
+    return spec, ex.notes
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="pbir_layout.py", description="Build PBIR pages from a layout spec.")
-    ap.add_argument("spec", type=Path)
-    ap.add_argument("report", type=Path, help="the <Name>.Report folder")
+    ap.add_argument("spec", type=Path, nargs="?")
+    ap.add_argument("report", type=Path, nargs="?", help="the <Name>.Report folder")
+    ap.add_argument("--extract", type=Path, metavar="REPORT",
+                    help="write the spec of an existing <Name>.Report (to restyle it) instead of building")
+    ap.add_argument("--out", type=Path, help="with --extract: file for the spec (default: stdout)")
     ap.add_argument("--theme", type=Path, help="theme JSON to register as the custom theme")
     ap.add_argument("--check", action="store_true", help="validate the spec without writing")
     args = ap.parse_args(argv)
@@ -476,6 +829,23 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
         except ValueError:
             pass
+    if args.extract:
+        try:
+            spec, notes = extract(args.extract)
+        except (SpecError, KeyError, OSError, json.JSONDecodeError) as e:
+            print(f"pbir_layout.py: error: {e}", file=sys.stderr)
+            return 2
+        text = json.dumps(spec, indent=2, ensure_ascii=False) + "\n"
+        if args.out:
+            args.out.write_text(text, encoding="utf-8")
+        else:
+            sys.stdout.write(text)
+        for n in notes:
+            print(f"- {n}", file=sys.stderr)
+        print(f"[ok] {len(spec['pages'])} page(s) extracted, {len(notes)} note(s)", file=sys.stderr)
+        return 0
+    if not args.spec or not args.report:
+        ap.error("spec and report are required (or use --extract REPORT)")
     try:
         spec = json.loads(args.spec.read_text(encoding="utf-8"))
         b = Builder(spec)

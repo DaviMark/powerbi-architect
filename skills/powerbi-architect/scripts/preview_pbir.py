@@ -300,6 +300,19 @@ class Preview:
                            f'background:{self.accent};opacity:.8"></div>' for n, x, y in zip(names, xs, ys))
             return (f'<div style="position:relative;height:{body_h - 16}px;margin:8px 12px;'
                     f'border-bottom:1px solid #EBEBEB;border-left:1px solid #EBEBEB">{dots}</div>')
+        if kind in ("piechart", "donutchart"):
+            labels = self.labels(cat, 6) or [""] * 5
+            vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, len(labels), [5, 4, 3, 2, 1]))[:len(labels)]
+            palette = (self.theme.get("dataColors") or [self.accent, "#666666", "#999999", "#BBBBBB", "#DDDDDD"])
+            total, acc, stops = sum(vals) or 1, 0.0, []
+            for i, v in enumerate(vals):
+                stops.append(f"{palette[i % len(palette)]} {acc / total * 360:.1f}deg {(acc + v) / total * 360:.1f}deg")
+                acc += v
+            d = max(min(body_h - 16, w - 24), 40)
+            hole = (f'<div style="position:absolute;inset:30%;border-radius:50%;background:#FFFFFF"></div>'
+                    if kind == "donutchart" else "")
+            return (f'<div style="position:relative;width:{d}px;height:{d}px;margin:8px auto;border-radius:50%;'
+                    f'background:conic-gradient({", ".join(stops)})">{hole}</div>')
         if kind == "lineclusteredcolumncombochart":
             labels = self.labels(cat, 12) or [""] * 12
             cols_v = self.series(m, len(labels), [6, 7, 6.5, 8, 7.5, 9, 8.5, 9.5, 9, 10, 9.8, 11])
