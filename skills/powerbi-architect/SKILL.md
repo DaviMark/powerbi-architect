@@ -72,6 +72,10 @@ Talk to the user in **their language**. Write documentation in the project langu
 | 7 Document | README, changelog, dictionary, version | — |
 
 Details, templates and standalone folder layout: [references/workflow.md](references/workflow.md).
+**New project in a common domain** (sales, finance, HR, inventory)? Start from a kit after Gate 1 instead of
+a blank folder: `python scripts/new_project.py --list`, then `new_project.py <kit> <Folder> [--primary "#hex"]`.
+It writes a clean, documented PBIP (ft_/dm_ star schema, SQL per table, measures, pages); adapt the model
+to the user's approved design, never the other way round.
 Never skip the two human gates. Never claim numbers are correct without a check against a trusted source.
 
 ## 3. Modeling decisions — quick reference

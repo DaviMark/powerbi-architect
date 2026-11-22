@@ -45,6 +45,12 @@ jobs:
         run: python tools/validate_schemas.py
       - name: Exemplos JSON das referências
         run: python tools/validate_schemas.py --references
+      - name: Projetos gerados pelos kits iniciais
+        run: |
+          for kit in vendas financeiro rh estoque; do
+            python skills/powerbi-architect/scripts/new_project.py "$kit" ".tmp/kits/$kit"
+          done
+          python tools/validate_schemas.py .tmp/kits
 
   pbiviz:
     name: Visual de referência compila com as ferramentas oficiais

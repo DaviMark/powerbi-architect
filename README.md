@@ -90,6 +90,28 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
 |---|---|
 | ![Página Diagnóstico com cascata, barras e tabela](docs/assets/exemplo-diagnostico.png) | ![Layout de celular da Visão Geral](docs/assets/exemplo-celular.png) |
 
+### Começar por um kit do seu domínio
+
+Para não partir do zero, `new_project.py` cria um projeto PBIP completo a partir de um kit: modelo
+estrela com `ft_` e `dm_`, uma consulta SQL por tabela, calendário, medidas com descrição e formato,
+segurança por linha quando faz sentido, páginas no padrão visual, página de documentação, dados de
+amostra para a prévia e um README do projeto. Os quatro kits saem da caixa sem nenhum achado na
+auditoria e com nota 100 de harmonia em todas as páginas.
+
+```bash
+python skills/powerbi-architect/scripts/new_project.py --list
+python skills/powerbi-architect/scripts/new_project.py vendas ./Vendas --primary "#0F766E"
+```
+
+| Vendas | Financeiro |
+|---|---|
+| ![Kit de vendas: receita, margem, pedidos e ticket médio](docs/assets/kit-vendas.png) | ![Kit financeiro: DRE com realizado contra orçado e cascata até o EBITDA](docs/assets/kit-financeiro.png) |
+| **Pessoas (RH)** | **Estoque** |
+| ![Kit de RH: quadro, turnover e salário médio, sem dados pessoais](docs/assets/kit-rh.png) | ![Kit de estoque: valor, cobertura em dias e itens abaixo do ponto de pedido](docs/assets/kit-estoque.png) |
+
+As views de origem citadas no kit não existem no seu data warehouse: o README gerado lista cada uma,
+com o grão, para você mapear antes da primeira atualização.
+
 ### Reestilizar um relatório que já existe
 
 Não precisa começar do zero. `pbir_layout.py --extract` lê um relatório PBIR com qualquer layout, agrupa
@@ -218,6 +240,7 @@ skills/powerbi-architect/
 │   ├── copywriting.md              títulos, nomes de medida, números e textos das páginas
 │   ├── performance.md · security.md · quality-checklist.md
 ├── templates/
+│   ├── starter-kits/               ← kits de vendas, financeiro, RH e estoque
 │   ├── pbir-pages/                 ← 6 arquétipos de página e um layout de exemplo
 │   ├── pbir-visuals-experimental/  ← cartão novo, slicer em botões, botão com ícone (a conferir no Desktop)
 │   ├── icons/                      ← ícones da navegação (Tabler, licença MIT)
@@ -228,7 +251,8 @@ skills/powerbi-architect/
     ├── pbi_graph.py                ← grafo de conhecimento + query/explain/impact/path
     ├── pbir_layout.py              ← gera as páginas a partir de um layout em JSON; --extract reestiliza
     ├── preview_pbir.py             ← prévia das páginas em HTML, sem o Power BI Desktop
-    └── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
+    ├── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
+    └── new_project.py              ← projeto PBIP completo a partir de um kit inicial
 
 examples/contas-a-receber/          ← projeto PBIP completo que segue todas as regras
 ```
