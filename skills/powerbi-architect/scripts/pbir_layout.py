@@ -338,19 +338,20 @@ class Builder:
         runs.append(self.run(name, 12, INK, semibold=True))
         items.append(("caminho", (crumb_x, 28, 520, 24), self.textbox(*runs)))
         right = 1256
+        bar = []                                   # placed right to left, added left to right (tab order)
         for i, f in enumerate(reversed(slicers)):
             x = right - 176
-            items.append((f"filtro-{i}", (x, 20, 176, 40), self.data_visual(
+            bar.append((f"filtro-{i}", (x, 20, 176, 40), self.data_visual(
                 "slicer", {"Values": {"projections": [self.proj(f)]}}, f"Filtro de {self.ref(f)[2]}",
                 objects={"data": [{"properties": {"mode": lit("'Dropdown'")}}]})))
             right = x - GUTTER
         if self.spec.get("updated"):
-            items.append(("atualizado", (right - 200, 28, 200, 24), self.data_visual(
+            bar.append(("atualizado", (right - 200, 28, 200, 24), self.data_visual(
                 "card", {"Values": {"projections": [self.proj(self.spec["updated"])]}},
                 "Data e hora da última carga", chrome=False,
                 objects={"labels": [{"properties": {"fontSize": lit("9D"), "color": color(INK3),
                                                     "fontFamily": lit("'Segoe UI'")}}]})))
-        return items
+        return items + bar[::-1]
 
     def mobile(self, placed):
         """Stack the content visuals for the phone layout: slicers, KPIs, then the rest, full width."""
