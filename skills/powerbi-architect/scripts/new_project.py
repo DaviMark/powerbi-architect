@@ -300,11 +300,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--server", default="localhost")
     ap.add_argument("--database", default="dw")
     args = ap.parse_args(argv)
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
-        except ValueError:
-            pass
+    for stream in (sys.stdin, sys.stdout, sys.stderr):   # Windows consoles default to a legacy code page
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except ValueError:
+                pass
     available = kits()
     if args.list:
         for k, v in available.items():
