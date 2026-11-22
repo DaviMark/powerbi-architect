@@ -106,8 +106,12 @@ def measure(m: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-CALENDAR = (
-    "/// Calendário do ano anterior até o fim do ano corrente. Marcado como tabela de datas.\n"
+def calendar(date_ref: str) -> str:
+    """dm_calendario bounded by the fact's date (full years), as references/modeling.md §5 asks; while the
+    fact is still empty it falls back to two years back through the end of the current year."""
+    return (
+    "/// Calendário em anos completos, da primeira à última data da tabela fato (ou de dois anos atrás até o\n"
+    "/// fim do ano corrente enquanto a fato está vazia). Marcado como tabela de datas.\n"
     "table dm_calendario\n\tdataCategory: Time\n\n"
     + column({"name": "Data", "type": "dateTime", "key": True, "format": "dd/mm/yyyy"}, True) + "\n"
     + column({"name": "Ano", "type": "int64", "format": "0"}, True) + "\n"
@@ -117,8 +121,10 @@ CALENDAR = (
     + column({"name": "Ano-Mês", "type": "string", "sortBy": "Ano-Mês Nº"}, True) + "\n"
     + "\thierarchy 'Ano > Mês'\n\n\t\tlevel Ano\n\t\t\tcolumn: Ano\n\n\t\tlevel Mês\n\t\t\tcolumn: Mês\n\n"
     + "\tpartition dm_calendario = calculated\n\t\tmode: import\n\t\tsource =\n"
-    + "\t\t\t\tVAR _fim = DATE ( YEAR ( TODAY () ), 12, 31 )\n"
-    + "\t\t\t\tVAR _inicio = DATE ( YEAR ( TODAY () ) - 1, 1, 1 )\n"
+    + f"\t\t\t\tVAR _primeira = COALESCE ( MIN ( {date_ref} ), DATE ( YEAR ( TODAY () ) - 2, 1, 1 ) )\n"
+    + f"\t\t\t\tVAR _ultima = MAX ( COALESCE ( MAX ( {date_ref} ), TODAY () ), TODAY () )\n"
+    + "\t\t\t\tVAR _inicio = DATE ( YEAR ( _primeira ), 1, 1 )\n"
+    + "\t\t\t\tVAR _fim = DATE ( YEAR ( _ultima ), 12, 31 )\n"
     + "\t\t\t\tRETURN\n\t\t\t\t    ADDCOLUMNS (\n\t\t\t\t        CALENDAR ( _inicio, _fim ),\n"
     + "\t\t\t\t        \"Ano\", YEAR ( [Date] ),\n\t\t\t\t        \"Mês Nº\", MONTH ( [Date] ),\n"
     + "\t\t\t\t        \"Mês\", FORMAT ( [Date], \"mmm\" ),\n"
@@ -213,7 +219,9 @@ def generate(kit: dict, out: Path, name: str, server: str, database: str, primar
                     raise ValueError(f"{t['name']}[{c['name']}] references unknown table {target}")
                 key = next(k["name"] for tt in kit["tables"] if tt["name"] == target for k in tt["columns"] if k.get("key"))
                 rels.append((f"{t['name']}.{q(c['name'])}", f"{target}.{q(key)}"))
-    write(d / "tables" / "dm_calendario.tmdl", CALENDAR)
+    fact_date = next(f"{q(t['name'])}[{c['name']}]" for t in kit["tables"] for c in t["columns"]
+                     if c.get("references") == "dm_calendario")
+    write(d / "tables" / "dm_calendario.tmdl", calendar(fact_date))
     measures = kit["measures"] + [UPDATED]
     write(d / "tables" / "_Medidas.tmdl",
           f"/// Medidas do relatório de {kit['app'].lower()} e data da última carga.\ntable _Medidas\n\n"

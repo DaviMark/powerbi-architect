@@ -1,4 +1,4 @@
-/// Calendário de 24 meses até o fim do ano corrente. Marcado como tabela de datas.
+/// Calendário de 1º de janeiro de dois anos atrás até o fim do ano corrente: cobre os 24 meses das tabelas fato. Marcado como tabela de datas.
 table dm_calendario
 	dataCategory: Time
 
@@ -63,7 +63,7 @@ table dm_calendario
 		mode: import
 		source =
 				VAR _fim = DATE ( YEAR ( TODAY () ), 12, 31 )
-				VAR _inicio = DATE ( YEAR ( TODAY () ) - 1, 1, 1 )
+				VAR _inicio = DATE ( YEAR ( TODAY () ) - 2, 1, 1 )
 				RETURN
 				    ADDCOLUMNS (
 				        CALENDAR ( _inicio, _fim ),
