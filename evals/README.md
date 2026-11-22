@@ -17,6 +17,7 @@ de instruções, estado do projeto) ficam em [`fixtures/`](fixtures).
 | Data | Modelo | Sem a skill | Com a skill | Detalhes |
 |---|---|---|---|---|
 | 21/11/2026 | Claude Sonnet 5.5 | 6 de 18 itens · 2 de 10 casos | 16 de 18 itens · 8 de 10 casos | [resultados](results/2026-11-21/README.md) |
+| 21/11/2026 (design, E11–E12) | Claude Sonnet 5.5 | 3 de 8 itens · harmonia 0 e 22 | 8 de 8 itens · harmonia 100 | [resultados](results/2026-11-21-design/README.md) |
 
 Para corrigir sem viés, embaralhe as duas respostas de cada caso como "A" e "B" e só revele qual é qual
 depois da pontuação.

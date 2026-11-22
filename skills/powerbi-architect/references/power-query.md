@@ -19,7 +19,7 @@ expression Erp_Server = "sql-erp.company.local" meta [IsParameterQuery=true, Typ
 ## Partition template
 
 ```tmdl
-	partition 'Fato Vendas' = m
+	partition ft_vendas = m
 		mode: import
 		source =
 				let

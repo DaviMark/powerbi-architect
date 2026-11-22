@@ -86,12 +86,12 @@ class TestRules(unittest.TestCase):
             edit(sm / "tables" / "_Medidas.tmdl", "DIVIDE ( [Valor Vencido], [Valor Aberto] )",
                  "IFERROR ( [Valor Vencido] / [Valor Aberto], 0 )")
             edit(sm / "tables" / "_Medidas.tmdl", "\t/// Saldo em aberto das parcelas, vencidas ou a vencer.\n", "")
-            edit(sm / "tables" / "Fato Titulos.tmdl", "Sql.Database(Servidor, Banco)", 'Sql.Database("srv01", "dw")')
-            edit(sm / "tables" / "Dim Cliente.tmdl", "\tcolumn Segmento\n\t\tdataType: string",
+            edit(sm / "tables" / "ft_titulos.tmdl", "Sql.Database(Servidor, Banco)", 'Sql.Database("srv01", "dw")')
+            edit(sm / "tables" / "dm_cliente.tmdl", "\tcolumn Segmento\n\t\tdataType: string",
                  "\tcolumn Segmento\n\t\tdataType: string\n\n\tcolumn Score\n\t\tdataType: double\n"
                  "\t\tsummarizeBy: none\n\t\tsourceColumn: Score\n\n\tcolumn Segmento2\n\t\tdataType: string")
-            edit(sm / "relationships.tmdl", "\tfromColumn: 'Fato Titulos'.id_cliente",
-                 "\tcrossFilteringBehavior: bothDirections\n\tfromColumn: 'Fato Titulos'.id_cliente")
+            edit(sm / "relationships.tmdl", "\tfromColumn: ft_titulos.id_cliente",
+                 "\tcrossFilteringBehavior: bothDirections\n\tfromColumn: ft_titulos.id_cliente")
             (p / "README.md").unlink()
             found, code = self.findings(p)
             rules = {f["rule"] for f in found}
@@ -100,7 +100,7 @@ class TestRules(unittest.TestCase):
                 self.assertIn(expected, rules)
             self.assertEqual(code, 1)                                    # blockers present
             hard = next(f for f in found if f["rule"] == "PBI003")
-            self.assertTrue(hard["where"].endswith("tables/Fato Titulos.tmdl"))
+            self.assertTrue(hard["where"].endswith("tables/ft_titulos.tmdl"))
             self.assertGreater(hard["line"], 0)
             self.assertIn("REMOVE_AUTO-DATE_TABLE", next(f for f in found if f["rule"] == "PBI010")["bpa"])
 
@@ -119,6 +119,66 @@ class TestRules(unittest.TestCase):
             page.write_text(json.dumps(pj), encoding="utf-8")
             rules = {f["rule"] for f in self.findings(p)[0]}
             self.assertTrue({"PBI019", "PBI040", "PBI042"} <= rules, rules)
+
+
+    def test_layout_typography_and_naming_rules(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            sm = p / "ContasReceber.SemanticModel" / "definition"
+            for f in (sm / "tables" / "dm_cliente.tmdl", sm / "relationships.tmdl"):
+                f.write_text(f.read_text(encoding="utf-8").replace("dm_cliente", "Clientes"), encoding="utf-8")
+            page_dir = next(pj.parent / "visuals" for pj in (p / "ContasReceber.Report").rglob("page.json")
+                            if json.loads(pj.read_text(encoding="utf-8"))["displayName"] == "Visão Geral")
+            slicer = next(v for v in page_dir.rglob("visual.json") if '"slicer"' in v.read_text(encoding="utf-8"))
+            data = json.loads(slicer.read_text(encoding="utf-8"))
+            data["position"].update(width=400, height=120)                    # PBI046
+            slicer.write_text(json.dumps(data), encoding="utf-8")
+            for i in range(2):                                                # PBI050: 3 slicers
+                copy = page_dir / f"extra{i}" / "visual.json"
+                copy.parent.mkdir()
+                data["position"].update(width=176, height=40)
+                copy.write_text(json.dumps(data), encoding="utf-8")
+            box = next(v for v in page_dir.rglob("visual.json") if '"textbox"' in v.read_text(encoding="utf-8"))
+            data = json.loads(box.read_text(encoding="utf-8"))
+            first_run = data["visual"]["objects"]["general"][0]["properties"]["paragraphs"][0]["textRuns"][0]
+            first_run["textStyle"].update(fontSize="28pt", fontFamily="DIN")         # PBI047, PBI051
+            data["position"].update(x=1201, width=200)                        # PBI048, PBI052
+            box.write_text(json.dumps(data), encoding="utf-8")
+            rules = {f["rule"] for f in json.loads(run(p, "--json").stdout)}
+            for expected in ("PBI046", "PBI047", "PBI048", "PBI049", "PBI050", "PBI051", "PBI052"):
+                self.assertIn(expected, rules)
+
+
+    def test_accessibility_title_and_colour_rules(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            page_dir = next(pj.parent / "visuals" for pj in (p / "ContasReceber.Report").rglob("page.json")
+                            if json.loads(pj.read_text(encoding="utf-8"))["displayName"] == "Visão Geral")
+            files = sorted(page_dir.rglob("visual.json"))
+            charts = [f for f in files if '"clusteredBarChart"' in f.read_text(encoding="utf-8")
+                      or '"lineChart"' in f.read_text(encoding="utf-8")]
+            bar = json.loads(charts[0].read_text(encoding="utf-8"))
+            vco = bar["visual"]["visualContainerObjects"]
+            vco["title"] = [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
+                                            "text": {"expr": {"Literal": {"Value": "'Soma de Valor por Regional'"}}}}}]
+            bar["visual"]["objects"] = {
+                "valueAxis": [{"properties": {"showAxisTitle": {"expr": {"Literal": {"Value": "true"}}}}}],
+                "labels": [{"properties": {"color": {"solid": {"color": {"expr": {"Literal": {"Value": "'#BBBBBB'"}}}}}}}],
+                "dataPoint": [{"properties": {"fill": {"solid": {"color": {"expr": {"Literal": {"Value": f"'{c}'"}}}}}}}
+                              for c in ("#E11D48", "#F59E0B", "#10B981", "#6366F1", "#EC4899", "#14B8A6", "#84CC16")]}
+            bar["position"]["tabOrder"] = -1                                    # PBI053: jumps ahead
+            charts[0].write_text(json.dumps(bar), encoding="utf-8")             # PBI054, PBI055, PBI057, PBI058
+            line = json.loads(charts[1].read_text(encoding="utf-8"))
+            line["visual"]["visualContainerObjects"].pop("title")               # PBI056
+            charts[1].write_text(json.dumps(line), encoding="utf-8")
+            r = run(p, "--json", "--min-harmony", "90")
+            rules = {f["rule"] for f in json.loads(r.stdout)}
+            for expected in ("PBI053", "PBI054", "PBI055", "PBI056", "PBI057", "PBI058"):
+                self.assertIn(expected, rules)
+            self.assertEqual(r.returncode, 1)                                   # harmony below 90
+            text = run(p).stdout
+            self.assertRegex(text, r"Harmony: Visão Geral \d+")
+            self.assertNotIn("Visão Geral 100", text)
 
 
 class TestSuppression(unittest.TestCase):

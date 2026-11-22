@@ -1,5 +1,10 @@
 # Contas a receber (exemplo)
 
+![Prévia da página Visão Geral, com dados de amostra](../../docs/assets/exemplo-visao-geral.png)
+
+*Prévia gerada por `scripts/preview_pbir.py` a partir dos arquivos PBIR, com os valores de
+`preview-sample.json`; o projeto não traz dados.*
+
 Projeto PBIP sintético que segue todas as regras da skill. Serve para três coisas:
 
 - **Ver o padrão pronto:** modelo estrela, Power Query de uma etapa, medidas documentadas, página de
@@ -25,17 +30,31 @@ Responde a quatro perguntas de cobrança, para a diretoria financeira, com carga
 | Página | Pergunta |
 |---|---|
 | Visão Geral | Quanto está vencido, onde e há quanto tempo |
-| Clientes | Quem concentra o valor vencido |
+| Diagnóstico | Como cada faixa de atraso, segmento e regional compõe o vencido |
+| Clientes | Quem concentra o valor vencido (botão direito num cliente abre o detalhe) |
 | Documentação | O que cada medida significa e quando foi a última carga |
+| Detalhe do cliente | Drill-through: a situação de um cliente (página oculta da navegação) |
+| Tooltip regional | Faixas de atraso da regional apontada no gráfico (página de tooltip) |
+
+As páginas são geradas a partir de [`layout.json`](layout.json) pelo `scripts/pbir_layout.py` da skill.
+O arquivo [`preview-sample.json`](preview-sample.json) tem valores de amostra para a prévia:
+
+```bash
+python skills/powerbi-architect/scripts/preview_pbir.py examples/contas-a-receber/ContasReceber.Report \
+  --sample examples/contas-a-receber/preview-sample.json --out preview.html
+```
 
 ## Cargas
 
 | Tabela | Tipo | Grão | Fonte | Modo |
 |---|---|---|---|---|
-| Fato Titulos | fato | 1 linha por parcela | `dw.fato_titulos_receber` | Import |
-| Dim Cliente | dimensão | 1 linha por cliente | `dw.dim_cliente` | Import |
-| Dim Regional | dimensão | 1 linha por regional | `dw.dim_regional` | Import |
-| Calendario | dimensão de datas | 1 linha por dia | calculada (DAX) | Import |
+| ft_titulos | fato | 1 linha por parcela | `dw.fato_titulos_receber` | Import |
+| dm_cliente | dimensão | 1 linha por cliente | `dw.dim_cliente` | Import |
+| dm_regional | dimensão | 1 linha por regional | `dw.dim_regional` | Import |
+| dm_calendario | dimensão de datas | 1 linha por dia | calculada (DAX) | Import |
+
+Fatos começam com `ft_` e dimensões com `dm_`; as tabelas auxiliares (`_Medidas`, `_Documentacao`,
+`_Cargas`) começam com `_`.
 
 Cada tabela de fonte tem **uma etapa** no Power Query: `Value.NativeQuery` com o SQL e os parâmetros.
 Filtros, nomes de colunas e faixas de atraso são resolvidos no SQL.
@@ -47,7 +66,7 @@ Filtros, nomes de colunas e faixas de atraso são resolvidos no SQL.
 | Valor Aberto | Saldo em aberto das parcelas, vencidas ou a vencer |
 | Valor Vencido | Saldo em aberto das parcelas com vencimento anterior à data da carga |
 | % Vencido | Parcela do saldo em aberto que já venceu |
-| Dias Atraso Medio | Média de dias de atraso das parcelas vencidas, ponderada pelo saldo |
+| Atraso Médio (dias) | Média de dias de atraso das parcelas vencidas, ponderada pelo saldo |
 
 O catálogo completo, com a expressão DAX, fica na página **Documentação** (gerada por `INFO.VIEW.MEASURES`).
 
@@ -55,6 +74,10 @@ O catálogo completo, com a expressão DAX, fica na página **Documentação** (
 
 - Modelo estrela com grão declarado, relacionamentos 1:* em direção única, auto date/time desligado.
 - Só as colunas usadas por medidas, visuais, relacionamentos, ordenação ou segurança.
+- Layout no padrão do Twenty: sidebar de 220 px com a navegação, painel branco com cantos de 8 px, barra do
+  topo de 56 px com o caminho da página, a data da carga e um filtro compacto (176×40). Tudo numa grade de
+  4 px, com espaçamento de 16 px entre os cartões.
+- Tipografia: Segoe UI em dois pesos, de 9 a 20 pt.
 - Tema: [`powerbi-architect-acessivel.json`](../../skills/powerbi-architect/templates/theme/powerbi-architect-acessivel.json).
 - **Validação:** todos os arquivos JSON passam nos schemas oficiais da Microsoft
   (`tools/validate_schemas.py`) e a auditoria não encontra nenhum problema. O projeto **não foi aberto no
@@ -70,5 +93,5 @@ regional, pelo e-mail do usuário logado.
 ```bash
 python skills/powerbi-architect/scripts/audit_pbip.py examples/contas-a-receber
 python skills/powerbi-architect/scripts/pbi_graph.py build examples/contas-a-receber --out .tmp/graph
-python skills/powerbi-architect/scripts/pbi_graph.py impact "Fato Titulos[Dias Atraso]"
+python skills/powerbi-architect/scripts/pbi_graph.py impact "ft_titulos[Dias Atraso]"
 ```

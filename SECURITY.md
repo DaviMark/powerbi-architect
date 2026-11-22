@@ -10,6 +10,13 @@ Não abra issues públicas para problemas de segurança.
   metadados (TMDL, PBIR, SQL, Markdown, código Python via `ast`, nunca executado). Escreve apenas em
   `powerbi-graph/` e, no `install`, em blocos marcados no `AGENTS.md`/`CLAUDE.md`/`.github/copilot-instructions.md`,
   nos hooks do `.claude/settings.json` e em `.git/hooks/post-{commit,merge,checkout}`. O `uninstall` desfaz tudo.
+- `scripts/pbir_layout.py`: só biblioteca padrão do Python, **sem rede**, sem subprocessos. Lê um arquivo de
+  layout em JSON e escreve apenas dentro da pasta `<Nome>.Report` indicada (páginas, `report.json`, tema e
+  ícones em `StaticResources`).
+- `scripts/preview_pbir.py`: só biblioteca padrão do Python, **sem rede**. Lê a pasta do relatório e escreve
+  um arquivo HTML. Só com `--png`, abre o Edge, o Chrome ou o Chromium da máquina em modo headless (ou o
+  pacote opcional `playwright`) para salvar uma imagem por página, a partir de arquivos HTML locais.
+- `scripts/make_theme.py`: só biblioteca padrão do Python, **sem rede**. Escreve um arquivo JSON de tema.
 - `install/*`: copiam arquivos para as pastas de skills e depois (só em instalação por repositório) rodam
   `pbi_graph.py install`. Nada é baixado, nenhum pacote é instalado e nenhum conteúdo do repositório é
   executado. `--no-graph` / `-NoGraph` = só copiar.

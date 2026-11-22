@@ -1,0 +1,174 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
+  "name": "d213b5ef0ef7902b3426",
+  "position": {
+    "x": 232,
+    "y": 396,
+    "z": 15000,
+    "width": 1024,
+    "height": 300,
+    "tabOrder": 15000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dm_regional"
+                    }
+                  },
+                  "Property": "Regional"
+                }
+              },
+              "queryRef": "dm_regional.Regional",
+              "nativeQueryRef": "Regional"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Valor Aberto"
+                }
+              },
+              "queryRef": "_Medidas.Valor Aberto",
+              "nativeQueryRef": "Valor Aberto"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Valor Vencido"
+                }
+              },
+              "queryRef": "_Medidas.Valor Vencido",
+              "nativeQueryRef": "Valor Vencido"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "% Vencido"
+                }
+              },
+              "queryRef": "_Medidas.% Vencido",
+              "nativeQueryRef": "% Vencido"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Atraso Médio (dias)"
+                }
+              },
+              "queryRef": "_Medidas.Atraso Médio (dias)",
+              "nativeQueryRef": "Atraso Médio (dias)"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "_Medidas"
+                  }
+                },
+                "Property": "% Vencido"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Tabela de regionais com saldo, vencido, percentual vencido e atraso médio'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Regionais acima da meta de vencido'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "values": [
+        {
+          "properties": {
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Measure": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "_Medidas"
+                        }
+                      },
+                      "Property": "Cor % Vencido"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "_Medidas.% Vencido"
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

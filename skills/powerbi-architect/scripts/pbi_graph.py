@@ -510,7 +510,7 @@ class Builder:
                 title = self.visual_title(v)
                 vid = self.g.node(f"{pid}/{vj.parent.name}", "visual", f"{vtype}: {title}" if title else vtype,
                                   page=pdata.get("displayName"), report=name, file=vr, visual_type=vtype,
-                                  title=title)
+                                  title=title, chromeless=ap.chromeless(v) or None)
                 self.g.edge(pid, vid, "has_visual")
                 self.visual_fields(ctx, vid, vis.get("query", {}), "uses")
                 self.visual_fields(ctx, vid, v.get("filterConfig", {}), "filters")
@@ -685,6 +685,9 @@ def communities(g: dict) -> dict[str, int]:
     return {n: remap[label[n]] for n in ids}
 
 
+SLICER_TYPES = {"slicer", "advancedSlicerVisual", "listSlicer", "textSlicer"}
+
+
 def findings(g: dict) -> dict[str, list]:
     nodes, edges = g["nodes"], g["edges"]
     incoming = collections.defaultdict(set)
@@ -715,8 +718,10 @@ def findings(g: dict) -> dict[str, list]:
         elif k == "page":
             if n.get("prototype"):
                 out["prototype_pages"].append(nid)
-            nv = sum(1 for e in edges if e["source"] == nid and e["rel"] == "has_visual" and fields[e["target"]])
-            if nv > 8:                           # data visuals only; textboxes/shapes do not count
+            nv = sum(1 for e in edges if e["source"] == nid and e["rel"] == "has_visual" and fields[e["target"]]
+                     and nodes[e["target"]].get("visual_type") not in SLICER_TYPES
+                     and not nodes[e["target"]].get("chromeless"))
+            if nv > 8:                           # data visuals only; textboxes, shapes and slicers do not count
                 out["crowded_pages"].append(nid)
     readers = collections.defaultdict(set)
     for e in edges:

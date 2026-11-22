@@ -1,0 +1,48 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/1.1.0/schema.json",
+  "name": "c1a29d79b188c7827393",
+  "displayName": "Detalhe do cliente",
+  "displayOption": "FitToPage",
+  "height": 720,
+  "width": 1280,
+  "visibility": "HiddenInViewMode",
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "8d132162bd1cd5f34e04",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "dm_cliente"
+              }
+            },
+            "Property": "Cliente"
+          }
+        },
+        "type": "Categorical",
+        "howCreated": "Drillthrough"
+      }
+    ]
+  },
+  "pageBinding": {
+    "name": "59cb0a98aa77c8225c2e",
+    "type": "Drillthrough",
+    "parameters": [
+      {
+        "name": "eff584d8ca3781b6a9e0",
+        "boundFilter": "8d132162bd1cd5f34e04",
+        "fieldExpr": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "dm_cliente"
+              }
+            },
+            "Property": "Cliente"
+          }
+        }
+      }
+    ]
+  }
+}

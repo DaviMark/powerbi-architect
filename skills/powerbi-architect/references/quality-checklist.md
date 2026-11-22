@@ -4,6 +4,7 @@ Report each item as PASS / WARN (with reason) / FAIL. Severity: **B** blocker ·
 
 ## Model
 - [B] Star schema; each fact has a stated grain; dimensions conformed
+- [I] Tables named `ft_<subject>` (facts) and `dm_<entity>` (dimensions); helpers prefixed `_`
 - [B] Only used columns imported (audit done; cut list documented)
 - [B] One Power Query step per source table; no hard‑coded servers (parameters)
 - [B] Auto date/time off; one marked date table; relationships dimension → fact, single direction
@@ -21,7 +22,11 @@ Report each item as PASS / WARN (with reason) / FAIL. Severity: **B** blocker ·
 - [B] Every page answers one stated question; Documentation page present
 - [B] Numbers formatted consistently; titles in business language
 - [I] Headline (conclusion) + ≤ 4 KPIs + ≤ 3 explanation visuals + detail/drill
-- [I] 8‑px grid alignment; consistent heights; brand theme; meaningful color only
+- [I] App shell as in report-design §0 (sidebar 220, white panel, 56 px top bar) on multi-page reports
+- [I] 4‑px grid alignment, rows of 88 · 248 · 248, one gutter (16), one radius (8); nothing outside the page
+- [I] One font family (Segoe UI without a brand font); sizes only from the scale (9 · 10 · 12 · 20)
+- [I] ≤ 2 slicers on the page, dropdown 176×40 in the top bar; the rest in the filter pane
+- [I] Theme applied; one accent colour; meaningful color only
 - [I] Alt text, tab order, contrast, no color‑only encoding
 - [S] Tooltips add context; empty states; mobile layout if used on phones
 

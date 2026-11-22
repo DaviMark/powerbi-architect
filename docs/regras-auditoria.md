@@ -16,6 +16,8 @@ use `--fail-on important` num pipeline mais rígido ou `--fail-on never` só par
 
 ## Regras
 
+Os códigos `PBI044` e `PBI045` estão reservados para as regras propostas nas issues abertas.
+
 | Código | Severidade | Princípio | O que verifica | Como corrigir | Regra do BPA |
 |---|---|---|---|---|---|
 | PBI001 | Bloqueador | governança | Arquivo de dados ou configuração local dentro do projeto | Remova `.pbix`, `.abf` e `localSettings.json` do repositório e coloque-os no `.gitignore`. | — |
@@ -49,6 +51,37 @@ use `--fail-on important` num pipeline mais rígido ou `--fail-on never` só par
 | PBI041 | Sugestão | 7 | Visual customizado em uso | Registre o motivo em um ADR (árvore de decisão da skill). | — |
 | PBI042 | Sugestão | 1 | Página com nome genérico | Dê à página o nome da pergunta que ela responde. | — |
 | PBI043 | Sugestão | 8 | Projeto sem README.md | Crie o README ao lado do `.pbip` (o que é, como usar, cargas, métricas). | — |
+| PBI046 | Importante | 6 | Slicer grande demais | Slicer suspenso (dropdown ou intervalo) até 240×48 px; em lista, até 320×320 px. Filtro é coadjuvante, não protagonista. | — |
+| PBI047 | Importante | 6 | Fonte maior que a escala tipográfica | Caixas de texto até 14 pt, valor de KPI até 24 pt, todo o resto até 12 pt (escala em `references/report-design.md`). | — |
+| PBI048 | Sugestão | 6 | Visual fora da grade de 4 px | Use posição e tamanho múltiplos de 4 px para que as bordas se alinhem. Linhas de 1 px são exceção. | — |
+| PBI049 | Importante | 2 | Tabela sem o prefixo `ft_` (fato) ou `dm_` (dimensão) | Fatos começam com `ft_` e dimensões (inclusive a de datas) com `dm_`, em minúsculas e com `_`: `ft_vendas`, `dm_cliente`. Tabelas auxiliares começam com `_`. | — |
+| PBI050 | Importante | 6 | Mais de 2 slicers na página | Deixe no máximo 2 na página; o resto vai para o painel de filtros. | — |
+| PBI051 | Sugestão | 6 | Mais de uma família de fonte, ou fonte fora do padrão profissional | Uma família (Segoe UI, em dois pesos), a não ser que a identidade visual da empresa defina outra. Evite DIN, Comic Sans, Impact e similares. | — |
+| PBI052 | Importante | 6 | Visual fora da página | Mantenha todo visual dentro da largura e da altura da página. | — |
+| PBI053 | Sugestão | acessibilidade | Ordem do teclado diferente da ordem de leitura | Ajuste o `tabOrder` para seguir a leitura: de cima para baixo, da esquerda para a direita. | — |
+| PBI054 | Importante | acessibilidade | Cor de texto com contraste abaixo de 4,5:1 sobre o branco | Escureça a cor do texto (ou da medida de cor) até 4,5:1. | — |
+| PBI055 | Sugestão | 6 | Título gerado automaticamente ("Soma de Valor por Mês") | Escreva a pergunta que o visual responde ou a conclusão. | — |
+| PBI056 | Sugestão | 6 | Visual de dados sem título | Todo visual diz o que mostra, numa frase. Linhas de texto sem moldura (variação do KPI, data da carga) são exceção. | — |
+| PBI057 | Sugestão | 6 | Título de eixo visível | Esconda o título do eixo: o título do visual já diz o que está sendo medido. | — |
+| PBI058 | Sugestão | 6 | Mais de 6 cores na página | Use no máximo 6 cores, além dos cinzas; cor só no que importa. | — |
+
+## Placar de harmonia
+
+Ao final do relatório de texto, a auditoria mostra uma nota de 0 a 100 para cada página:
+
+```
+Harmony: Visão Geral 100 · Diagnóstico 96 · Clientes 100
+```
+
+Cada página começa com 100 e perde 20 pontos por bloqueador, 10 por achado importante e 4 por sugestão
+naquela página. A skill pede pelo menos 90 antes de entregar. Para usar o placar como critério de
+pipeline:
+
+```bash
+python skills/powerbi-architect/scripts/audit_pbip.py caminho/do/projeto --min-harmony 90
+```
+
+O código de saída é 1 quando alguma página fica abaixo do mínimo.
 
 ## Como silenciar uma regra
 

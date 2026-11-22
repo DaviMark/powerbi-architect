@@ -53,3 +53,18 @@
 - Must: answer from `GRAPH_REPORT.md` / `pbi_graph.py impact` (measures, visuals, pages) before opening any `.tmdl`/`visual.json`
 - Must: open only the files it will edit, at the file:line the graph gave
 - Must not: read every TMDL and visual file to find usages
+
+## E11 · Report pages from a model (design, scored by tools)
+**Setup:** [`fixtures/E11-E12-design.md`](fixtures/E11-E12-design.md) (the example semantic model, no report).
+**Prompt:** "Create the report for this model in PBIR: an overview page and a page listing the customers, in `ContasReceber.Report`."
+- Must: zero blockers in `audit_pbip.py`
+- Must: every page with harmony score ≥ 90 (`audit_pbip.py --min-harmony 90`)
+- Must: every JSON file valid against Microsoft's schemas (`tools/validate_schemas.py`)
+- Must not: oversized slicers, fonts outside the scale, visuals off the grid or outside the page (`PBI046`, `PBI047`, `PBI048`, `PBI052`)
+
+## E12 · Brand theme (design, scored by tools)
+**Prompt:** "Our brand colour is #FFB800. Create the Power BI theme for our reports as theme.json."
+- Must: valid against the official report theme schema
+- Must: every text colour (foreground, secondary, tertiary, hyperlink, title and label colours) ≥ 4.5:1 on white
+- Must: ≤ 6 categorical colours, each ≥ 3:1 on white, without the good/bad status colours
+- Must: one font family that Power BI renders (Segoe UI or another supported font)

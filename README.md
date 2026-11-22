@@ -66,6 +66,30 @@ trabalhar de trás para frente até o pixel; dizer **não** ao visual a mais, à
 tooltip que explica. Arquétipos de página, sistema de layout, tipografia, cor, acessibilidade e um
 ritual de revisão estão em [`references/report-design.md`](skills/powerbi-architect/references/report-design.md).
 
+O padrão visual segue a interface do Twenty, o CRM open source: fundo cinza, sidebar discreta com ícones
+e a navegação, painel branco com borda fina, barra do topo com o caminho da página e filtros compactos, uma
+só família de fonte (Segoe UI) em tamanhos pequenos e uma cor de destaque.
+
+![Prévia da página Visão Geral do projeto de exemplo, com dados de amostra](docs/assets/exemplo-visao-geral.png)
+
+<sub>Página Visão Geral do [projeto de exemplo](examples/contas-a-receber), desenhada pela prévia da skill a
+partir dos arquivos PBIR, com dados de amostra.</sub>
+
+A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
+
+1. **Tema:** com a cor da marca, `make_theme.py` gera o tema e escurece a cor até ela passar no contraste.
+2. **Layout descrito, não desenhado:** a IA descreve as páginas em linhas de visuais e `pbir_layout.py`
+   calcula cada posição na grade de 4 px, com sidebar, barra do topo, KPIs com linha de meta, gráficos,
+   tabelas, páginas de drill-through e de tooltip e o layout de celular.
+3. **Ver antes de entregar:** `preview_pbir.py` desenha cada página, com dados de amostra, para a IA olhar
+   e corrigir o que estiver desalinhado ou pesado.
+4. **Auditar:** `audit_pbip.py` dá uma nota de harmonia de 0 a 100 por página e só aceita entregar com 90
+   ou mais.
+
+| Diagnóstico | Celular |
+|---|---|
+| ![Página Diagnóstico com cascata, barras e tabela](docs/assets/exemplo-diagnostico.png) | ![Layout de celular da Visão Geral](docs/assets/exemplo-celular.png) |
+
 ## Visual customizado só quando precisa
 
 <picture>
@@ -130,14 +154,14 @@ offline e lê só metadados. O resultado vai para `powerbi-graph/`:
 | `graph.json` · `graph.html` | grafo completo (pronto para GraphRAG) e visualização interativa offline |
 
 A IA lê o relatório e o card em vez de dezenas de `*.tmdl` e `visual.json`. No
-[projeto de exemplo](examples/contas-a-receber), que é pequeno, ~10,5 mil tokens de fonte viram um
-relatório de ~0,9 mil e um card de ~1,2 mil (12 vezes menos); a economia cresce com o tamanho do projeto.
+[projeto de exemplo](examples/contas-a-receber), que é pequeno, ~18,9 mil tokens de fonte viram um
+relatório de ~1 mil e um card de ~1,3 mil (19 vezes menos); a economia cresce com o tamanho do projeto.
 Os comandos abaixo funcionam sobre ele. Para buscas pontuais:
 
 ```bash
 python .claude/skills/powerbi-architect/scripts/pbi_graph.py query   "o que alimenta a página Visão Geral?"
 python .claude/skills/powerbi-architect/scripts/pbi_graph.py explain "Valor Vencido"
-python .claude/skills/powerbi-architect/scripts/pbi_graph.py impact  "Fato Titulos[Dias Atraso]"   # o que quebra se eu mudar
+python .claude/skills/powerbi-architect/scripts/pbi_graph.py impact  "ft_titulos[Dias Atraso]"   # o que quebra se eu mudar
 python .claude/skills/powerbi-architect/scripts/pbi_graph.py path    "Regional" "Valor Vencido"
 ```
 
@@ -169,14 +193,20 @@ skills/powerbi-architect/
 │   ├── graph.md                    grafo de conhecimento: o que lê, saídas, comandos, hooks
 │   ├── semantic-features.md        calculation groups, field parameters, visual calculations, funções DAX
 │   ├── fabric-and-cicd.md          Direct Lake, Git do Fabric, deployment pipelines, CI
+│   ├── copywriting.md              títulos, nomes de medida, números e textos das páginas
 │   ├── performance.md · security.md · quality-checklist.md
 ├── templates/
-│   ├── pbir-pages/                 ← páginas prontas: visão geral com KPIs, detalhe, documentação
+│   ├── pbir-pages/                 ← 6 arquétipos de página e um layout de exemplo
+│   ├── pbir-visuals-experimental/  ← cartão novo, slicer em botões, botão com ícone (a conferir no Desktop)
+│   ├── icons/                      ← ícones da navegação (Tabler, licença MIT)
 │   ├── theme/                      ← tema acessível (contraste conferido, schema oficial)
 │   └── pbiviz-bullet-kpi/          ← visual customizado de referência (verificado)
 └── scripts/
-    ├── audit_pbip.py               ← auditoria de qualquer pasta PBIP (Python puro, offline)
-    └── pbi_graph.py                ← grafo de conhecimento + query/explain/impact/path (Python puro, offline)
+    ├── audit_pbip.py               ← auditoria de qualquer pasta PBIP, com nota de harmonia por página
+    ├── pbi_graph.py                ← grafo de conhecimento + query/explain/impact/path
+    ├── pbir_layout.py              ← gera as páginas PBIR a partir de um layout em JSON
+    ├── preview_pbir.py             ← prévia das páginas em HTML, sem o Power BI Desktop
+    └── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
 
 examples/contas-a-receber/          ← projeto PBIP completo que segue todas as regras
 ```
