@@ -526,11 +526,12 @@ def main() -> int:
     ap.add_argument("--calibration", type=Path, metavar="JSON",
                     help="override the render constants in CALIBRATION (paddings, reserved heights)")
     args = ap.parse_args()
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
-        except ValueError:
-            pass
+    for stream in (sys.stdin, sys.stdout, sys.stderr):   # Windows consoles default to a legacy code page
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except ValueError:
+                pass
     sample = json.loads(args.sample.read_text(encoding="utf-8")) if args.sample else None
     if args.calibration:
         extra = json.loads(args.calibration.read_text(encoding="utf-8"))

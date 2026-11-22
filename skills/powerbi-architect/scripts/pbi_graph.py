@@ -1449,11 +1449,12 @@ def uninstall(repo: Path) -> int:
 # ───────────────────────────────────────────────────────────────────────────── cli
 
 def main(argv: list[str]) -> int:
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")
-        except (OSError, ValueError):
-            pass
+    for stream in (sys.stdout, sys.stderr):   # Windows consoles default to a legacy code page
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except (OSError, ValueError):
+                pass
     if not argv or argv[0] in {"-h", "--help", "help"}:
         print(__doc__)
         return 0

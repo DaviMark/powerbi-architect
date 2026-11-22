@@ -997,11 +997,12 @@ def main(argv: list[str] | None = None) -> int:
                          "stay silent when it is fine (installed by pbi_graph.py install)")
     ap.add_argument("--version", action="version", version=f"%(prog)s {skill_version()}")
     args = ap.parse_args(argv)
-    if hasattr(_sys.stdout, "reconfigure"):
-        try:
-            _sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
-        except ValueError:
-            pass
+    for stream in (_sys.stdin, _sys.stdout, _sys.stderr):   # Windows consoles default to a legacy code page
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except ValueError:
+                pass
 
     if args.hook:
         return hook(_sys.stdin.read(), args.min_harmony if args.min_harmony is not None else 90)
