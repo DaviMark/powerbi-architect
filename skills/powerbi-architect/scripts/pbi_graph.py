@@ -723,15 +723,19 @@ def findings(g: dict) -> dict[str, list]:
                      and not nodes[e["target"]].get("chromeless"))
             if nv > 8:                           # data visuals only; textboxes, shapes and slicers do not count
                 out["crowded_pages"].append(nid)
+    def model_of(nid: str) -> str:
+        """The model node id (path included), so two models with the same name stay apart."""
+        return nid.split("::", 1)[0] if nid.startswith("model:") else nodes[nid].get("model", "")
+
     readers = collections.defaultdict(set)
     for e in edges:
         if e["rel"] == "reads_source" and nodes[e["source"]]["kind"] == "table":
-            readers[e["target"]].add(nodes[e["source"]].get("model"))
+            readers[e["target"]].add(model_of(e["source"]))
     out["shared_sources"] = [s for s, ms in readers.items() if len(ms) > 1]
     by_name = collections.defaultdict(dict)
     for nid, n in nodes.items():
         if n["kind"] == "measure":
-            by_name[norm(n["label"])][n.get("model")] = re.sub(r"\s+", " ", n.get("expression", "")).strip()
+            by_name[norm(n["label"])][model_of(nid)] = re.sub(r"\s+", " ", n.get("expression", "")).strip()
     out["divergent_measures"] = [k for k, d in by_name.items() if len(d) > 1 and len(set(d.values())) > 1]
     for e in edges:
         if e["rel"] == "relationship" and e.get("direction") == "both":
@@ -796,7 +800,9 @@ def report_md(g: dict, root: Path, comm: dict[str, int], fnd: dict, stats: dict)
             reps = [e["source"] for e in edges if e["target"] == m["id"] and e["rel"] == "binds_model"]
             npg = sum(1 for e in edges if e["source"] in reps and e["rel"] == "has_page")
             tl = ", ".join(f"{t['label']} ({t.get('role', '?')})" for t in sorted(tabs, key=lambda t: t["label"]))
-            L.append(f"| {m['label']} | {tl} | {nm} | {npg} | [wiki/{slug(m)}.md](wiki/{slug(m)}.md) |")
+            same = sum(1 for x in models if x["label"] == m["label"]) > 1
+            label = f"{m['label']} (`{m.get('file', '').split('/definition')[0]}`)" if same else m["label"]
+            L.append(f"| {label} | {tl} | {nm} | {npg} | [wiki/{slug(m)}.md](wiki/{slug(m)}.md) |")
         L.append("")
     hubs = [(nodes[n], d) for n, d in deg.most_common() if nodes[n]["kind"] in
             {"measure", "column", "table", "source_object", "parameter"}][:10]
