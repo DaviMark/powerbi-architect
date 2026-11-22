@@ -1,0 +1,303 @@
+[
+  {
+    "rule": "PBI006",
+    "severity": "BLOCKER",
+    "law": "8",
+    "where": "Entregas.Report",
+    "line": 0,
+    "message": "no Documentation page (Documentação/Documentation)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI050",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/page.json",
+    "line": 0,
+    "message": "page 'Transportadoras' has 3 slicers — keep ≤ 2 on the page, move the rest to the filter pane",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Transportadoras' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/barra_frete/visual.json",
+    "line": 0,
+    "message": "barChart on page 'Transportadoras' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/barra_otd/visual.json",
+    "line": 0,
+    "message": "barChart on page 'Transportadoras' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/seg_ano/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Transportadoras' is 200×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/seg_modal/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Transportadoras' is 200×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/seg_regiao/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Transportadoras' is 200×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/tabela/visual.json",
+    "line": 0,
+    "message": "tableEx on page 'Transportadoras' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/titulo/visual.json",
+    "line": 0,
+    "message": "textbox on page 'Transportadoras' uses 20 pt — keep it ≤ 14 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/barra_regiao/visual.json",
+    "line": 0,
+    "message": "barChart on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/card_0/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/card_1/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/card_2/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/card_3/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/card_4/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/linha_otd/visual.json",
+    "line": 0,
+    "message": "lineChart on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/seg_ano/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Visão Geral' is 200×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/seg_regiao/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Visão Geral' is 200×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/titulo/visual.json",
+    "line": 0,
+    "message": "textbox on page 'Visão Geral' uses 20 pt — keep it ≤ 14 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI043",
+    "severity": "SUGGESTION",
+    "law": "8",
+    "where": ".",
+    "line": 0,
+    "message": "no README.md next to Entregas.pbip",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Transportadoras': height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Transportadoras' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/barra_frete/visual.json",
+    "line": 0,
+    "message": "barChart on page 'Transportadoras': height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/barra_otd/visual.json",
+    "line": 0,
+    "message": "barChart on page 'Transportadoras': height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/transportadoras/visuals/tabela/visual.json",
+    "line": 0,
+    "message": "tableEx on page 'Transportadoras': y, height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/atualizacao/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/card_1/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': x not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/visao_geral/visuals/card_3/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': x not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI034",
+    "severity": "SUGGESTION",
+    "law": "3",
+    "where": "Entregas.SemanticModel/definition/tables/dm_cidade.tmdl",
+    "line": 12,
+    "message": "'dm_cidade'[Cidade] is imported but never used (measure, visual, relationship, sort, hierarchy or RLS)",
+    "bpa": [
+      "UNNECESSARY_COLUMNS"
+    ]
+  },
+  {
+    "rule": "PBI034",
+    "severity": "SUGGESTION",
+    "law": "3",
+    "where": "Entregas.SemanticModel/definition/tables/dm_cidade.tmdl",
+    "line": 17,
+    "message": "'dm_cidade'[UF] is imported but never used (measure, visual, relationship, sort, hierarchy or RLS)",
+    "bpa": [
+      "UNNECESSARY_COLUMNS"
+    ]
+  }
+]

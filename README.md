@@ -45,7 +45,9 @@ dentro do **[Power BI Workspaces](https://github.com/DaviMark/powerbi-workspaces
 
 **Medido, não prometido.** Nas [avaliações publicadas](evals/results/2026-11-21/README.md), a mesma IA
 atendeu **16 de 18** itens esperados com a skill e **6 de 18** sem ela (8 de 10 casos aprovados contra 2),
-com correção às cegas. As respostas brutas estão no repositório.
+com correção às cegas. As respostas brutas estão no repositório. No design, com um modelo que a skill
+nunca tinha visto, [dois modelos de IA](evals/results/2026-11-22-design-e13/README.md) passaram de
+harmonia 0 para 100 com a skill, e um avaliador cego preferiu a versão com a skill nos dois casos.
 
 ## Os oito princípios
 

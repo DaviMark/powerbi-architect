@@ -1,0 +1,45 @@
+{
+  "id": "e13-entregas",
+  "app": "Entregas",
+  "project": "Entregas",
+  "description": "Modelo semântico do caso E13 (logística de entregas). Só o modelo é usado; o relatório é apagado.",
+  "slicers": [],
+  "tables": [
+    {"name": "ft_entregas", "description": "Entregas concluídas ou em rota nos últimos 24 meses.",
+     "grain": "1 linha por entrega", "source": "dw.vw_fato_entregas",
+     "columns": [
+       {"name": "id_transportadora", "type": "int64", "hidden": true, "references": "dm_transportadora"},
+       {"name": "id_cidade", "type": "int64", "hidden": true, "references": "dm_cidade"},
+       {"name": "Data Prevista", "type": "dateTime", "hidden": true, "format": "dd/mm/yyyy", "sql": "t.data_prevista", "references": "dm_calendario"},
+       {"name": "Dias Atraso", "type": "int64", "hidden": true, "format": "#,0", "sql": "t.dias_atraso", "description": "Dias entre a data prevista e a entrega; 0 quando no prazo."},
+       {"name": "Peso Kg", "type": "decimal", "hidden": true, "format": "#,0.0", "sql": "t.peso_kg"},
+       {"name": "Valor Frete", "type": "decimal", "hidden": true, "format": "\\R\\$ #,0.00", "sql": "t.valor_frete"},
+       {"name": "Status", "type": "string", "sql": "t.status", "description": "Entregue, Em rota ou Devolvida."}
+     ]},
+    {"name": "dm_transportadora", "description": "Transportadoras contratadas.", "grain": "1 linha por transportadora", "source": "dw.vw_dim_transportadora",
+     "columns": [
+       {"name": "id_transportadora", "type": "int64", "hidden": true, "key": true},
+       {"name": "Transportadora", "type": "string", "sql": "t.nome", "examples": ["Rápida Sul", "TransNorte", "Via Leste", "Cargas Centro", "Expresso Litoral", "LogMais"]},
+       {"name": "Modal", "type": "string", "sql": "t.modal", "examples": ["Rodoviário", "Aéreo", "Cabotagem"]}
+     ]},
+    {"name": "dm_cidade", "description": "Cidades de destino.", "grain": "1 linha por cidade", "source": "dw.vw_dim_cidade",
+     "columns": [
+       {"name": "id_cidade", "type": "int64", "hidden": true, "key": true},
+       {"name": "Cidade", "type": "string", "sql": "t.nome", "examples": ["São Paulo", "Rio de Janeiro", "Belo Horizonte", "Curitiba", "Recife", "Salvador", "Porto Alegre", "Goiânia", "Manaus", "Belém"]},
+       {"name": "UF", "type": "string", "sql": "t.uf", "examples": ["SP", "RJ", "MG", "PR", "PE", "BA", "RS", "GO", "AM", "PA"]},
+       {"name": "Região", "type": "string", "sql": "t.regiao", "examples": ["Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]}
+     ]}
+  ],
+  "measures": [
+    {"name": "Entregas", "description": "Quantidade de entregas com data prevista no período.", "expr": "COUNTROWS ( ft_entregas )", "format": "#,0", "folder": "Volume", "sample": "48.210"},
+    {"name": "Entregas no Prazo", "description": "Entregas concluídas sem atraso.", "expr": "CALCULATE ( [Entregas], ft_entregas[Status] = \"Entregue\", ft_entregas[Dias Atraso] = 0 )", "format": "#,0", "folder": "Volume"},
+    {"name": "% No Prazo", "description": "Entregas no prazo sobre as concluídas (OTD).", "expr": "DIVIDE ( [Entregas no Prazo], CALCULATE ( [Entregas], ft_entregas[Status] = \"Entregue\" ) )", "format": "0.0%", "folder": "Indicadores", "sample": "91,4%"},
+    {"name": "Meta % No Prazo", "description": "Meta de entregas no prazo acordada com os clientes.", "expr": "0.95", "format": "0%", "folder": "Metas"},
+    {"name": "Atraso Médio (dias)", "description": "Média de dias de atraso das entregas atrasadas.", "expr": "CALCULATE ( AVERAGE ( ft_entregas[Dias Atraso] ), ft_entregas[Dias Atraso] > 0 )", "format": "#,0.0", "folder": "Indicadores", "sample": "2,7"},
+    {"name": "Devoluções", "description": "Entregas devolvidas ao remetente.", "expr": "CALCULATE ( [Entregas], ft_entregas[Status] = \"Devolvida\" )", "format": "#,0", "folder": "Volume"},
+    {"name": "% Devolução", "description": "Devoluções sobre o total de entregas.", "expr": "DIVIDE ( [Devoluções], [Entregas] )", "format": "0.0%", "folder": "Indicadores", "sample": "1,9%"},
+    {"name": "Custo Frete", "description": "Valor de frete pago às transportadoras.", "expr": "SUM ( ft_entregas[Valor Frete] )", "format": "\\R\\$ #,0", "folder": "Custos", "sample": "R$ 3,1 mi"},
+    {"name": "Frete por Kg", "description": "Custo de frete por quilo transportado.", "expr": "DIVIDE ( [Custo Frete], SUM ( ft_entregas[Peso Kg] ) )", "format": "\\R\\$ #,0.00", "folder": "Custos", "sample": "R$ 1,84"}
+  ],
+  "pages": [{"name": "Vazia", "icon": "layout-dashboard", "rows": []}]
+}

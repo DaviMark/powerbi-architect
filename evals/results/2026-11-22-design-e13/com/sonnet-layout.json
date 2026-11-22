@@ -1,0 +1,55 @@
+{
+  "app": "Entregas",
+  "measures": "_Medidas",
+  "updated": "Texto Atualizacao",
+  "slicers": ["dm_calendario[Ano]", "dm_cidade[Região]"],
+  "pages": [
+    {"name": "Visão Geral", "icon": "layout-dashboard", "rows": [
+      {"height": 88, "visuals": [
+        {"type": "kpi", "measure": "Entregas", "label": "Entregas previstas", "variation": "Texto Entregas"},
+        {"type": "kpi", "measure": "% No Prazo", "label": "Entregas no prazo", "variation": "Texto Var % No Prazo", "variationColor": "Cor Var % No Prazo"},
+        {"type": "kpi", "measure": "Atraso Médio (dias)", "label": "Atraso médio, em dias", "variation": "Texto Atraso"},
+        {"type": "kpi", "measure": "% Devolução", "label": "Devoluções", "variation": "Texto Devoluções", "variationColor": "Cor % Devolução"}
+      ]},
+      {"height": 248, "split": [2, 1], "visuals": [
+        {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["% No Prazo"],
+         "titleMeasure": "Titulo % No Prazo", "sort": "category",
+         "alt": "Percentual de entregas no prazo por mês de data prevista"},
+        {"type": "clusteredBarChart", "category": "dm_cidade[Região]", "values": ["% No Prazo"],
+         "title": "% no prazo por região", "sort": "desc",
+         "alt": "Percentual de entregas no prazo por região, do maior para o menor"}
+      ]},
+      {"height": 248, "visuals": [
+        {"type": "clusteredBarChart", "category": "dm_cidade[UF]", "values": ["Atraso Médio (dias)"],
+         "title": "Atraso médio por estado de destino", "sort": "desc",
+         "alt": "Atraso médio em dias por estado de destino, do maior para o menor"}
+      ]}
+    ]},
+    {"name": "Transportadoras", "icon": "chart-bar", "slicers": ["dm_transportadora[Modal]", "dm_cidade[Região]"], "rows": [
+      {"height": 300, "split": [1, 1], "visuals": [
+        {"type": "clusteredBarChart", "key": "otd", "category": "dm_transportadora[Transportadora]", "values": ["% No Prazo"],
+         "titleMeasure": "Titulo Melhor Transportadora", "sort": "desc",
+         "alt": "Percentual de entregas no prazo por transportadora, do maior para o menor"},
+        {"type": "clusteredBarChart", "key": "frete", "category": "dm_transportadora[Transportadora]", "values": ["Frete por Kg"],
+         "title": "Frete por quilo por transportadora", "sort": "desc",
+         "alt": "Custo de frete por quilo por transportadora, do maior para o menor"}
+      ]},
+      {"height": 300, "visuals": [
+        {"type": "tableEx", "title": "Transportadoras lado a lado",
+         "columns": ["dm_transportadora[Transportadora]", "dm_transportadora[Modal]", "Entregas", "% No Prazo", "Atraso Médio (dias)", "% Devolução", "Custo Frete", "Frete por Kg"],
+         "sortBy": "% No Prazo desc", "highlight": {"column": "% No Prazo", "colorMeasure": "Cor Var % No Prazo"},
+         "alt": "Tabela com entregas, percentual no prazo, atraso médio, devoluções e frete por transportadora"}
+      ]}
+    ]},
+    {"name": "Documentação", "icon": "file-description", "slicers": [], "rows": [
+      {"height": 616, "split": [3, 2], "visuals": [
+        {"type": "tableEx", "key": "medidas", "title": "Medidas",
+         "columns": ["_Documentacao[Pasta]", "_Documentacao[Medida]", "_Documentacao[Descrição]", "_Documentacao[Expressão DAX]"],
+         "alt": "Catálogo de medidas com pasta, descrição e expressão DAX"},
+        {"type": "tableEx", "key": "cargas", "title": "Cargas",
+         "columns": ["_Cargas[Tabela]", "_Cargas[Descrição]", "_Cargas[Armazenamento]", "_Cargas[Última Carga]"],
+         "alt": "Tabelas carregadas e data da última carga"}
+      ]}
+    ]}
+  ]
+}
