@@ -168,6 +168,9 @@ python .claude/skills/powerbi-architect/scripts/pbi_graph.py path    "Regional" 
 O instalador também deixa o grafo sempre em uso e atualizado:
 - adiciona uma seção curta no `AGENTS.md` e no `CLAUDE.md`, que manda a IA consultar o grafo antes de abrir arquivos;
 - cria hooks do Claude Code (início de sessão e após cada edição);
+- audita o relatório ou o modelo logo após cada edição feita pelo Claude Code: se surgir um bloqueador
+  ou uma página abaixo de 90 no placar de harmonia, o agente recebe os achados na hora e corrige antes
+  de seguir;
 - cria hooks do git (`post-commit`, `post-merge`, `post-checkout`).
 
 Rodar de novo não duplica nada. `pbi_graph.py uninstall` remove tudo. Detalhes em

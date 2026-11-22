@@ -68,7 +68,9 @@ composite model the graph cannot see, so confirm with the user before you delete
 2. Adds a marked section (`<!-- powerbi-graph:start/end -->`) to `AGENTS.md` and to `CLAUDE.md` (skipped
    when `CLAUDE.md` already imports `@AGENTS.md`), and to `.github/copilot-instructions.md` if that file exists.
 3. Claude Code hooks in `.claude/settings.json`: `update --quiet` on `SessionStart` and after
-   `Edit|Write|MultiEdit|NotebookEdit`.
+   `Edit|Write|MultiEdit|NotebookEdit`, plus `audit_pbip.py --hook` after `Edit|Write|MultiEdit`. The audit
+   hook stays silent unless the edited `.Report`/`.SemanticModel` now has a blocker or a page below
+   harmony 90; then it exits 2 and Claude reads the findings right after its edit. Fix them before moving on.
 4. Git hooks `post-commit`, `post-merge` and `post-checkout` run `update --quiet`. Existing hooks are kept, and the block is appended.
 
 Every step is idempotent. `uninstall` removes exactly these blocks and the output folder.

@@ -909,6 +909,50 @@ def harmony(root: Path, issues: list) -> list[tuple[str, str, int]]:
     return out
 
 
+def hook(stdin_text: str, min_harmony: int = 90) -> int:
+    """Claude Code PostToolUse hook: audit the PBIP project the edited file belongs to.
+
+    Silent (exit 0) when the project is fine; otherwise prints a short report to stderr and exits 2,
+    which Claude Code shows to the agent right after its edit.
+    """
+    try:
+        event = _json.loads(stdin_text or "{}")
+    except ValueError:
+        return 0
+    tool_input = event.get("tool_input") or {}
+    edited = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
+    if not edited:
+        return 0
+    path = Path(edited)
+    if not path.is_absolute():
+        path = Path(event.get("cwd") or ".") / path
+    item = next((p for p in [path, *path.parents] if p.suffix in (".Report", ".SemanticModel")), None)
+    if item is None:
+        return 0
+    root = item.parent
+    issues = audit(root, load_config(root, None))
+    scores = harmony(root, issues)
+    blockers = [i for i in issues if i["severity"] == "BLOCKER"]
+    low = [(p, sc) for _, p, sc in scores if sc < min_harmony]
+    if not blockers and not low:
+        return 0
+    try:
+        edited_rel = path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        edited_rel = ""
+    here = [i for i in issues if edited_rel and i["where"].startswith(edited_rel.rsplit("/", 1)[0])]
+    lines = [f"powerbi-architect audit after editing {edited_rel or path.name}:"]
+    for i in (blockers + [i for i in here if i not in blockers])[:12]:
+        where = f"{i['where']}:{i['line']}" if i["line"] else i["where"]
+        lines.append(f"  {i['rule']} {i['severity']:<10} {where} — {i['message']}")
+    if scores:
+        lines.append("  Harmony: " + " · ".join(f"{p} {sc}" for _, p, sc in scores)
+                     + f" (deliver at {min_harmony}+)")
+    lines.append(f"  Full list: python {Path(__file__).name} {root} --min-harmony {min_harmony}")
+    print("\n".join(lines), file=_sys.stderr)
+    return 2
+
+
 def to_sarif(issues: list) -> dict:
     level = {"BLOCKER": "error", "IMPORTANT": "warning", "SUGGESTION": "note"}
     rules = [{"id": rid, "name": title, "shortDescription": {"text": title},
@@ -948,6 +992,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--list-rules", action="store_true", help="list every rule and exit")
     ap.add_argument("--min-harmony", type=int, metavar="N",
                     help="also fail when a page's harmony score is below N (the skill asks for 90)")
+    ap.add_argument("--hook", action="store_true",
+                    help="Claude Code PostToolUse hook: read the event from stdin, audit the edited project, "
+                         "stay silent when it is fine (installed by pbi_graph.py install)")
     ap.add_argument("--version", action="version", version=f"%(prog)s {skill_version()}")
     args = ap.parse_args(argv)
     if hasattr(_sys.stdout, "reconfigure"):
@@ -956,6 +1003,8 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError:
             pass
 
+    if args.hook:
+        return hook(_sys.stdin.read(), args.min_harmony if args.min_harmony is not None else 90)
     if args.list_rules:
         for rid, (sev, law, title, bpa) in RULES.items():
             extra = f"  [BPA: {', '.join(bpa)}]" if bpa else ""

@@ -68,6 +68,27 @@ class TestExampleGraph(unittest.TestCase):
         self.assertTrue(any("Titulo Vencido" in t for t in targets), targets)
 
 
+class TestClaudeHooks(unittest.TestCase):
+    def test_install_adds_graph_and_audit_hooks_once_and_uninstall_removes_them(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            shutil.copytree(EXAMPLE, repo / "contas-a-receber")
+            settings = repo / ".claude" / "settings.json"
+            settings.parent.mkdir()
+            mine = {"matcher": "Bash", "hooks": [{"type": "command", "command": "echo mine"}]}
+            settings.write_text(json.dumps({"hooks": {"PostToolUse": [mine]}}), encoding="utf-8")
+            for _ in range(2):
+                self.assertEqual(graph(repo, "install", ".", "--no-agents").returncode, 0)
+            post = json.loads(settings.read_text(encoding="utf-8"))["hooks"]["PostToolUse"]
+            commands = [h["command"] for g in post for h in g["hooks"]]
+            self.assertEqual(sum("audit_pbip.py" in c and "--hook" in c for c in commands), 1, commands)
+            self.assertEqual(sum("pbi_graph.py" in c for c in commands), 1, commands)
+            self.assertIn("echo mine", commands)
+            self.assertEqual(graph(repo, "uninstall", ".").returncode, 0)
+            post = json.loads(settings.read_text(encoding="utf-8"))["hooks"]["PostToolUse"]
+            self.assertEqual([h["command"] for g in post for h in g["hooks"]], ["echo mine"])
+
+
 class TestCrossModelFindings(unittest.TestCase):
     def build_two(self, rename: bool):
         d = tempfile.TemporaryDirectory()
