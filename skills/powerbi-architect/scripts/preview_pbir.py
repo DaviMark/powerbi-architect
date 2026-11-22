@@ -184,7 +184,7 @@ class Preview:
         tw = 600 if "Semibold" in str(self.style(vtype, "title", "fontFamily", "")) else 400
         title = ""
         if str(title_show).lower() != "false" and title_text:
-            title = (f'<div style="font:{tw} {tsize * PT:.1f}px {FONT};color:{tink};padding:{CAL['title_padding']};'
+            title = (f'<div style="font:{tw} {tsize * PT:.1f}px {FONT};color:{tink};padding:{CAL["title_padding"]};'
                      f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{title_text}</div>')
         inner = ""
         bar = lambda width, height=8: (f'<span style="display:inline-block;width:{width}%;height:{height}px;'  # noqa: E731

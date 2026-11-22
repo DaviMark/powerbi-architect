@@ -17,13 +17,19 @@ RP = ROOT / f"{NAME}.Report"
 SCHEMA = "https://developer.microsoft.com/json-schemas/fabric"
 
 
+
+def write_lf(path: Path, text: str) -> None:
+    """UTF-8 with LF line endings on every OS (write_text has no newline= before Python 3.10)."""
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+
 def hid(*parts: str) -> str:
     return hashlib.sha1("/".join(parts).encode()).hexdigest()[:20]
 
 
 def write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8", newline="\n")
+    write_lf(path, text)
 
 
 def wjson(path: Path, obj) -> None:

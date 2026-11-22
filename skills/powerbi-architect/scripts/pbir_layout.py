@@ -75,6 +75,12 @@ CHARTS = {"lineChart", "clusteredBarChart", "clusteredColumnChart", "waterfallCh
 SPEC_TYPES = {"kpi", "card", "tableEx", "slicer", "matrix", "combo", "scatter", "kpiTrend"} | CHARTS
 
 
+
+def write_lf(path: Path, text: str) -> None:
+    """UTF-8 with LF line endings on every OS (write_text has no newline= before Python 3.10)."""
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+
 class SpecError(ValueError):
     pass
 
@@ -422,27 +428,25 @@ class Builder:
                 raise SpecError(f"page '{page['name']}': two visuals share a key; set 'key' on one of them")
             if write:
                 (pages_dir / pid).mkdir(parents=True, exist_ok=True)
-                (pages_dir / pid / "page.json").write_text(json.dumps(pdata, indent=2, ensure_ascii=False) + "\n",
-                                                           encoding="utf-8", newline="\n")
+                write_lf(pages_dir / pid / "page.json", json.dumps(pdata, indent=2, ensure_ascii=False) + "\n")
                 for i, (key, pos, visual) in enumerate(placed):
                     vid = hid("visual", page["name"], key)
                     vdir = pages_dir / pid / "visuals" / vid
                     vdir.mkdir(parents=True, exist_ok=True)
-                    (vdir / "visual.json").write_text(
-                        json.dumps(self.container(vid, pos, i * 1000, visual), indent=2, ensure_ascii=False) + "\n",
-                        encoding="utf-8", newline="\n")
+                    write_lf(vdir / "visual.json",
+                             json.dumps(self.container(vid, pos, i * 1000, visual), indent=2, ensure_ascii=False) + "\n")
                     if key in mobile:
                         x, y, w, h = mobile[key]
-                        (vdir / "mobile.json").write_text(json.dumps({
+                        write_lf(vdir / "mobile.json", json.dumps({
                             "$schema": f"{SCHEMA}/visualContainerMobileState/1.0.0/schema.json",
                             "position": {"x": x, "y": y, "z": i * 1000, "width": w, "height": h, "tabOrder": i * 1000}},
-                            indent=2) + "\n", encoding="utf-8", newline="\n")
+                            indent=2) + "\n")
             written.append(pid)
         if write:
             order = [self.page_ids[p["name"]] for p in self.spec["pages"]]
-            (pages_dir / "pages.json").write_text(json.dumps({
+            write_lf(pages_dir / "pages.json", json.dumps({
                 "$schema": f"{SCHEMA}/pagesMetadata/1.0.0/schema.json", "pageOrder": order,
-                "activePageName": order[0]}, indent=2) + "\n", encoding="utf-8", newline="\n")
+                "activePageName": order[0]}, indent=2) + "\n")
         return written
 
     def register_resources(self, report: Path, theme: Path | None):
@@ -473,7 +477,7 @@ class Builder:
         rj["resourcePackages"] = [p for p in rj.get("resourcePackages", []) if p["name"] != "RegisteredResources"]
         rj["resourcePackages"].append({"name": "RegisteredResources", "type": "RegisteredResources", "items": items})
         rj_path.parent.mkdir(parents=True, exist_ok=True)
-        rj_path.write_text(json.dumps(rj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+        write_lf(rj_path, json.dumps(rj, indent=2, ensure_ascii=False) + "\n")
 
 
 # ---------------------------------------------------------------------- extract (restyle)
