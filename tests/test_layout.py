@@ -95,6 +95,22 @@ class TestLayoutEngine(unittest.TestCase):
         for i in items:
             self.assertTrue((REPORT / "StaticResources" / "RegisteredResources" / i["path"]).exists())
 
+    def test_matrix_combo_scatter_and_kpi_trend(self):
+        spec = json.loads((ROOT / "tests" / "fixtures" / "layout-more-visuals.json").read_text(encoding="utf-8"))
+        files = self.build(spec)
+        by_type, roles = {}, {}
+        for k, v in files.items():
+            if k.endswith("visual.json"):
+                t = v["visual"]["visualType"]
+                by_type[t] = v["visual"]
+                roles.setdefault(t, set()).update(v["visual"].get("query", {}).get("queryState", {}))
+        self.assertEqual(roles["pivotTable"], {"Rows", "Columns", "Values"})
+        self.assertEqual(roles["lineClusteredColumnComboChart"], {"Category", "Y", "Y2"})
+        self.assertEqual(roles["scatterChart"], {"Category", "X", "Y"})
+        self.assertEqual(roles["kpi"], {"Indicator", "TrendLine", "Goal"})
+        for t in ("pivotTable", "lineClusteredColumnComboChart", "scatterChart", "kpi"):
+            self.assertIn("altText", json.dumps(by_type[t]["visualContainerObjects"]["general"]), t)
+
     def test_check_mode_writes_nothing(self):
         with tempfile.TemporaryDirectory() as d:
             r = run("pbir_layout.py", EXAMPLE / "layout.json", Path(d) / "Y.Report", "--check")

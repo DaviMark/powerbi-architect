@@ -9,8 +9,8 @@ Python 3.9+ standard library only. Offline. Reads the <Name>.Report folder; writ
 
 Draws every visual at its real position and size with the report's custom theme (page colour,
 backgrounds, borders, radius, fonts, type sizes), text boxes, the page navigator, icons and images,
-and the data visuals: titles, KPI values and variation lines, bars, columns, waterfalls, lines, tables
-and slicers. Without --sample, values are neutral placeholders; with --sample, they come from a small
+and the data visuals: titles, KPI values and variation lines, KPIs with a trend, bars, columns,
+waterfalls, lines, column-and-line combos, scatter plots, tables, matrices and slicers. Without --sample, values are neutral placeholders; with --sample, they come from a small
 JSON file so labels, number lengths and legends look real:
 
     {"measures": {"Valor Vencido": "R$ 4,2 mi", "Texto Var % Vencido": "▲ 2,3 p.p. acima da meta"},
@@ -233,8 +233,28 @@ class Preview:
             inner = (f'<div style="padding:4px 8px 0;font:400 {hsize:.1f}px {FONT};color:{hink}">{html.escape(label)}</div>'
                      f'<div style="margin:0 8px;font:400 {9 * PT:.1f}px {FONT};color:{ink};display:flex;'
                      f'justify-content:space-between">Todos<span style="color:{ink2}">&#8964;</span></div>')
+        elif vtype == "kpi":
+            m = (roles.get("Indicator") or [None])[0]
+            size = num(self.style("kpi", "indicator", "fontSize", 20), 20) * PT
+            wt = 600 if "Semibold" in str(self.style("kpi", "indicator", "fontFamily", "")) else 400
+            trend = self.series(m, 12, [5, 5.6, 5.2, 6.1, 6.4, 6, 6.8, 7.1, 6.9, 7.6, 7.4, 8])
+            peak, low = max(trend) or 1, min(trend)
+            pts = " ".join(f"{i * 100 / (len(trend) - 1 or 1):.1f},{40 - 34 * (v - low) / ((peak - low) or 1):.1f}"
+                           for i, v in enumerate(trend))
+            goal = (roles.get("Goal") or [None])[0]
+            goal_line = (f'<div style="font:400 {9 * PT:.1f}px {FONT};color:{ink2};padding:0 12px">'
+                         f'Meta: {self.value(goal, bar(30, 8))}</div>') if goal else ""
+            inner = (title + f'<div style="font:{wt} {size:.1f}px {FONT};color:{ink};padding:4px 12px 0">'
+                     f'{self.value(m, bar(48, int(size * 0.8)))}</div>{goal_line}'
+                     f'<svg viewBox="0 0 100 42" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;'
+                     f'width:100%;height:{max(h * 0.35, 16):.0f}px"><polygon points="0,42 {pts} 100,42" '
+                     f'fill="{self.accent}" fill-opacity=".12"/><polyline points="{pts}" fill="none" '
+                     f'stroke="{self.accent}" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>')
         elif vtype in ("tableEx", "pivotTable"):
-            cols = roles.get("Values", [])
+            cols = roles.get("Rows", []) + roles.get("Values", [])
+            across = self.labels((roles.get("Columns") or [None])[0], 4)
+            if across and roles.get("Values"):             # matrix with columns: one value column per member
+                cols = roles.get("Rows", []) + [f"[{a}]" for a in across]
             hl = {}
             for item in objs.get("values", []):
                 sel = (item.get("selector") or {}).get("metadata", "")
@@ -269,11 +289,36 @@ class Preview:
         cat = (roles.get("Category") or [None])[0]
         m = (roles.get("Y") or [None])[0]
         kind = vtype.lower()
+        body_h = h - 52
+        if kind == "scatterchart":
+            names = self.labels(cat, 12) or [""] * 12
+            xs = self.series((roles.get("X") or [None])[0], len(names), [2, 3.5, 5, 6, 7.5, 3, 8, 4.5, 6.5, 9, 2.5, 5.5])
+            ys = self.series(m, len(names), [3, 5, 4, 7, 6, 2, 8, 6.5, 4.5, 7.5, 5, 3.5])
+            xp, yp = max(xs) or 1, max(ys) or 1
+            dots = "".join(f'<div title="{html.escape(n)}" style="position:absolute;left:{4 + 90 * x / xp:.1f}%;'
+                           f'top:{88 - 80 * y / yp:.1f}%;width:8px;height:8px;margin:-4px;border-radius:50%;'
+                           f'background:{self.accent};opacity:.8"></div>' for n, x, y in zip(names, xs, ys))
+            return (f'<div style="position:relative;height:{body_h - 16}px;margin:8px 12px;'
+                    f'border-bottom:1px solid #EBEBEB;border-left:1px solid #EBEBEB">{dots}</div>')
+        if kind == "lineclusteredcolumncombochart":
+            labels = self.labels(cat, 12) or [""] * 12
+            cols_v = self.series(m, len(labels), [6, 7, 6.5, 8, 7.5, 9, 8.5, 9.5, 9, 10, 9.8, 11])
+            line_v = self.series((roles.get("Y2") or [None])[0], len(labels),
+                                 [4, 4.2, 4.1, 4.6, 4.4, 5, 4.8, 5.3, 5.1, 5.6, 5.4, 6])
+            peak = max(cols_v + line_v) or 1
+            n = len(labels)
+            bars = "".join(f'<rect x="{i * 100 / n + 100 / n * 0.2:.1f}" y="{66 - 60 * v / peak:.1f}" '
+                           f'width="{100 / n * 0.6:.1f}" height="{60 * v / peak:.1f}" fill="{self.accent}"/>'
+                           for i, v in enumerate(cols_v))
+            pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(line_v))
+            line = self.ink2
+            return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
+                    f'padding:8px 12px;box-sizing:border-box">{bars}<polyline points="{pts}" fill="none" stroke="{line}" stroke-width="2" '
+                    f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
         n = 5 if "bar" in kind or "column" in kind or kind == "waterfallchart" else 12
         labels = self.labels(cat, n) or [""] * n
         vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
         peak = max(vals) or 1
-        body_h = h - 52
         lab = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2}"
         if "bar" in kind:
             rows = "".join(
@@ -310,7 +355,7 @@ class Preview:
         pts = " ".join(f"{i * 100 / (len(vals) - 1 or 1):.1f},{66 - 56 * v / peak:.1f}" for i, v in enumerate(vals))
         sw = num(self.style("lineChart", "lineStyles", "strokeWidth", 2), 2)
         return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
-                f'padding:8px 12px"><polyline points="{pts}" fill="none" stroke="{self.accent}" stroke-width="{sw}" '
+                f'padding:8px 12px;box-sizing:border-box"><polyline points="{pts}" fill="none" stroke="{self.accent}" stroke-width="{sw}" '
                 f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
 
     # ------------------------------------------------------------------ pages
