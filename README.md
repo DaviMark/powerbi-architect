@@ -82,7 +82,8 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
    calcula cada posição na grade de 4 px, com sidebar, barra do topo, KPIs com linha de meta, gráficos,
    tabelas, páginas de drill-through e de tooltip e o layout de celular.
 3. **Ver antes de entregar:** `preview_pbir.py` desenha cada página, com dados de amostra, para a IA olhar
-   e corrigir o que estiver desalinhado ou pesado.
+   e corrigir o que estiver desalinhado ou pesado. Os espaçamentos internos dos visuais são aproximações;
+   [calibrar o preview](docs/calibrar-preview.md) mostra como compará-los com capturas do Desktop.
 4. **Auditar:** `audit_pbip.py` dá uma nota de harmonia de 0 a 100 por página e só aceita entregar com 90
    ou mais.
 

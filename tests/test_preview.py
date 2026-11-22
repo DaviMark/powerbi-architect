@@ -52,6 +52,27 @@ class TestPreview(unittest.TestCase):
             for text in ("Meta: R$ 18,6 mi", "<polygon", "border-radius:50%", ">Varejo</th>", "Saldo e vencido por mês"):
                 self.assertIn(text, html)
 
+    def test_overlay_and_calibration(self):
+        with tempfile.TemporaryDirectory() as d:
+            shots = Path(d) / "desktop"
+            shots.mkdir()
+            png = (ROOT / "docs" / "assets" / "exemplo-visao-geral.png").read_bytes()
+            for i in (1, 2):
+                (shots / f"page-{i}.png").write_bytes(png)
+            cal = Path(d) / "cal.json"
+            cal.write_text('{"title_padding": "7px 13px 0"}', encoding="utf-8")
+            out = Path(d) / "p.html"
+            r = run("preview_pbir.py", REPORT, "--overlay", shots, "--calibration", cal, "--out", out)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            html = out.read_text(encoding="utf-8")
+            self.assertEqual(html.count('class="overlay"'), 2)
+            self.assertIn('type="range"', html)
+            self.assertIn("padding:7px 13px 0", html)
+            cal.write_text('{"titel_padding": "0"}', encoding="utf-8")
+            r = run("preview_pbir.py", REPORT, "--calibration", cal, "--out", out)
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("unknown calibration keys", r.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
