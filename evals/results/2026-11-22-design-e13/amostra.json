@@ -1,0 +1,102 @@
+{
+  "measures": {
+    "Entregas": "48.210",
+    "% No Prazo": "91,4%",
+    "Atraso Médio (dias)": "2,7",
+    "% Devolução": "1,9%",
+    "Custo Frete": "R$ 3,1 mi",
+    "Frete por Kg": "R$ 1,84",
+    "Texto Atualizacao": "Atualizado em 21/11/2026 08:00",
+    "Entregas no Prazo": "40.112",
+    "Meta % No Prazo": "95%",
+    "Devoluções": "916",
+    "Texto Entregas": "41.880 concluídas, 5.414 em rota",
+    "Texto Var % No Prazo": "▼ 3,6 p.p. abaixo da meta de 95%",
+    "Texto Atraso": "4.420 entregas atrasadas",
+    "Texto Devoluções": "916 devoluções no período",
+    "Titulo % No Prazo": "Entregas no prazo por mês: 91,4% no período",
+    "Titulo Melhor Transportadora": "Rápida Sul lidera com 96,1% no prazo",
+    "Entregas Atrasadas": "4.420",
+    "Desvio da Meta": "-3,6%",
+    "Texto Entregas Atrasadas": "4.420 entregas atrasadas",
+    "Texto Frete por Kg": "R$ 1,84 por kg",
+    "Título Pontualidade": "Entregas no prazo por mês: 91,4% no período"
+  },
+  "colors": {
+    "Cor Var % No Prazo": "#CE2C31",
+    "Cor % No Prazo": "#CE2C31",
+    "Cor % Devolução": "#333333"
+  },
+  "fields": {
+    "dm_transportadora[Transportadora]": [
+      "Rápida Sul",
+      "TransNorte",
+      "Via Leste",
+      "Cargas Centro",
+      "Expresso Litoral",
+      "LogMais"
+    ],
+    "dm_transportadora[Modal]": [
+      "Rodoviário",
+      "Aéreo",
+      "Cabotagem"
+    ],
+    "dm_cidade[Cidade]": [
+      "São Paulo",
+      "Rio de Janeiro",
+      "Belo Horizonte",
+      "Curitiba",
+      "Recife",
+      "Salvador",
+      "Porto Alegre",
+      "Goiânia",
+      "Manaus",
+      "Belém"
+    ],
+    "dm_cidade[UF]": [
+      "SP",
+      "RJ",
+      "MG",
+      "PR",
+      "PE",
+      "BA",
+      "RS",
+      "GO",
+      "AM",
+      "PA"
+    ],
+    "dm_cidade[Região]": [
+      "Sudeste",
+      "Sul",
+      "Nordeste",
+      "Centro-Oeste",
+      "Norte"
+    ],
+    "dm_calendario[Ano-Mês]": [
+      "dez/25",
+      "jan/26",
+      "fev/26",
+      "mar/26",
+      "abr/26",
+      "mai/26",
+      "jun/26",
+      "jul/26",
+      "ago/26",
+      "set/26",
+      "out/26",
+      "nov/26"
+    ],
+    "ft_entregas[Status]": [
+      "Entregue",
+      "Em rota",
+      "Devolvida"
+    ]
+  },
+  "series": {
+    "ft_entregas[Status]": [
+      41.9,
+      5.4,
+      0.9
+    ]
+  }
+}
