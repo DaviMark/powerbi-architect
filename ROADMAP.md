@@ -11,13 +11,16 @@ abra uma com o formulário **Ideia / melhoria**. Itens marcados com `good first 
   projeto de exemplo.
 - **Conferir o exemplo no Power BI Desktop.** O projeto de `examples/` passa nos schemas da Microsoft,
   mas ainda não foi aberto no Desktop. Abrir, registrar o que o Desktop reescreve e ajustar o gerador.
-- **Grafo com modelos de mesmo nome.** Dois modelos chamados igual em pastas diferentes hoje se misturam
-  no relatório do grafo; o nome precisa incluir a pasta.
-
+- **Calibrar o preview com capturas reais do Desktop.** As ferramentas estão prontas
+  (`docs/calibrar-preview.md`); faltam capturas das páginas do exemplo e dos kits para ajustar os
+  espaçamentos.
 - **Conferir no Desktop os visuais modernos e o layout de celular.** O cartão novo, o slicer em botões,
   o botão com ícone e o tamanho da tela de celular foram montados a partir dos schemas, sem o Desktop.
-- **Avaliação de design com outro modelo.** O caso E11 usou o modelo do exemplo, para o qual a skill já
-  traz um layout pronto; repetir com um modelo diferente.
+
+- **O que a avaliação E13 mostrou** (`evals/results/2026-11-22-design-e13`): mostrar a meta nos gráficos
+  de tendência (segunda série cinza ou linha de referência), destacar pela cor as barras abaixo da meta,
+  calcular a altura dos cartões de barras pelo número de categorias e conferir se o título dinâmico
+  combina com o visual.
 
 ## Depois
 
@@ -27,6 +30,7 @@ abra uma com o formulário **Ideia / melhoria**. Itens marcados com `good first 
 - **Modelos de página para os schemas PBIR mais novos** (`page/2.x`, `visualContainer/2.x`), além dos
   atuais (`1.1.0`).
 - **Exemplo de modelo Direct Lake** seguindo `references/fabric-and-cicd.md`.
+- **Mais kits iniciais** (compras, CRM, logística, atendimento), no formato de `templates/starter-kits/`.
 - **Tradução das referências** para outros idiomas, mantendo o inglês como fonte.
 
 ## Feito recentemente
