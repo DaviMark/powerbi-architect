@@ -1,0 +1,454 @@
+{
+  "id": "estoque",
+  "app": "Estoque",
+  "project": "Estoque",
+  "description": "Valor em estoque, cobertura em dias, itens abaixo do ponto de pedido e itens sem giro por produto, curva ABC e depósito.",
+  "slicers": [
+    "dm_deposito[Depósito]"
+  ],
+  "tables": [
+    {
+      "name": "ft_estoque",
+      "description": "Foto diária do estoque por produto e depósito, com o consumo médio dos últimos 90 dias.",
+      "grain": "1 linha por produto, depósito e dia",
+      "source": "dw.vw_fato_estoque_diario",
+      "columns": [
+        {
+          "name": "id_produto",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_produto"
+        },
+        {
+          "name": "id_deposito",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_deposito"
+        },
+        {
+          "name": "Data Posicao",
+          "type": "dateTime",
+          "hidden": true,
+          "format": "dd/mm/yyyy",
+          "sql": "t.data_posicao",
+          "references": "dm_calendario"
+        },
+        {
+          "name": "Quantidade",
+          "type": "decimal",
+          "hidden": true,
+          "format": "#,0",
+          "sql": "t.quantidade_disponivel"
+        },
+        {
+          "name": "Valor Estoque",
+          "type": "decimal",
+          "hidden": true,
+          "format": "\\R\\$ #,0.00",
+          "sql": "t.valor_custo_medio",
+          "description": "Quantidade disponível ao custo médio."
+        },
+        {
+          "name": "Consumo Diario",
+          "type": "decimal",
+          "hidden": true,
+          "format": "#,0.0",
+          "sql": "t.consumo_medio_90d",
+          "description": "Média diária de saídas nos últimos 90 dias."
+        },
+        {
+          "name": "Ponto Pedido",
+          "type": "decimal",
+          "hidden": true,
+          "format": "#,0",
+          "sql": "t.ponto_pedido"
+        }
+      ]
+    },
+    {
+      "name": "dm_produto",
+      "description": "Produtos estocados e a classificação ABC por valor consumido.",
+      "grain": "1 linha por produto",
+      "source": "dw.vw_dim_produto",
+      "columns": [
+        {
+          "name": "id_produto",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Produto",
+          "type": "string",
+          "sql": "t.descricao",
+          "examples": [
+            "Parafuso sextavado M8",
+            "Rolamento 6204",
+            "Correia em V A-42",
+            "Óleo hidráulico 20 L",
+            "Filtro de ar",
+            "Luva nitrílica",
+            "Fita isolante",
+            "Disjuntor 32 A",
+            "Chapa de aço 3 mm",
+            "Tinta epóxi 3,6 L",
+            "Mangueira 1/2",
+            "Selante PU"
+          ]
+        },
+        {
+          "name": "Categoria",
+          "type": "string",
+          "sql": "t.categoria",
+          "examples": [
+            "Fixação",
+            "Transmissão",
+            "Lubrificantes",
+            "Elétricos",
+            "EPI"
+          ]
+        },
+        {
+          "name": "Curva ABC",
+          "type": "string",
+          "sql": "t.curva_abc",
+          "examples": [
+            "A",
+            "B",
+            "C"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dm_deposito",
+      "description": "Depósitos e centros de distribuição.",
+      "grain": "1 linha por depósito",
+      "source": "dw.vw_dim_deposito",
+      "columns": [
+        {
+          "name": "id_deposito",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Depósito",
+          "type": "string",
+          "sql": "t.nome",
+          "examples": [
+            "CD Campinas",
+            "CD Recife",
+            "CD Curitiba",
+            "Fábrica Jundiaí"
+          ]
+        }
+      ]
+    }
+  ],
+  "measures": [
+    {
+      "name": "Valor em Estoque",
+      "description": "Valor ao custo médio na última posição do período.",
+      "expr": "CALCULATE ( SUM ( ft_estoque[Valor Estoque] ), LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( ft_estoque ) ) ) )",
+      "format": "\\R\\$ #,0",
+      "folder": "Valores",
+      "sample": "R$ 7,4 mi"
+    },
+    {
+      "name": "Quantidade em Estoque",
+      "description": "Quantidade disponível na última posição do período.",
+      "expr": "CALCULATE ( SUM ( ft_estoque[Quantidade] ), LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( ft_estoque ) ) ) )",
+      "format": "#,0",
+      "folder": "Valores"
+    },
+    {
+      "name": "Consumo Diário",
+      "description": "Saída média por dia dos últimos 90 dias, na última posição do período.",
+      "expr": "CALCULATE ( SUM ( ft_estoque[Consumo Diario] ), LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( ft_estoque ) ) ) )",
+      "format": "#,0.0",
+      "folder": "Valores"
+    },
+    {
+      "name": "Cobertura (dias)",
+      "description": "Quantos dias o estoque atual dura no ritmo de consumo dos últimos 90 dias.",
+      "expr": "DIVIDE ( [Quantidade em Estoque], [Consumo Diário] )",
+      "format": "#,0",
+      "folder": "Indicadores",
+      "sample": "47"
+    },
+    {
+      "name": "Itens Abaixo do Ponto",
+      "description": "Produtos e depósitos com quantidade menor que o ponto de pedido na última posição.",
+      "expr": "CALCULATE ( COUNTROWS ( FILTER ( ft_estoque, ft_estoque[Quantidade] < ft_estoque[Ponto Pedido] ) ), LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( ft_estoque ) ) ) )",
+      "format": "#,0",
+      "folder": "Indicadores",
+      "sample": "126"
+    },
+    {
+      "name": "Valor sem Giro",
+      "description": "Valor em estoque de itens sem nenhuma saída nos últimos 90 dias.",
+      "expr": "CALCULATE ( [Valor em Estoque], ft_estoque[Consumo Diario] = 0 )",
+      "format": "\\R\\$ #,0",
+      "folder": "Valores",
+      "sample": "R$ 912 mil"
+    },
+    {
+      "name": "% sem Giro",
+      "description": "Parcela do valor em estoque parada há mais de 90 dias.",
+      "expr": "DIVIDE ( [Valor sem Giro], [Valor em Estoque] )",
+      "format": "0.0%",
+      "folder": "Indicadores"
+    },
+    {
+      "name": "Meta Cobertura",
+      "description": "Cobertura máxima desejada, em dias.",
+      "expr": "30",
+      "format": "#,0",
+      "folder": "Metas"
+    },
+    {
+      "name": "Texto Var Cobertura",
+      "description": "Linha do KPI de cobertura: distância para a meta, em dias.",
+      "expr": "VAR _d = [Cobertura (dias)] - [Meta Cobertura] RETURN IF ( ISBLANK ( [Cobertura (dias)] ), BLANK (), IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"#,0\" ) & \" dias \" & IF ( _d > 0, \"acima\", \"abaixo\" ) & \" da meta de \" & FORMAT ( [Meta Cobertura], \"#,0\" ) )",
+      "folder": "Textos",
+      "sample": "▲ 17 dias acima da meta de 30"
+    },
+    {
+      "name": "Cor Var Cobertura",
+      "description": "Cor da linha do KPI de cobertura: vermelho acima da meta (capital parado).",
+      "expr": "IF ( [Cobertura (dias)] > [Meta Cobertura], \"#CE2C31\", \"#00824D\" )",
+      "folder": "Cores",
+      "sampleColor": "#CE2C31"
+    },
+    {
+      "name": "Texto sem Giro",
+      "description": "Linha do KPI de valor sem giro: participação no estoque.",
+      "expr": "FORMAT ( [% sem Giro], \"0.0%\" ) & \" do valor em estoque\"",
+      "folder": "Textos",
+      "sample": "12,3% do valor em estoque"
+    },
+    {
+      "name": "Cor Cobertura",
+      "description": "Cor da cobertura em tabelas: vermelho acima de 90 dias, âmbar acima da meta.",
+      "expr": "SWITCH ( TRUE (), [Cobertura (dias)] > 90, \"#CE2C31\", [Cobertura (dias)] > [Meta Cobertura], \"#AD6200\", \"#333333\" )",
+      "folder": "Cores"
+    },
+    {
+      "name": "Titulo Estoque",
+      "description": "Título do gráfico de valor em estoque, com o valor atual.",
+      "expr": "\"Valor em estoque no fim de cada mês: \" & FORMAT ( [Valor em Estoque], \"R$ #,0\" ) & \" hoje\"",
+      "folder": "Títulos",
+      "sample": "Valor em estoque no fim de cada mês: R$ 7.402.913 hoje"
+    }
+  ],
+  "series": {
+    "dm_produto[Categoria]": [
+      2.9,
+      1.8,
+      1.2,
+      0.9,
+      0.6
+    ],
+    "dm_produto[Curva ABC]": [
+      5.1,
+      1.6,
+      0.7
+    ],
+    "dm_deposito[Depósito]": [
+      3.4,
+      1.9,
+      1.3,
+      0.8
+    ],
+    "Valor em Estoque": [
+      8.1,
+      8.3,
+      8.0,
+      7.9,
+      8.2,
+      7.8,
+      7.7,
+      7.9,
+      7.6,
+      7.5,
+      7.6,
+      7.4
+    ]
+  },
+  "pages": [
+    {
+      "name": "Visão Geral",
+      "icon": "layout-dashboard",
+      "rows": [
+        {
+          "height": 88,
+          "visuals": [
+            {
+              "type": "kpi",
+              "measure": "Valor em Estoque",
+              "label": "Valor em estoque"
+            },
+            {
+              "type": "kpi",
+              "measure": "Cobertura (dias)",
+              "label": "Cobertura, em dias",
+              "variation": "Texto Var Cobertura",
+              "variationColor": "Cor Var Cobertura"
+            },
+            {
+              "type": "kpi",
+              "measure": "Itens Abaixo do Ponto",
+              "label": "Itens abaixo do ponto de pedido"
+            },
+            {
+              "type": "kpi",
+              "measure": "Valor sem Giro",
+              "label": "Sem saída há 90 dias",
+              "variation": "Texto sem Giro"
+            }
+          ]
+        },
+        {
+          "height": 248,
+          "split": [
+            2,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "lineChart",
+              "category": "dm_calendario[Ano-Mês]",
+              "values": [
+                "Valor em Estoque"
+              ],
+              "titleMeasure": "Titulo Estoque",
+              "sort": "category",
+              "alt": "Valor em estoque ao fim de cada mês"
+            },
+            {
+              "type": "clusteredColumnChart",
+              "category": "dm_produto[Curva ABC]",
+              "values": [
+                "Valor em Estoque"
+              ],
+              "title": "Valor por curva ABC",
+              "sort": "category",
+              "alt": "Valor em estoque por curva ABC"
+            }
+          ]
+        },
+        {
+          "height": 248,
+          "split": [
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_produto[Categoria]",
+              "values": [
+                "Valor em Estoque"
+              ],
+              "title": "Valor por categoria",
+              "sort": "desc",
+              "alt": "Valor em estoque por categoria, do maior para o menor"
+            },
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_deposito[Depósito]",
+              "values": [
+                "Valor em Estoque"
+              ],
+              "title": "Valor por depósito",
+              "sort": "desc",
+              "alt": "Valor em estoque por depósito, do maior para o menor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cobertura",
+      "icon": "chart-bar",
+      "rows": [
+        {
+          "height": 300,
+          "split": [
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "scatter",
+              "details": "dm_produto[Produto]",
+              "x": "Valor em Estoque",
+              "y": "Cobertura (dias)",
+              "title": "Muito valor parado fica no canto superior direito",
+              "alt": "Dispersão de produtos por valor em estoque e cobertura"
+            },
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_produto[Categoria]",
+              "values": [
+                "Cobertura (dias)"
+              ],
+              "title": "Cobertura por categoria",
+              "sort": "desc",
+              "alt": "Cobertura em dias por categoria"
+            }
+          ]
+        },
+        {
+          "height": 300,
+          "visuals": [
+            {
+              "type": "matrix",
+              "rows": [
+                "dm_produto[Curva ABC]"
+              ],
+              "columns": [
+                "dm_deposito[Depósito]"
+              ],
+              "values": [
+                "Cobertura (dias)"
+              ],
+              "title": "Cobertura por curva ABC e depósito",
+              "alt": "Matriz de cobertura por curva ABC e depósito"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reposição",
+      "icon": "list-details",
+      "rows": [
+        {
+          "height": 616,
+          "visuals": [
+            {
+              "type": "tableEx",
+              "title": "Itens para repor ou desovar",
+              "columns": [
+                "dm_produto[Produto]",
+                "dm_produto[Curva ABC]",
+                "Quantidade em Estoque",
+                "Consumo Diário",
+                "Cobertura (dias)",
+                "Valor em Estoque"
+              ],
+              "sortBy": "Valor em Estoque desc",
+              "highlight": {
+                "column": "Cobertura (dias)",
+                "colorMeasure": "Cor Cobertura"
+              },
+              "alt": "Tabela de produtos com quantidade, consumo diário, cobertura e valor em estoque"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

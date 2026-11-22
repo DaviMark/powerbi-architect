@@ -19,6 +19,8 @@ Não abra issues públicas para problemas de segurança.
   um arquivo HTML. Só com `--png`, abre o Edge, o Chrome ou o Chromium da máquina em modo headless (ou o
   pacote opcional `playwright`) para salvar uma imagem por página, a partir de arquivos HTML locais.
 - `scripts/make_theme.py`: só biblioteca padrão do Python, **sem rede**. Escreve um arquivo JSON de tema.
+- `scripts/new_project.py`: só biblioteca padrão do Python, **sem rede**, sem subprocessos. Lê um kit de
+  `templates/starter-kits/` e escreve só dentro da pasta de saída, que precisa estar vazia.
 - `install/*`: copiam arquivos para as pastas de skills e depois (só em instalação por repositório) rodam
   `pbi_graph.py install`. Nada é baixado, nenhum pacote é instalado e nenhum conteúdo do repositório é
   executado. `--no-graph` / `-NoGraph` = só copiar.
