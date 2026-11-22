@@ -342,30 +342,40 @@ class Preview:
                 for l, v in zip(labels, vals))
             return f'<div style="padding:8px 12px">{rows}</div>'
         if "column" in kind or kind == "waterfallchart":
-            cols, base = [], 0.0
+            waterfall = kind == "waterfallchart"
             sent = {k: self.color(prop(objs, "sentimentColors", k + "Fill"))
-                    or self.style("waterfallChart", "sentimentColors", k + "Fill") for k in ("increase", "total")}
-            total = sum(vals)
-            series = list(zip(labels, vals))
-            if vtype == "waterfallChart":
-                series.append(("Total", total))
-                peak = total or 1
+                    or self.style("waterfallChart", "sentimentColors", k + "Fill")
+                    for k in ("increase", "decrease", "total")}
+            steps, level = [], 0.0                   # (label, value, start, end, kind)
+            for l, v in zip(labels, vals):
+                if waterfall:
+                    steps.append((l, v, level, level + v, "increase" if v >= 0 else "decrease"))
+                    level += v
+                else:
+                    steps.append((l, v, 0.0, v, "column"))
+            if waterfall:
+                steps.append(("Total", level, 0.0, level, "total"))
+            ends = [x for st in steps for x in st[2:4]] + [0.0]
+            lo, hi = min(ends), max(ends)
             plot = body_h - 40                     # room for the value and category labels
-            for i, (l, v) in enumerate(series):
-                is_total = vtype == "waterfallChart" and i == len(series) - 1
-                bottom = 0 if (vtype != "waterfallChart" or is_total) else base
-                fill = (sent.get("total") or "#666666") if is_total else (
-                    (sent.get("increase") or self.accent) if vtype == "waterfallChart" else self.accent)
-                bar_h, pad = plot * v / peak, plot * bottom / peak
-                cols.append(f'<div style="flex:1;margin:0 6px;display:flex;flex-direction:column;justify-content:flex-end">'
-                            f'<div style="{lab};text-align:center">{v:g}</div>'
-                            f'<div style="height:{bar_h:.0f}px;background:{fill};border-radius:2px 2px 0 0"></div>'
-                            f'<div style="height:{pad:.0f}px"></div>'
-                            f'<div style="{lab};text-align:center;white-space:nowrap;overflow:hidden;height:18px">{html.escape(l)}</div></div>')
-                if vtype == "waterfallChart" and not is_total:
-                    base += v
-            return f'<div style="display:flex;align-items:flex-end;height:{body_h}px;padding:8px 12px 0">{"".join(cols)}</div>'
-        pts = " ".join(f"{i * 100 / (len(vals) - 1 or 1):.1f},{66 - 56 * v / peak:.1f}" for i, v in enumerate(vals))
+            scale = plot / ((hi - lo) or 1)
+            cols = []
+            for l, v, a, b, k in steps:
+                fill = self.accent if k == "column" else (sent.get(k) or {"total": "#666666"}.get(k, self.accent))
+                top = (hi - max(a, b)) * scale
+                cols.append(f'<div style="flex:1;margin:0 6px;position:relative;height:{plot + 18:.0f}px">'
+                            f'<div style="position:absolute;left:0;right:0;top:{top - 16:.0f}px;{lab};'
+                            f'text-align:center">{v:g}</div>'
+                            f'<div style="position:absolute;left:0;right:0;top:{top:.0f}px;height:{max(abs(b - a) * scale, 1):.0f}px;'
+                            f'background:{fill};border-radius:2px"></div>'
+                            f'<div style="position:absolute;left:0;right:0;bottom:0;{lab};text-align:center;white-space:nowrap;'
+                            f'overflow:hidden;height:18px">{html.escape(l)}</div></div>')
+            return (f'<div style="display:flex;align-items:flex-end;height:{body_h}px;padding:24px 12px 0;'
+                    f'box-sizing:border-box">{"".join(cols)}</div>')
+        low = min(vals)                            # line axes fit the data, like Power BI's auto range
+        low = 0 if low > 0 and low < peak * 0.5 else low
+        pts = " ".join(f"{i * 100 / (len(vals) - 1 or 1):.1f},{62 - 52 * (v - low) / ((peak - low) or 1):.1f}"
+                       for i, v in enumerate(vals))
         sw = num(self.style("lineChart", "lineStyles", "strokeWidth", 2), 2)
         return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
                 f'padding:8px 12px;box-sizing:border-box"><polyline points="{pts}" fill="none" stroke="{self.accent}" stroke-width="{sw}" '
