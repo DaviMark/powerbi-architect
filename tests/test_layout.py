@@ -1,5 +1,6 @@
 """scripts/pbir_layout.py on the example report. Standard library only."""
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,9 @@ EXAMPLE = ROOT / "examples" / "contas-a-receber"
 REPORT = EXAMPLE / "ContasReceber.Report"
 sys.path.insert(0, str(SCRIPTS))
 import pbir_layout  # noqa: E402
+import audit_pbip  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+from legacy_report import make_legacy  # noqa: E402
 
 
 def run(script, *args):
@@ -95,11 +99,77 @@ class TestLayoutEngine(unittest.TestCase):
         for i in items:
             self.assertTrue((REPORT / "StaticResources" / "RegisteredResources" / i["path"]).exists())
 
+    def test_matrix_combo_scatter_and_kpi_trend(self):
+        spec = json.loads((ROOT / "tests" / "fixtures" / "layout-more-visuals.json").read_text(encoding="utf-8"))
+        files = self.build(spec)
+        by_type, roles = {}, {}
+        for k, v in files.items():
+            if k.endswith("visual.json"):
+                t = v["visual"]["visualType"]
+                by_type[t] = v["visual"]
+                roles.setdefault(t, set()).update(v["visual"].get("query", {}).get("queryState", {}))
+        self.assertEqual(roles["pivotTable"], {"Rows", "Columns", "Values"})
+        self.assertEqual(roles["lineClusteredColumnComboChart"], {"Category", "Y", "Y2"})
+        self.assertEqual(roles["scatterChart"], {"Category", "X", "Y"})
+        self.assertEqual(roles["kpi"], {"Indicator", "TrendLine", "Goal"})
+        for t in ("pivotTable", "lineClusteredColumnComboChart", "scatterChart", "kpi"):
+            self.assertIn("altText", json.dumps(by_type[t]["visualContainerObjects"]["general"]), t)
+
     def test_check_mode_writes_nothing(self):
         with tempfile.TemporaryDirectory() as d:
             r = run("pbir_layout.py", EXAMPLE / "layout.json", Path(d) / "Y.Report", "--check")
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertFalse((Path(d) / "Y.Report").exists())
+
+
+class TestExtract(unittest.TestCase):
+    @staticmethod
+    def normalised(spec):
+        spec = json.loads(json.dumps(spec))
+        for page in spec["pages"]:
+            for row in page.get("rows", []):
+                if len(set(row.get("split", [0]))) == 1:
+                    row.pop("split", None)
+                for v in row["visuals"]:
+                    v.pop("key", None)
+            for v in page.get("visuals", []):
+                v.pop("key", None)
+        return spec
+
+    def test_round_trip_on_the_example(self):
+        """Extracting the example gives back the spec it was built from."""
+        spec, notes = pbir_layout.extract(REPORT)
+        self.assertEqual(notes, [])
+        original = json.loads((EXAMPLE / "layout.json").read_text(encoding="utf-8"))
+        self.assertEqual(self.normalised(spec), self.normalised(original))
+
+    def test_restyle_a_legacy_report(self):
+        with tempfile.TemporaryDirectory() as d:
+            proj = Path(d) / "proj"
+            shutil.copytree(EXAMPLE / "ContasReceber.SemanticModel", proj / "ContasReceber.SemanticModel")
+            report = make_legacy(REPORT, proj / "ContasReceber.Report")
+            before = audit_pbip.harmony(proj, audit_pbip.audit(proj))
+            spec, notes = pbir_layout.extract(report)
+            self.assertTrue(any("pieChart became a bar chart" in n for n in notes), notes)
+            self.assertTrue(any("no alt text" in n for n in notes), notes)
+            rows = spec["pages"][0]["rows"]
+            self.assertEqual([len(r["visuals"]) for r in rows], [4, 2, 1])
+            self.assertEqual(spec["slicers"], ["dm_cliente[Segmento]"])
+            b = pbir_layout.Builder(spec)
+            b.build(report)
+            b.register_resources(report, None)
+            after = audit_pbip.harmony(proj, audit_pbip.audit(proj))
+            self.assertLess(before[0][2], 60, before)
+            self.assertGreaterEqual(after[0][2], 90, after)
+
+    def test_cli(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "layout.json"
+            r = run("pbir_layout.py", "--extract", REPORT, "--out", out)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("6 page(s) extracted", r.stderr)
+            self.assertEqual(json.loads(out.read_text(encoding="utf-8"))["app"], "Contas a receber")
+            self.assertEqual(run("pbir_layout.py").returncode, 2)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,645 @@
+[
+  {
+    "rule": "PBI006",
+    "severity": "BLOCKER",
+    "law": "8",
+    "where": "Entregas.Report",
+    "line": 0,
+    "message": "no Documentation page (Documentação/Documentation)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI018",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/page.json",
+    "line": 0,
+    "message": "page 'Visão Geral' has 13 data visuals (target ≤ 8)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI050",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/page.json",
+    "line": 0,
+    "message": "page 'Visão Geral' has 3 slicers — keep ≤ 2 on the page, move the rest to the filter pane",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/1f2708b98e86149f3140/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/237cef78dd9ad1f13ebd/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/312dc2dd493d80dbd29e/visual.json",
+    "line": 0,
+    "message": "clusteredBarChart on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/345a8c3d47f9b6315e38/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/3faf4d63e42f466e8d88/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/54b5ebae3ceadca443aa/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/6922d48430a1e11c7e27/visual.json",
+    "line": 0,
+    "message": "lineClusteredColumnComboChart on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/7ed1c755bd5eee5dbae8/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/936f9997db8eda595f15/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Visão Geral' is 200×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/96bfe3cbf915e4ff6364/visual.json",
+    "line": 0,
+    "message": "kpi on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/9c38b6cc871262580efe/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/b49cf0402994bb641ec1/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/c1af82314f0069c61ec7/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Visão Geral' is 260×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/e4735f695219a051e466/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Visão Geral' is 260×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/e68d96e2b4ffd7a90e06/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/ee07485e19039645e9aa/visual.json",
+    "line": 0,
+    "message": "donutChart on page 'Visão Geral' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/f4249217fadcb85b41a6/visual.json",
+    "line": 0,
+    "message": "textbox on page 'Visão Geral' uses 22 pt — keep it ≤ 14 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI050",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/page.json",
+    "line": 0,
+    "message": "page 'Transportadoras' has 3 slicers — keep ≤ 2 on the page, move the rest to the filter pane",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/0d535e18dced57b41008/visual.json",
+    "line": 0,
+    "message": "clusteredBarChart on page 'Transportadoras' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/16256f96cc29b40171b5/visual.json",
+    "line": 0,
+    "message": "scatterChart on page 'Transportadoras' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/6b74ca28368d722d6562/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Transportadoras' is 240×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/7d6d5c07312a1ffd6039/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Transportadoras' is 240×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI047",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/ae93374606e632dcc32f/visual.json",
+    "line": 0,
+    "message": "textbox on page 'Transportadoras' uses 22 pt — keep it ≤ 14 pt (see the type scale)",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/ba8af6dd1b159050b832/visual.json",
+    "line": 0,
+    "message": "tableEx on page 'Transportadoras' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI019",
+    "severity": "IMPORTANT",
+    "law": "a11y",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/c9224e745c93d6949198/visual.json",
+    "line": 0,
+    "message": "clusteredColumnChart on page 'Transportadoras' has no alt text",
+    "bpa": []
+  },
+  {
+    "rule": "PBI046",
+    "severity": "IMPORTANT",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/d13baac44c5e5a09a0b3/visual.json",
+    "line": 0,
+    "message": "Dropdown slicer on page 'Transportadoras' is 200×56 px — keep it within 240×48 px",
+    "bpa": []
+  },
+  {
+    "rule": "PBI043",
+    "severity": "SUGGESTION",
+    "law": "8",
+    "where": ".",
+    "line": 0,
+    "message": "no README.md next to Entregas.pbip",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/1f2708b98e86149f3140/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/1f2708b98e86149f3140/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/237cef78dd9ad1f13ebd/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/237cef78dd9ad1f13ebd/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/312dc2dd493d80dbd29e/visual.json",
+    "line": 0,
+    "message": "clusteredBarChart on page 'Visão Geral': y, height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/312dc2dd493d80dbd29e/visual.json",
+    "line": 0,
+    "message": "clusteredBarChart on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/345a8c3d47f9b6315e38/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/345a8c3d47f9b6315e38/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/3faf4d63e42f466e8d88/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/54b5ebae3ceadca443aa/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/54b5ebae3ceadca443aa/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/6922d48430a1e11c7e27/visual.json",
+    "line": 0,
+    "message": "lineClusteredColumnComboChart on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/6922d48430a1e11c7e27/visual.json",
+    "line": 0,
+    "message": "lineClusteredColumnComboChart on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/7ed1c755bd5eee5dbae8/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/7ed1c755bd5eee5dbae8/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/936f9997db8eda595f15/visual.json",
+    "line": 0,
+    "message": "slicer on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/96bfe3cbf915e4ff6364/visual.json",
+    "line": 0,
+    "message": "kpi on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/96bfe3cbf915e4ff6364/visual.json",
+    "line": 0,
+    "message": "kpi on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/9c38b6cc871262580efe/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/9c38b6cc871262580efe/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/b49cf0402994bb641ec1/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/b49cf0402994bb641ec1/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/c1af82314f0069c61ec7/visual.json",
+    "line": 0,
+    "message": "slicer on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/e4735f695219a051e466/visual.json",
+    "line": 0,
+    "message": "slicer on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/e68d96e2b4ffd7a90e06/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/e68d96e2b4ffd7a90e06/visual.json",
+    "line": 0,
+    "message": "card on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI040",
+    "severity": "SUGGESTION",
+    "law": "7",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/ee07485e19039645e9aa/visual.json",
+    "line": 0,
+    "message": "donutChart on page 'Visão Geral' — ≤ 3 slices, otherwise a sorted bar",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/ee07485e19039645e9aa/visual.json",
+    "line": 0,
+    "message": "donutChart on page 'Visão Geral': y, height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/ee07485e19039645e9aa/visual.json",
+    "line": 0,
+    "message": "donutChart on page 'Visão Geral' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/09f5e988b11112f7e5e1/visuals/f4249217fadcb85b41a6/visual.json",
+    "line": 0,
+    "message": "textbox on page 'Visão Geral': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/0d535e18dced57b41008/visual.json",
+    "line": 0,
+    "message": "clusteredBarChart on page 'Transportadoras' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/16256f96cc29b40171b5/visual.json",
+    "line": 0,
+    "message": "scatterChart on page 'Transportadoras' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/6b74ca28368d722d6562/visual.json",
+    "line": 0,
+    "message": "slicer on page 'Transportadoras': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/7d6d5c07312a1ffd6039/visual.json",
+    "line": 0,
+    "message": "slicer on page 'Transportadoras': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/ae93374606e632dcc32f/visual.json",
+    "line": 0,
+    "message": "textbox on page 'Transportadoras': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/ba8af6dd1b159050b832/visual.json",
+    "line": 0,
+    "message": "tableEx on page 'Transportadoras': y, height not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/ba8af6dd1b159050b832/visual.json",
+    "line": 0,
+    "message": "tableEx on page 'Transportadoras' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI056",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/c9224e745c93d6949198/visual.json",
+    "line": 0,
+    "message": "clusteredColumnChart on page 'Transportadoras' has no title — say what it shows, in a sentence",
+    "bpa": []
+  },
+  {
+    "rule": "PBI048",
+    "severity": "SUGGESTION",
+    "law": "6",
+    "where": "Entregas.Report/definition/pages/933bfb0cf68c8f146503/visuals/d13baac44c5e5a09a0b3/visual.json",
+    "line": 0,
+    "message": "slicer on page 'Transportadoras': y not a multiple of 4 px — align it to the grid",
+    "bpa": []
+  },
+  {
+    "rule": "PBI034",
+    "severity": "SUGGESTION",
+    "law": "3",
+    "where": "Entregas.SemanticModel/definition/tables/dm_cidade.tmdl",
+    "line": 12,
+    "message": "'dm_cidade'[Cidade] is imported but never used (measure, visual, relationship, sort, hierarchy or RLS)",
+    "bpa": [
+      "UNNECESSARY_COLUMNS"
+    ]
+  },
+  {
+    "rule": "PBI034",
+    "severity": "SUGGESTION",
+    "law": "3",
+    "where": "Entregas.SemanticModel/definition/tables/dm_cidade.tmdl",
+    "line": 17,
+    "message": "'dm_cidade'[UF] is imported but never used (measure, visual, relationship, sort, hierarchy or RLS)",
+    "bpa": [
+      "UNNECESSARY_COLUMNS"
+    ]
+  }
+]

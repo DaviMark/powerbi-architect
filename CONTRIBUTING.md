@@ -11,6 +11,7 @@ pull requests são bem-vindos em **português ou inglês**.
 | Um script, instalador ou exemplo quebrado | Abra uma issue **Bug** |
 | Uma ideia de padrão DAX, conector, arquétipo de página ou achado do grafo | Abra uma issue **Ideia / melhoria** antes de PRs grandes |
 | 15 minutos e um agente de IA | Rode um caso de [`evals/`](evals/README.md) e compartilhe em **Resultado de avaliação** |
+| Um domínio que merece um kit inicial (compras, CRM, logística...) | Copie um JSON de [`templates/starter-kits/`](skills/powerbi-architect/templates/starter-kits), ajuste tabelas, medidas e páginas; o teste `tests/test_kits.py` exige zero achados na auditoria |
 | Uma correção pequena (erro de digitação, link, redação) | Abra um PR direto |
 
 Primeira vez por aqui? Procure issues com a label

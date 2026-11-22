@@ -723,15 +723,19 @@ def findings(g: dict) -> dict[str, list]:
                      and not nodes[e["target"]].get("chromeless"))
             if nv > 8:                           # data visuals only; textboxes, shapes and slicers do not count
                 out["crowded_pages"].append(nid)
+    def model_of(nid: str) -> str:
+        """The model node id (path included), so two models with the same name stay apart."""
+        return nid.split("::", 1)[0] if nid.startswith("model:") else nodes[nid].get("model", "")
+
     readers = collections.defaultdict(set)
     for e in edges:
         if e["rel"] == "reads_source" and nodes[e["source"]]["kind"] == "table":
-            readers[e["target"]].add(nodes[e["source"]].get("model"))
+            readers[e["target"]].add(model_of(e["source"]))
     out["shared_sources"] = [s for s, ms in readers.items() if len(ms) > 1]
     by_name = collections.defaultdict(dict)
     for nid, n in nodes.items():
         if n["kind"] == "measure":
-            by_name[norm(n["label"])][n.get("model")] = re.sub(r"\s+", " ", n.get("expression", "")).strip()
+            by_name[norm(n["label"])][model_of(nid)] = re.sub(r"\s+", " ", n.get("expression", "")).strip()
     out["divergent_measures"] = [k for k, d in by_name.items() if len(d) > 1 and len(set(d.values())) > 1]
     for e in edges:
         if e["rel"] == "relationship" and e.get("direction") == "both":
@@ -796,7 +800,9 @@ def report_md(g: dict, root: Path, comm: dict[str, int], fnd: dict, stats: dict)
             reps = [e["source"] for e in edges if e["target"] == m["id"] and e["rel"] == "binds_model"]
             npg = sum(1 for e in edges if e["source"] in reps and e["rel"] == "has_page")
             tl = ", ".join(f"{t['label']} ({t.get('role', '?')})" for t in sorted(tabs, key=lambda t: t["label"]))
-            L.append(f"| {m['label']} | {tl} | {nm} | {npg} | [wiki/{slug(m)}.md](wiki/{slug(m)}.md) |")
+            same = sum(1 for x in models if x["label"] == m["label"]) > 1
+            label = f"{m['label']} (`{m.get('file', '').split('/definition')[0]}`)" if same else m["label"]
+            L.append(f"| {label} | {tl} | {nm} | {npg} | [wiki/{slug(m)}.md](wiki/{slug(m)}.md) |")
         L.append("")
     hubs = [(nodes[n], d) for n, d in deg.most_common() if nodes[n]["kind"] in
             {"measure", "column", "table", "source_object", "parameter"}][:10]
@@ -1356,13 +1362,19 @@ def install(repo: Path, hooks: bool, agents: bool, commit_graph: bool) -> int:
         if gh.exists():
             print(f"[ok] .github/copilot-instructions.md: {upsert_block(gh, sec, MARK_START, MARK_END)}")
     if hooks:
-        claude_hooks(repo, f"{cmd} update --quiet")
+        audit_cmd = cmd.replace("pbi_graph.py", "audit_pbip.py")
+        claude_hooks(repo, f"{cmd} update --quiet", f"{audit_cmd} --hook")
         git_hooks(repo, f"{cmd} update --quiet")
     print("\nDone. Agents now read powerbi-graph/GRAPH_REPORT.md first and query the graph instead of raw files.")
     return 0
 
 
-def claude_hooks(repo: Path, command: str) -> None:
+def ours(hook: dict) -> bool:
+    c = hook.get("command", "")
+    return "pbi_graph.py" in c or ("audit_pbip.py" in c and "--hook" in c)
+
+
+def claude_hooks(repo: Path, command: str, audit_command: str | None = None) -> None:
     sp = repo / ".claude" / "settings.json"
     try:
         settings = json.loads(sp.read_text(encoding="utf-8")) if sp.exists() else {}
@@ -1373,15 +1385,18 @@ def claude_hooks(repo: Path, command: str) -> None:
     wanted = {"SessionStart": None, "PostToolUse": "Edit|Write|MultiEdit|NotebookEdit"}
     for event, matcher in wanted.items():
         groups = hooks.setdefault(event, [])
-        groups[:] = [grp for grp in groups if not any("pbi_graph.py" in h.get("command", "")
-                                                      for h in grp.get("hooks", []))]
+        groups[:] = [grp for grp in groups if not any(ours(h) for h in grp.get("hooks", []))]
         entry = {"hooks": [{"type": "command", "command": command, "timeout": 60}]}
         if matcher:
             entry = {"matcher": matcher, **entry}
         groups.append(entry)
+        if matcher and audit_command:
+            groups.append({"matcher": "Edit|Write|MultiEdit",
+                           "hooks": [{"type": "command", "command": audit_command, "timeout": 60}]})
     sp.parent.mkdir(parents=True, exist_ok=True)
     sp.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print("[ok] .claude/settings.json: graph refresh on SessionStart and after edits")
+    print("[ok] .claude/settings.json: graph refresh on SessionStart and after edits"
+          + ("; audit after every report or model edit" if audit_command else ""))
 
 
 def git_hooks(repo: Path, command: str) -> None:
@@ -1416,7 +1431,7 @@ def uninstall(repo: Path) -> int:
         try:
             s = json.loads(sp.read_text(encoding="utf-8"))
             for ev, groups in list(s.get("hooks", {}).items()):
-                groups[:] = [g for g in groups if not any("pbi_graph.py" in h.get("command", "") for h in g.get("hooks", []))]
+                groups[:] = [g for g in groups if not any(ours(h) for h in g.get("hooks", []))]
                 if not groups:
                     del s["hooks"][ev]
             if not s.get("hooks"):
@@ -1434,11 +1449,12 @@ def uninstall(repo: Path) -> int:
 # ───────────────────────────────────────────────────────────────────────────── cli
 
 def main(argv: list[str]) -> int:
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")
-        except (OSError, ValueError):
-            pass
+    for stream in (sys.stdout, sys.stderr):   # Windows consoles default to a legacy code page
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except (OSError, ValueError):
+                pass
     if not argv or argv[0] in {"-h", "--help", "help"}:
         print(__doc__)
         return 0

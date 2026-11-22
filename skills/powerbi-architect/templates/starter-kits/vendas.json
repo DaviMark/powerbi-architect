@@ -1,0 +1,515 @@
+{
+  "id": "vendas",
+  "app": "Vendas",
+  "project": "Vendas",
+  "description": "Receita, margem, pedidos e ticket médio por produto, cliente e regional, com comparação ao ano anterior e meta de margem.",
+  "slicers": [
+    "dm_regional[Regional]"
+  ],
+  "tables": [
+    {
+      "name": "ft_vendas",
+      "description": "Itens de pedidos faturados nos últimos 24 meses.",
+      "grain": "1 linha por item de pedido",
+      "source": "dw.vw_fato_vendas",
+      "columns": [
+        {
+          "name": "Pedido",
+          "type": "string",
+          "hidden": true,
+          "sql": "t.numero_pedido"
+        },
+        {
+          "name": "id_produto",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_produto"
+        },
+        {
+          "name": "id_cliente",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_cliente"
+        },
+        {
+          "name": "id_regional",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_regional"
+        },
+        {
+          "name": "Data Venda",
+          "type": "dateTime",
+          "hidden": true,
+          "format": "dd/mm/yyyy",
+          "sql": "t.data_faturamento",
+          "references": "dm_calendario"
+        },
+        {
+          "name": "Quantidade",
+          "type": "decimal",
+          "hidden": true,
+          "format": "#,0",
+          "sql": "t.quantidade"
+        },
+        {
+          "name": "Valor Venda",
+          "type": "decimal",
+          "hidden": true,
+          "format": "\\R\\$ #,0.00",
+          "sql": "t.valor_liquido",
+          "description": "Valor líquido do item, sem impostos e descontos."
+        },
+        {
+          "name": "Custo",
+          "type": "decimal",
+          "hidden": true,
+          "format": "\\R\\$ #,0.00",
+          "sql": "t.custo_total",
+          "description": "Custo da mercadoria vendida do item."
+        }
+      ]
+    },
+    {
+      "name": "dm_produto",
+      "description": "Produtos vendidos.",
+      "grain": "1 linha por produto",
+      "source": "dw.vw_dim_produto",
+      "columns": [
+        {
+          "name": "id_produto",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Produto",
+          "type": "string",
+          "sql": "t.descricao",
+          "examples": [
+            "Café Torrado 500 g",
+            "Achocolatado 400 g",
+            "Biscoito Integral",
+            "Suco de Uva 1 L",
+            "Granola 1 kg"
+          ]
+        },
+        {
+          "name": "Categoria",
+          "type": "string",
+          "sql": "t.categoria",
+          "examples": [
+            "Mercearia",
+            "Bebidas",
+            "Matinais",
+            "Snacks",
+            "Congelados"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dm_cliente",
+      "description": "Clientes com pelo menos uma compra.",
+      "grain": "1 linha por cliente",
+      "source": "dw.vw_dim_cliente",
+      "columns": [
+        {
+          "name": "id_cliente",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Cliente",
+          "type": "string",
+          "sql": "t.nome_fantasia",
+          "examples": [
+            "Mercado Horizonte",
+            "Rede Bom Preço",
+            "Empório Central",
+            "Atacadão Vale",
+            "Mercadinho Sol",
+            "Super Nova Era",
+            "Casa do Grão",
+            "Rede Família",
+            "Mercado Ponto Certo",
+            "Super Econômico",
+            "Mercearia Aurora",
+            "Rede Litoral"
+          ]
+        },
+        {
+          "name": "Segmento",
+          "type": "string",
+          "sql": "t.segmento",
+          "examples": [
+            "Varejo",
+            "Atacado",
+            "Food service",
+            "E-commerce"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dm_regional",
+      "description": "Regionais de venda.",
+      "grain": "1 linha por regional",
+      "source": "dw.vw_dim_regional",
+      "columns": [
+        {
+          "name": "id_regional",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Regional",
+          "type": "string",
+          "sql": "t.nome",
+          "examples": [
+            "Sudeste",
+            "Sul",
+            "Nordeste",
+            "Centro-Oeste",
+            "Norte"
+          ]
+        },
+        {
+          "name": "Email Gestor",
+          "type": "string",
+          "hidden": true,
+          "sql": "t.email_gestor"
+        }
+      ]
+    }
+  ],
+  "roles": [
+    {
+      "name": "Gestor Regional",
+      "description": "Cada gestor vê apenas a própria regional.",
+      "filters": {
+        "dm_regional": "dm_regional[Email Gestor] = USERPRINCIPALNAME ()"
+      }
+    }
+  ],
+  "measures": [
+    {
+      "name": "Receita",
+      "description": "Valor líquido faturado, sem impostos e descontos.",
+      "expr": "SUM ( ft_vendas[Valor Venda] )",
+      "format": "\\R\\$ #,0",
+      "folder": "Valores",
+      "sample": "R$ 12,8 mi"
+    },
+    {
+      "name": "Custo",
+      "description": "Custo da mercadoria vendida.",
+      "expr": "SUM ( ft_vendas[Custo] )",
+      "format": "\\R\\$ #,0",
+      "folder": "Valores"
+    },
+    {
+      "name": "Margem",
+      "description": "Receita menos o custo da mercadoria vendida.",
+      "expr": "[Receita] - [Custo]",
+      "format": "\\R\\$ #,0",
+      "folder": "Valores"
+    },
+    {
+      "name": "% Margem",
+      "description": "Margem sobre a receita.",
+      "expr": "DIVIDE ( [Margem], [Receita] )",
+      "format": "0.0%",
+      "folder": "Indicadores",
+      "sample": "31,4%"
+    },
+    {
+      "name": "Pedidos",
+      "description": "Quantidade de pedidos distintos faturados.",
+      "expr": "DISTINCTCOUNT ( ft_vendas[Pedido] )",
+      "format": "#,0",
+      "folder": "Indicadores",
+      "sample": "8.412"
+    },
+    {
+      "name": "Ticket Médio",
+      "description": "Receita média por pedido.",
+      "expr": "DIVIDE ( [Receita], [Pedidos] )",
+      "format": "\\R\\$ #,0",
+      "folder": "Indicadores",
+      "sample": "R$ 1.522"
+    },
+    {
+      "name": "Unidades",
+      "description": "Quantidade de unidades vendidas.",
+      "expr": "SUM ( ft_vendas[Quantidade] )",
+      "format": "#,0",
+      "folder": "Indicadores"
+    },
+    {
+      "name": "Clientes Ativos",
+      "description": "Clientes com pelo menos um pedido faturado no período.",
+      "expr": "DISTINCTCOUNT ( ft_vendas[id_cliente] )",
+      "format": "#,0",
+      "folder": "Indicadores"
+    },
+    {
+      "name": "Receita AA",
+      "description": "Receita do mesmo período do ano anterior.",
+      "expr": "CALCULATE ( [Receita], SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )",
+      "format": "\\R\\$ #,0",
+      "folder": "Comparações"
+    },
+    {
+      "name": "Var % Receita AA",
+      "description": "Variação da receita contra o mesmo período do ano anterior.",
+      "expr": "DIVIDE ( [Receita] - [Receita AA], [Receita AA] )",
+      "format": "+0.0%;-0.0%;0.0%",
+      "folder": "Comparações"
+    },
+    {
+      "name": "Meta % Margem",
+      "description": "Meta da diretoria para a margem.",
+      "expr": "0.30",
+      "format": "0%",
+      "folder": "Metas"
+    },
+    {
+      "name": "Texto Var Receita",
+      "description": "Linha do KPI de receita: variação contra o ano anterior, com seta.",
+      "expr": "IF ( ISBLANK ( [Receita AA] ), BLANK (), IF ( [Var % Receita AA] >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( [Var % Receita AA] ), \"0.0%\" ) & \" vs ano anterior\" )",
+      "folder": "Textos",
+      "sample": "▲ 8,2% vs ano anterior"
+    },
+    {
+      "name": "Cor Var Receita",
+      "description": "Cor da linha do KPI de receita: verde quando cresce, vermelho quando cai.",
+      "expr": "IF ( [Var % Receita AA] >= 0, \"#00824D\", \"#CE2C31\" )",
+      "folder": "Cores",
+      "sampleColor": "#00824D"
+    },
+    {
+      "name": "Texto Var Margem",
+      "description": "Linha do KPI de margem: distância para a meta, em pontos percentuais.",
+      "expr": "VAR _d = [% Margem] - [Meta % Margem] RETURN IF ( ISBLANK ( [% Margem] ), BLANK (), IF ( _d >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & IF ( _d >= 0, \"acima\", \"abaixo\" ) & \" da meta de \" & FORMAT ( [Meta % Margem], \"0%\" ) )",
+      "folder": "Textos",
+      "sample": "▲ 1,4 p.p. acima da meta de 30%"
+    },
+    {
+      "name": "Cor Var Margem",
+      "description": "Cor da linha do KPI de margem: verde na meta ou acima, vermelho abaixo.",
+      "expr": "IF ( [% Margem] >= [Meta % Margem], \"#00824D\", \"#CE2C31\" )",
+      "folder": "Cores",
+      "sampleColor": "#00824D"
+    },
+    {
+      "name": "Texto Clientes",
+      "description": "Linha do KPI de pedidos: quantos clientes compraram.",
+      "expr": "FORMAT ( [Clientes Ativos], \"#,0\" ) & \" clientes compraram\"",
+      "folder": "Textos",
+      "sample": "1.204 clientes compraram"
+    },
+    {
+      "name": "Cor % Margem",
+      "description": "Cor da margem em tabelas: vermelho abaixo da meta.",
+      "expr": "IF ( [% Margem] < [Meta % Margem], \"#CE2C31\", \"#333333\" )",
+      "folder": "Cores"
+    },
+    {
+      "name": "Titulo Receita",
+      "description": "Título do gráfico de receita mensal, com o total do período.",
+      "expr": "\"Receita por mês: \" & FORMAT ( [Receita], \"R$ #,0\" ) & \" no período\"",
+      "folder": "Títulos",
+      "sample": "Receita por mês: R$ 12.804.311 no período"
+    }
+  ],
+  "series": {
+    "dm_produto[Categoria]": [
+      4.1,
+      3.2,
+      2.6,
+      1.8,
+      1.1
+    ],
+    "dm_regional[Regional]": [
+      5.2,
+      3.1,
+      2.2,
+      1.4,
+      0.9
+    ],
+    "dm_cliente[Segmento]": [
+      34.1,
+      31.2,
+      28.4,
+      24.9
+    ]
+  },
+  "pages": [
+    {
+      "name": "Visão Geral",
+      "icon": "layout-dashboard",
+      "rows": [
+        {
+          "height": 88,
+          "visuals": [
+            {
+              "type": "kpi",
+              "measure": "Receita",
+              "label": "Receita líquida",
+              "variation": "Texto Var Receita",
+              "variationColor": "Cor Var Receita"
+            },
+            {
+              "type": "kpi",
+              "measure": "% Margem",
+              "label": "Margem",
+              "variation": "Texto Var Margem",
+              "variationColor": "Cor Var Margem"
+            },
+            {
+              "type": "kpi",
+              "measure": "Pedidos",
+              "label": "Pedidos faturados",
+              "variation": "Texto Clientes"
+            },
+            {
+              "type": "kpi",
+              "measure": "Ticket Médio",
+              "label": "Ticket médio por pedido"
+            }
+          ]
+        },
+        {
+          "height": 248,
+          "split": [
+            2,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "combo",
+              "category": "dm_calendario[Ano-Mês]",
+              "values": [
+                "Receita"
+              ],
+              "lineValues": [
+                "Receita AA"
+              ],
+              "titleMeasure": "Titulo Receita",
+              "alt": "Receita por mês em colunas e a do ano anterior em linha"
+            },
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_produto[Categoria]",
+              "values": [
+                "Receita"
+              ],
+              "title": "Receita por categoria",
+              "sort": "desc",
+              "alt": "Receita por categoria de produto, da maior para a menor"
+            }
+          ]
+        },
+        {
+          "height": 248,
+          "visuals": [
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_regional[Regional]",
+              "values": [
+                "Receita"
+              ],
+              "title": "Receita por regional",
+              "sort": "desc",
+              "alt": "Receita por regional, da maior para a menor"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Margem",
+      "icon": "chart-bar",
+      "rows": [
+        {
+          "height": 300,
+          "split": [
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "scatter",
+              "details": "dm_cliente[Cliente]",
+              "x": "Receita",
+              "y": "% Margem",
+              "title": "Clientes que vendem muito com pouca margem ficam embaixo à direita",
+              "alt": "Dispersão de clientes por receita e margem"
+            },
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_cliente[Segmento]",
+              "values": [
+                "% Margem"
+              ],
+              "title": "Margem por segmento",
+              "sort": "desc",
+              "alt": "Margem por segmento de cliente"
+            }
+          ]
+        },
+        {
+          "height": 300,
+          "visuals": [
+            {
+              "type": "matrix",
+              "rows": [
+                "dm_produto[Categoria]"
+              ],
+              "columns": [
+                "dm_regional[Regional]"
+              ],
+              "values": [
+                "% Margem"
+              ],
+              "title": "Margem por categoria e regional",
+              "alt": "Matriz de margem por categoria e regional"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Produtos",
+      "icon": "list-details",
+      "rows": [
+        {
+          "height": 616,
+          "visuals": [
+            {
+              "type": "tableEx",
+              "title": "Produtos por receita",
+              "columns": [
+                "dm_produto[Produto]",
+                "dm_produto[Categoria]",
+                "Receita",
+                "Var % Receita AA",
+                "% Margem",
+                "Unidades"
+              ],
+              "sortBy": "Receita desc",
+              "highlight": {
+                "column": "% Margem",
+                "colorMeasure": "Cor % Margem"
+              },
+              "alt": "Tabela de produtos com receita, variação, margem e unidades"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

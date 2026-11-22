@@ -45,7 +45,9 @@ dentro do **[Power BI Workspaces](https://github.com/DaviMark/powerbi-workspaces
 
 **Medido, não prometido.** Nas [avaliações publicadas](evals/results/2026-11-21/README.md), a mesma IA
 atendeu **16 de 18** itens esperados com a skill e **6 de 18** sem ela (8 de 10 casos aprovados contra 2),
-com correção às cegas. As respostas brutas estão no repositório.
+com correção às cegas. As respostas brutas estão no repositório. No design, com um modelo que a skill
+nunca tinha visto, [dois modelos de IA](evals/results/2026-11-22-design-e13/README.md) passaram de
+harmonia 0 para 100 com a skill, e um avaliador cego preferiu a versão com a skill nos dois casos.
 
 ## Os oito princípios
 
@@ -82,13 +84,55 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
    calcula cada posição na grade de 4 px, com sidebar, barra do topo, KPIs com linha de meta, gráficos,
    tabelas, páginas de drill-through e de tooltip e o layout de celular.
 3. **Ver antes de entregar:** `preview_pbir.py` desenha cada página, com dados de amostra, para a IA olhar
-   e corrigir o que estiver desalinhado ou pesado.
+   e corrigir o que estiver desalinhado ou pesado. Os espaçamentos internos dos visuais são aproximações;
+   [calibrar o preview](docs/calibrar-preview.md) mostra como compará-los com capturas do Desktop.
 4. **Auditar:** `audit_pbip.py` dá uma nota de harmonia de 0 a 100 por página e só aceita entregar com 90
    ou mais.
 
 | Diagnóstico | Celular |
 |---|---|
 | ![Página Diagnóstico com cascata, barras e tabela](docs/assets/exemplo-diagnostico.png) | ![Layout de celular da Visão Geral](docs/assets/exemplo-celular.png) |
+
+### Começar por um kit do seu domínio
+
+Para não partir do zero, `new_project.py` cria um projeto PBIP completo a partir de um kit: modelo
+estrela com `ft_` e `dm_`, uma consulta SQL por tabela, calendário, medidas com descrição e formato,
+segurança por linha quando faz sentido, páginas no padrão visual, página de documentação, dados de
+amostra para a prévia e um README do projeto. Os quatro kits saem da caixa sem nenhum achado na
+auditoria e com nota 100 de harmonia em todas as páginas.
+
+```bash
+python skills/powerbi-architect/scripts/new_project.py --list
+python skills/powerbi-architect/scripts/new_project.py vendas ./Vendas --primary "#0F766E"
+```
+
+| Vendas | Financeiro |
+|---|---|
+| ![Kit de vendas: receita, margem, pedidos e ticket médio](docs/assets/kit-vendas.png) | ![Kit financeiro: DRE com realizado contra orçado e cascata até o EBITDA](docs/assets/kit-financeiro.png) |
+| **Pessoas (RH)** | **Estoque** |
+| ![Kit de RH: quadro, turnover e salário médio, sem dados pessoais](docs/assets/kit-rh.png) | ![Kit de estoque: valor, cobertura em dias e itens abaixo do ponto de pedido](docs/assets/kit-estoque.png) |
+
+As views de origem citadas no kit não existem no seu data warehouse: o README gerado lista cada uma,
+com o grão, para você mapear antes da primeira atualização.
+
+### Reestilizar um relatório que já existe
+
+Não precisa começar do zero. `pbir_layout.py --extract` lê um relatório PBIR com qualquer layout, agrupa
+os visuais em linhas pela posição e escreve a especificação equivalente. Também troca pizza por barra
+ordenada, descarta a decoração e lista o que precisa de uma pessoa, como texto alternativo, rótulos e a
+medida de "atualizado em". Depois é só gerar de novo na mesma pasta:
+
+```bash
+python skills/powerbi-architect/scripts/pbir_layout.py --extract MeuRelatorio.Report --out layout.json
+python skills/powerbi-architect/scripts/pbir_layout.py layout.json MeuRelatorio.Report
+```
+
+| Antes (harmonia 0) | Depois (harmonia 96) |
+|---|---|
+| ![Relatório legado com título grande, pizza e filtro ocupando um canto](docs/assets/reestilizar-antes.png) | ![O mesmo relatório reestilizado com sidebar, barra do topo e barras ordenadas](docs/assets/reestilizar-depois.png) |
+
+As páginas são reescritas, então faça um commit antes. Indicadores (bookmarks) que apontam para os
+visuais antigos precisam ser refeitos.
 
 ## Visual customizado só quando precisa
 
@@ -168,6 +212,9 @@ python .claude/skills/powerbi-architect/scripts/pbi_graph.py path    "Regional" 
 O instalador também deixa o grafo sempre em uso e atualizado:
 - adiciona uma seção curta no `AGENTS.md` e no `CLAUDE.md`, que manda a IA consultar o grafo antes de abrir arquivos;
 - cria hooks do Claude Code (início de sessão e após cada edição);
+- audita o relatório ou o modelo logo após cada edição feita pelo Claude Code: se surgir um bloqueador
+  ou uma página abaixo de 90 no placar de harmonia, o agente recebe os achados na hora e corrige antes
+  de seguir;
 - cria hooks do git (`post-commit`, `post-merge`, `post-checkout`).
 
 Rodar de novo não duplica nada. `pbi_graph.py uninstall` remove tudo. Detalhes em
@@ -196,6 +243,7 @@ skills/powerbi-architect/
 │   ├── copywriting.md              títulos, nomes de medida, números e textos das páginas
 │   ├── performance.md · security.md · quality-checklist.md
 ├── templates/
+│   ├── starter-kits/               ← kits de vendas, financeiro, RH e estoque
 │   ├── pbir-pages/                 ← 6 arquétipos de página e um layout de exemplo
 │   ├── pbir-visuals-experimental/  ← cartão novo, slicer em botões, botão com ícone (a conferir no Desktop)
 │   ├── icons/                      ← ícones da navegação (Tabler, licença MIT)
@@ -204,9 +252,10 @@ skills/powerbi-architect/
 └── scripts/
     ├── audit_pbip.py               ← auditoria de qualquer pasta PBIP, com nota de harmonia por página
     ├── pbi_graph.py                ← grafo de conhecimento + query/explain/impact/path
-    ├── pbir_layout.py              ← gera as páginas PBIR a partir de um layout em JSON
+    ├── pbir_layout.py              ← gera as páginas a partir de um layout em JSON; --extract reestiliza
     ├── preview_pbir.py             ← prévia das páginas em HTML, sem o Power BI Desktop
-    └── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
+    ├── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
+    └── new_project.py              ← projeto PBIP completo a partir de um kit inicial
 
 examples/contas-a-receber/          ← projeto PBIP completo que segue todas as regras
 ```
@@ -238,6 +287,10 @@ Detalhes em [SECURITY.md](SECURITY.md).
 - CI no Linux e no Windows, do Python 3.9 ao 3.13: testes da auditoria, do grafo e dos instaladores sobre o
   projeto de exemplo; todo exemplo de código das referências conferido; JSON validado pelos schemas da
   Microsoft; **`.pbiviz` reconstruído** com as ferramentas oficiais.
+- Custo de contexto medido a cada mudança (`tools/context_cost.py`): a descrição, que fica sempre no
+  contexto do agente, ocupa cerca de 140 tokens. O `SKILL.md`, lido quando a skill é acionada, ocupa
+  cerca de 2.900. Cada referência só entra quando a tarefa pede, com 450 a 4.200 tokens. Um teste
+  impede que esses números cresçam sem querer.
 - Próximos passos: [ROADMAP.md](ROADMAP.md).
 
 ## Contribua

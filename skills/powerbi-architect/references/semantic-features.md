@@ -56,6 +56,8 @@ Rules:
   percentage → two visuals instead.
 - Use the parameter column as a single-select slicer (or buttons), placed top-right of the visual it
   drives; the visual title is a measure that shows the selected name (`SELECTEDVALUE`).
+- In the layout spec a parameter is just a column: `"category": "Eixo[Eixo]"` (or in `rows`/`values`
+  of a matrix) plus `{"type": "slicer", "field": "Eixo[Eixo]"}` or a top-bar slicer.
 - The audit and the graph see the parameter's measures through `NAMEOF`; keep the referenced measures
   documented like any other.
 

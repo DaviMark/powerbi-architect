@@ -9,8 +9,8 @@ Python 3.9+ standard library only. Offline. Reads the <Name>.Report folder; writ
 
 Draws every visual at its real position and size with the report's custom theme (page colour,
 backgrounds, borders, radius, fonts, type sizes), text boxes, the page navigator, icons and images,
-and the data visuals: titles, KPI values and variation lines, bars, columns, waterfalls, lines, tables
-and slicers. Without --sample, values are neutral placeholders; with --sample, they come from a small
+and the data visuals: titles, KPI values and variation lines, KPIs with a trend, bars, columns,
+waterfalls, lines, column-and-line combos, scatter plots, tables, matrices and slicers. Without --sample, values are neutral placeholders; with --sample, they come from a small
 JSON file so labels, number lengths and legends look real:
 
     {"measures": {"Valor Vencido": "R$ 4,2 mi", "Texto Var % Vencido": "▲ 2,3 p.p. acima da meta"},
@@ -32,6 +32,18 @@ from pathlib import Path
 
 PT = 4 / 3  # Power BI font sizes are points; the canvas is in pixels.
 FONT = "'Segoe UI', 'Selawik', 'Inter', 'Helvetica Neue', Arial, sans-serif"
+# How far the preview's boxes sit from Power BI's. Measured against Desktop screenshots with --overlay;
+# override any of them with --calibration file.json (docs/calibrar-preview.md explains the procedure).
+CALIBRATION = {
+    "title_padding": "10px 12px 0",       # visual title inside its container
+    "card_value_padding": "4px 12px",     # KPI value under its label
+    "table_cell_padding": "6px 8px",      # table and matrix cells
+    "table_margin": "6px 4px",            # table grid inside the container
+    "slicer_header_padding": "4px 8px 0",  # slicer header text
+    "chart_padding": "8px 12px",          # plot area inside a chart container
+    "chart_reserved_height": 52,          # title and axis labels above and below the plot, in px
+}
+CAL = dict(CALIBRATION)
 
 
 def lit(o, default=None):
@@ -172,7 +184,7 @@ class Preview:
         tw = 600 if "Semibold" in str(self.style(vtype, "title", "fontFamily", "")) else 400
         title = ""
         if str(title_show).lower() != "false" and title_text:
-            title = (f'<div style="font:{tw} {tsize * PT:.1f}px {FONT};color:{tink};padding:10px 12px 0;'
+            title = (f'<div style="font:{tw} {tsize * PT:.1f}px {FONT};color:{tink};padding:{CAL["title_padding"]};'
                      f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{title_text}</div>')
         inner = ""
         bar = lambda width, height=8: (f'<span style="display:inline-block;width:{width}%;height:{height}px;'  # noqa: E731
@@ -225,16 +237,36 @@ class Preview:
             else:
                 text = self.value(m, bar(56, int(size * PT * 0.8)))
                 inner = title + (f'<div style="font:{wt} {size * PT:.1f}px {FONT};color:{vink};'
-                                 f'padding:4px 12px">{text}</div>')
+                                 f'padding:{CAL["card_value_padding"]}">{text}</div>')
         elif vtype == "slicer":
             hsize = num(self.style("slicer", "header", "textSize", 9), 9) * PT
             hink = self.style("slicer", "header", "fontColor", ink2)
             label = ((roles.get("Values") or ["Filtro"])[0]).split("[")[-1].rstrip("]")
-            inner = (f'<div style="padding:4px 8px 0;font:400 {hsize:.1f}px {FONT};color:{hink}">{html.escape(label)}</div>'
+            inner = (f'<div style="padding:{CAL["slicer_header_padding"]};font:400 {hsize:.1f}px {FONT};color:{hink}">{html.escape(label)}</div>'
                      f'<div style="margin:0 8px;font:400 {9 * PT:.1f}px {FONT};color:{ink};display:flex;'
                      f'justify-content:space-between">Todos<span style="color:{ink2}">&#8964;</span></div>')
+        elif vtype == "kpi":
+            m = (roles.get("Indicator") or [None])[0]
+            size = num(self.style("kpi", "indicator", "fontSize", 20), 20) * PT
+            wt = 600 if "Semibold" in str(self.style("kpi", "indicator", "fontFamily", "")) else 400
+            trend = self.series(m, 12, [5, 5.6, 5.2, 6.1, 6.4, 6, 6.8, 7.1, 6.9, 7.6, 7.4, 8])
+            peak, low = max(trend) or 1, min(trend)
+            pts = " ".join(f"{i * 100 / (len(trend) - 1 or 1):.1f},{40 - 34 * (v - low) / ((peak - low) or 1):.1f}"
+                           for i, v in enumerate(trend))
+            goal = (roles.get("Goal") or [None])[0]
+            goal_line = (f'<div style="font:400 {9 * PT:.1f}px {FONT};color:{ink2};padding:0 12px">'
+                         f'Meta: {self.value(goal, bar(30, 8))}</div>') if goal else ""
+            inner = (title + f'<div style="font:{wt} {size:.1f}px {FONT};color:{ink};padding:{CAL["card_value_padding"]} 0">'
+                     f'{self.value(m, bar(48, int(size * 0.8)))}</div>{goal_line}'
+                     f'<svg viewBox="0 0 100 42" preserveAspectRatio="none" style="position:absolute;left:0;bottom:0;'
+                     f'width:100%;height:{max(h * 0.35, 16):.0f}px"><polygon points="0,42 {pts} 100,42" '
+                     f'fill="{self.accent}" fill-opacity=".12"/><polyline points="{pts}" fill="none" '
+                     f'stroke="{self.accent}" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>')
         elif vtype in ("tableEx", "pivotTable"):
-            cols = roles.get("Values", [])
+            cols = roles.get("Rows", []) + roles.get("Values", [])
+            across = self.labels((roles.get("Columns") or [None])[0], 4)
+            if across and roles.get("Values"):             # matrix with columns: one value column per member
+                cols = roles.get("Rows", []) + [f"[{a}]" for a in across]
             hl = {}
             for item in objs.get("values", []):
                 sel = (item.get("selector") or {}).get("metadata", "")
@@ -245,7 +277,7 @@ class Preview:
             n_rows = len(first) or 14
             size = 9 * PT
             head = "".join(f'<th style="text-align:{"left" if i == 0 else "right"};font-weight:600;color:{ink2};'
-                           f'padding:6px 8px">{html.escape(c.split("[")[-1].rstrip("]"))}</th>' for i, c in enumerate(cols))
+                           f'padding:{CAL["table_cell_padding"]}">{html.escape(c.split("[")[-1].rstrip("]"))}</th>' for i, c in enumerate(cols))
             body = ""
             for r in range(n_rows):
                 cells = []
@@ -256,10 +288,10 @@ class Preview:
                     else:
                         content = bar(40 + (r * 17 + j * 29) % 45)
                     style_ink = hl.get(name, ink)
-                    cells.append(f'<td style="padding:6px 8px;color:{style_ink};text-align:{"left" if j == 0 else "right"};'
+                    cells.append(f'<td style="padding:{CAL["table_cell_padding"]};color:{style_ink};text-align:{"left" if j == 0 else "right"};'
                                  f'border-top:1px solid #F1F1F1">{content}</td>')
                 body += "<tr>" + "".join(cells) + "</tr>"
-            inner = (title + f'<table style="width:calc(100% - 8px);margin:6px 4px;border-collapse:collapse;'
+            inner = (title + f'<table style="width:calc(100% - 8px);margin:{CAL["table_margin"]};border-collapse:collapse;'
                      f'font:400 {size:.1f}px {FONT}"><tr>{head}</tr>{body}</table>')
         elif vtype:
             inner = title + self.chart(vtype, roles, objs, w, h)
@@ -269,11 +301,49 @@ class Preview:
         cat = (roles.get("Category") or [None])[0]
         m = (roles.get("Y") or [None])[0]
         kind = vtype.lower()
+        body_h = h - CAL["chart_reserved_height"]
+        if kind == "scatterchart":
+            names = self.labels(cat, 12) or [""] * 12
+            xs = self.series((roles.get("X") or [None])[0], len(names), [2, 3.5, 5, 6, 7.5, 3, 8, 4.5, 6.5, 9, 2.5, 5.5])
+            ys = self.series(m, len(names), [3, 5, 4, 7, 6, 2, 8, 6.5, 4.5, 7.5, 5, 3.5])
+            xp, yp = max(xs) or 1, max(ys) or 1
+            dots = "".join(f'<div title="{html.escape(n)}" style="position:absolute;left:{4 + 90 * x / xp:.1f}%;'
+                           f'top:{88 - 80 * y / yp:.1f}%;width:8px;height:8px;margin:-4px;border-radius:50%;'
+                           f'background:{self.accent};opacity:.8"></div>' for n, x, y in zip(names, xs, ys))
+            return (f'<div style="position:relative;height:{body_h - 16}px;margin:8px 12px;'
+                    f'border-bottom:1px solid #EBEBEB;border-left:1px solid #EBEBEB">{dots}</div>')
+        if kind in ("piechart", "donutchart"):
+            labels = self.labels(cat, 6) or [""] * 5
+            vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, len(labels), [5, 4, 3, 2, 1]))[:len(labels)]
+            palette = (self.theme.get("dataColors") or [self.accent, "#666666", "#999999", "#BBBBBB", "#DDDDDD"])
+            total, acc, stops = sum(vals) or 1, 0.0, []
+            for i, v in enumerate(vals):
+                stops.append(f"{palette[i % len(palette)]} {acc / total * 360:.1f}deg {(acc + v) / total * 360:.1f}deg")
+                acc += v
+            d = max(min(body_h - 16, w - 24), 40)
+            hole = (f'<div style="position:absolute;inset:30%;border-radius:50%;background:#FFFFFF"></div>'
+                    if kind == "donutchart" else "")
+            return (f'<div style="position:relative;width:{d}px;height:{d}px;margin:8px auto;border-radius:50%;'
+                    f'background:conic-gradient({", ".join(stops)})">{hole}</div>')
+        if kind == "lineclusteredcolumncombochart":
+            labels = self.labels(cat, 12) or [""] * 12
+            cols_v = self.series(m, len(labels), [6, 7, 6.5, 8, 7.5, 9, 8.5, 9.5, 9, 10, 9.8, 11])
+            line_v = self.series((roles.get("Y2") or [None])[0], len(labels),
+                                 [4, 4.2, 4.1, 4.6, 4.4, 5, 4.8, 5.3, 5.1, 5.6, 5.4, 6])
+            peak = max(cols_v + line_v) or 1
+            n = len(labels)
+            bars = "".join(f'<rect x="{i * 100 / n + 100 / n * 0.2:.1f}" y="{66 - 60 * v / peak:.1f}" '
+                           f'width="{100 / n * 0.6:.1f}" height="{60 * v / peak:.1f}" fill="{self.accent}"/>'
+                           for i, v in enumerate(cols_v))
+            pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(line_v))
+            line = self.ink2
+            return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
+                    f'padding:{CAL["chart_padding"]};box-sizing:border-box">{bars}<polyline points="{pts}" fill="none" stroke="{line}" stroke-width="2" '
+                    f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
         n = 5 if "bar" in kind or "column" in kind or kind == "waterfallchart" else 12
         labels = self.labels(cat, n) or [""] * n
         vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
         peak = max(vals) or 1
-        body_h = h - 52
         lab = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2}"
         if "bar" in kind:
             rows = "".join(
@@ -282,40 +352,67 @@ class Preview:
                 f'<div style="height:{max(body_h / 9, 10):.0f}px;width:{70 * v / peak:.0f}%;background:{self.accent};'
                 f'border-radius:2px"></div><span style="{lab};margin-left:6px">{v:g}</span></div>'
                 for l, v in zip(labels, vals))
-            return f'<div style="padding:8px 12px">{rows}</div>'
+            return f'<div style="padding:{CAL["chart_padding"]}">{rows}</div>'
         if "column" in kind or kind == "waterfallchart":
-            cols, base = [], 0.0
+            waterfall = kind == "waterfallchart"
             sent = {k: self.color(prop(objs, "sentimentColors", k + "Fill"))
-                    or self.style("waterfallChart", "sentimentColors", k + "Fill") for k in ("increase", "total")}
-            total = sum(vals)
-            series = list(zip(labels, vals))
-            if vtype == "waterfallChart":
-                series.append(("Total", total))
-                peak = total or 1
+                    or self.style("waterfallChart", "sentimentColors", k + "Fill")
+                    for k in ("increase", "decrease", "total")}
+            steps, level = [], 0.0                   # (label, value, start, end, kind)
+            for l, v in zip(labels, vals):
+                if waterfall:
+                    steps.append((l, v, level, level + v, "increase" if v >= 0 else "decrease"))
+                    level += v
+                else:
+                    steps.append((l, v, 0.0, v, "column"))
+            if waterfall:
+                steps.append(("Total", level, 0.0, level, "total"))
+            ends = [x for st in steps for x in st[2:4]] + [0.0]
+            lo, hi = min(ends), max(ends)
             plot = body_h - 40                     # room for the value and category labels
-            for i, (l, v) in enumerate(series):
-                is_total = vtype == "waterfallChart" and i == len(series) - 1
-                bottom = 0 if (vtype != "waterfallChart" or is_total) else base
-                fill = (sent.get("total") or "#666666") if is_total else (
-                    (sent.get("increase") or self.accent) if vtype == "waterfallChart" else self.accent)
-                bar_h, pad = plot * v / peak, plot * bottom / peak
-                cols.append(f'<div style="flex:1;margin:0 6px;display:flex;flex-direction:column;justify-content:flex-end">'
-                            f'<div style="{lab};text-align:center">{v:g}</div>'
-                            f'<div style="height:{bar_h:.0f}px;background:{fill};border-radius:2px 2px 0 0"></div>'
-                            f'<div style="height:{pad:.0f}px"></div>'
-                            f'<div style="{lab};text-align:center;white-space:nowrap;overflow:hidden;height:18px">{html.escape(l)}</div></div>')
-                if vtype == "waterfallChart" and not is_total:
-                    base += v
-            return f'<div style="display:flex;align-items:flex-end;height:{body_h}px;padding:8px 12px 0">{"".join(cols)}</div>'
-        pts = " ".join(f"{i * 100 / (len(vals) - 1 or 1):.1f},{66 - 56 * v / peak:.1f}" for i, v in enumerate(vals))
+            scale = plot / ((hi - lo) or 1)
+            cols = []
+            for l, v, a, b, k in steps:
+                fill = self.accent if k == "column" else (sent.get(k) or {"total": "#666666"}.get(k, self.accent))
+                top = (hi - max(a, b)) * scale
+                cols.append(f'<div style="flex:1;margin:0 6px;position:relative;height:{plot + 18:.0f}px">'
+                            f'<div style="position:absolute;left:0;right:0;top:{top - 16:.0f}px;{lab};'
+                            f'text-align:center">{v:g}</div>'
+                            f'<div style="position:absolute;left:0;right:0;top:{top:.0f}px;height:{max(abs(b - a) * scale, 1):.0f}px;'
+                            f'background:{fill};border-radius:2px"></div>'
+                            f'<div style="position:absolute;left:0;right:0;bottom:0;{lab};text-align:center;white-space:nowrap;'
+                            f'overflow:hidden;height:18px">{html.escape(l)}</div></div>')
+            return (f'<div style="display:flex;align-items:flex-end;height:{body_h}px;padding:24px 12px 0;'
+                    f'box-sizing:border-box">{"".join(cols)}</div>')
+        low = min(vals)                            # line axes fit the data, like Power BI's auto range
+        low = 0 if low > 0 and low < peak * 0.5 else low
+        pts = " ".join(f"{i * 100 / (len(vals) - 1 or 1):.1f},{62 - 52 * (v - low) / ((peak - low) or 1):.1f}"
+                       for i, v in enumerate(vals))
         sw = num(self.style("lineChart", "lineStyles", "strokeWidth", 2), 2)
         return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
-                f'padding:8px 12px"><polyline points="{pts}" fill="none" stroke="{self.accent}" stroke-width="{sw}" '
+                f'padding:{CAL["chart_padding"]};box-sizing:border-box"><polyline points="{pts}" fill="none" stroke="{self.accent}" stroke-width="{sw}" '
                 f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
 
     # ------------------------------------------------------------------ pages
-    def render(self, mobile: bool = False) -> str:
-        return self.document("".join(f"<h2>{html.escape(t)}</h2>{body}" for t, _w, _h, body in self.pages(mobile)))
+    def render(self, mobile: bool = False, overlays: list[Path] | None = None) -> str:
+        """HTML of every page. With overlays (one image per page, in page order), each page also shows
+        that Power BI Desktop screenshot on top, with a slider for its opacity: misplaced boxes show
+        as doubled edges."""
+        out, overlays = [], overlays or []
+        for i, (t, w, h, body) in enumerate(self.pages(mobile)):
+            if i < len(overlays) and overlays[i].exists():
+                uri = "data:image/png;base64," + base64.b64encode(overlays[i].read_bytes()).decode()
+                body = body[:-len("</div>")] + (f'<img class="overlay" alt="" src="{uri}" style="position:absolute;'
+                                               f'left:0;top:0;width:{w}px;height:{h}px;z-index:99999;'
+                                               f'pointer-events:none;opacity:var(--overlay,.5)"></div>')
+            out.append(f"<h2>{html.escape(t)}</h2>{body}")
+        slider = ""
+        if overlays:
+            slider = ('<label style="position:sticky;top:0;display:block;background:#DADADA;padding:8px 0;'
+                      'z-index:100000;font:400 13px sans-serif">Power BI Desktop por cima: '
+                      '<input type="range" min="0" max="1" step="0.05" value="0.5" oninput="'
+                      "document.documentElement.style.setProperty('--overlay', this.value)\"></label>")
+        return self.document(slider + "".join(out))
 
     @staticmethod
     def document(body: str, margin: int = 24) -> str:
@@ -423,14 +520,31 @@ def main() -> int:
     ap.add_argument("--sample", type=Path, help="JSON with sample measure values, category labels and series")
     ap.add_argument("--mobile", action="store_true", help="render the phone layout (mobile.json)")
     ap.add_argument("--png", type=Path, metavar="DIR", help="also save one PNG per page (needs playwright)")
+    ap.add_argument("--overlay", type=Path, nargs="+", metavar="PNG",
+                    help="Power BI Desktop screenshots, one per page in page order (or one folder of page-N.png), "
+                         "drawn over the preview to calibrate it")
+    ap.add_argument("--calibration", type=Path, metavar="JSON",
+                    help="override the render constants in CALIBRATION (paddings, reserved heights)")
     args = ap.parse_args()
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")   # Windows consoles default to a legacy code page
-        except ValueError:
-            pass
+    for stream in (sys.stdin, sys.stdout, sys.stderr):   # Windows consoles default to a legacy code page
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except ValueError:
+                pass
     sample = json.loads(args.sample.read_text(encoding="utf-8")) if args.sample else None
-    args.out.write_text(Preview(args.report, sample).render(mobile=args.mobile), encoding="utf-8")
+    if args.calibration:
+        extra = json.loads(args.calibration.read_text(encoding="utf-8"))
+        unknown = set(extra) - set(CALIBRATION)
+        if unknown:
+            print(f"preview_pbir.py: error: unknown calibration keys {sorted(unknown)}; known: {sorted(CALIBRATION)}",
+                  file=sys.stderr)
+            return 2
+        CAL.update(extra)
+    overlays = args.overlay or []
+    if len(overlays) == 1 and overlays[0].is_dir():
+        overlays = sorted(overlays[0].glob("page-*.png"), key=lambda f: int("".join(filter(str.isdigit, f.stem)) or 0))
+    args.out.write_text(Preview(args.report, sample).render(mobile=args.mobile, overlays=overlays), encoding="utf-8")
     print(f"[ok] {args.out}")
     if args.png:
         n = screenshot(Preview(args.report, sample), args.mobile, args.png)

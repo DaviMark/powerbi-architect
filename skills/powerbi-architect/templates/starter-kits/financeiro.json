@@ -1,0 +1,457 @@
+{
+  "id": "financeiro",
+  "app": "Financeiro",
+  "project": "Financeiro",
+  "description": "DRE gerencial com realizado contra orçado: receita líquida, EBITDA, margem e despesas por diretoria e centro de custo.",
+  "slicers": [
+    "dm_centro_custo[Diretoria]"
+  ],
+  "tables": [
+    {
+      "name": "ft_lancamentos",
+      "description": "Lançamentos contábeis realizados e orçados por conta, centro de custo e mês de competência. Despesas com sinal negativo.",
+      "grain": "1 linha por conta, centro de custo e mês",
+      "source": "dw.vw_fato_dre",
+      "columns": [
+        {
+          "name": "id_conta",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_conta"
+        },
+        {
+          "name": "id_centro_custo",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_centro_custo"
+        },
+        {
+          "name": "Data Competencia",
+          "type": "dateTime",
+          "hidden": true,
+          "format": "dd/mm/yyyy",
+          "sql": "t.data_competencia",
+          "references": "dm_calendario"
+        },
+        {
+          "name": "Valor Realizado",
+          "type": "decimal",
+          "hidden": true,
+          "format": "\\R\\$ #,0.00",
+          "sql": "t.valor_realizado",
+          "description": "Valor contabilizado; despesas negativas."
+        },
+        {
+          "name": "Valor Orcado",
+          "type": "decimal",
+          "hidden": true,
+          "format": "\\R\\$ #,0.00",
+          "sql": "t.valor_orcado",
+          "description": "Valor do orçamento aprovado para o mês; despesas negativas."
+        }
+      ]
+    },
+    {
+      "name": "dm_conta",
+      "description": "Plano de contas gerencial agrupado nas linhas da DRE.",
+      "grain": "1 linha por conta",
+      "source": "dw.vw_dim_conta",
+      "columns": [
+        {
+          "name": "id_conta",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Conta",
+          "type": "string",
+          "sql": "t.descricao",
+          "examples": [
+            "Venda de produtos",
+            "Devoluções",
+            "Impostos sobre vendas",
+            "Custo dos produtos",
+            "Folha de pagamento",
+            "Marketing"
+          ]
+        },
+        {
+          "name": "Linha DRE",
+          "type": "string",
+          "sql": "t.linha_dre",
+          "sortBy": "Ordem DRE",
+          "description": "Linha da DRE gerencial em que a conta entra.",
+          "examples": [
+            "Receita bruta",
+            "Deduções",
+            "Custos",
+            "Despesas com pessoal",
+            "Despesas gerais"
+          ]
+        },
+        {
+          "name": "Ordem DRE",
+          "type": "int64",
+          "hidden": true,
+          "sql": "t.ordem_dre"
+        },
+        {
+          "name": "Grupo",
+          "type": "string",
+          "sql": "t.grupo",
+          "description": "Receita líquida, Custos ou Despesas operacionais.",
+          "examples": [
+            "Receita líquida",
+            "Custos",
+            "Despesas operacionais"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dm_centro_custo",
+      "description": "Centros de custo e a diretoria responsável.",
+      "grain": "1 linha por centro de custo",
+      "source": "dw.vw_dim_centro_custo",
+      "columns": [
+        {
+          "name": "id_centro_custo",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Centro de Custo",
+          "type": "string",
+          "sql": "t.descricao",
+          "examples": [
+            "Comercial Sul",
+            "Comercial Sudeste",
+            "Fábrica",
+            "Logística",
+            "Tecnologia",
+            "Pessoas",
+            "Controladoria",
+            "Marketing",
+            "Jurídico",
+            "Diretoria"
+          ]
+        },
+        {
+          "name": "Diretoria",
+          "type": "string",
+          "sql": "t.diretoria",
+          "examples": [
+            "Comercial",
+            "Operações",
+            "Administrativa",
+            "Tecnologia"
+          ]
+        }
+      ]
+    }
+  ],
+  "measures": [
+    {
+      "name": "Realizado",
+      "description": "Valor realizado com sinal: receitas positivas, despesas negativas.",
+      "expr": "SUM ( ft_lancamentos[Valor Realizado] )",
+      "format": "\\R\\$ #,0;-\\R\\$ #,0",
+      "folder": "Valores"
+    },
+    {
+      "name": "Orçado",
+      "description": "Valor orçado com sinal: receitas positivas, despesas negativas.",
+      "expr": "SUM ( ft_lancamentos[Valor Orcado] )",
+      "format": "\\R\\$ #,0;-\\R\\$ #,0",
+      "folder": "Valores"
+    },
+    {
+      "name": "Desvio",
+      "description": "Realizado menos orçado; positivo é favorável em qualquer linha.",
+      "expr": "[Realizado] - [Orçado]",
+      "format": "+\\R\\$ #,0;-\\R\\$ #,0",
+      "folder": "Valores"
+    },
+    {
+      "name": "% Desvio",
+      "description": "Desvio sobre o valor orçado, em módulo.",
+      "expr": "DIVIDE ( [Desvio], ABS ( [Orçado] ) )",
+      "format": "+0.0%;-0.0%;0.0%",
+      "folder": "Indicadores"
+    },
+    {
+      "name": "Receita Líquida",
+      "description": "Receita bruta menos deduções.",
+      "expr": "CALCULATE ( [Realizado], dm_conta[Grupo] = \"Receita líquida\" )",
+      "format": "\\R\\$ #,0",
+      "folder": "DRE",
+      "sample": "R$ 48,3 mi"
+    },
+    {
+      "name": "Receita Líquida Orçada",
+      "description": "Receita líquida do orçamento.",
+      "expr": "CALCULATE ( [Orçado], dm_conta[Grupo] = \"Receita líquida\" )",
+      "format": "\\R\\$ #,0",
+      "folder": "DRE"
+    },
+    {
+      "name": "EBITDA",
+      "description": "Resultado operacional: soma com sinal de todas as linhas da DRE (a view traz só contas até o EBITDA).",
+      "expr": "[Realizado]",
+      "format": "\\R\\$ #,0;-\\R\\$ #,0",
+      "folder": "DRE",
+      "sample": "R$ 9,7 mi"
+    },
+    {
+      "name": "EBITDA Orçado",
+      "description": "EBITDA do orçamento: soma com sinal de todas as linhas orçadas.",
+      "expr": "[Orçado]",
+      "format": "\\R\\$ #,0;-\\R\\$ #,0",
+      "folder": "DRE"
+    },
+    {
+      "name": "% Margem EBITDA",
+      "description": "EBITDA sobre a receita líquida.",
+      "expr": "DIVIDE ( [EBITDA], [Receita Líquida] )",
+      "format": "0.0%",
+      "folder": "Indicadores",
+      "sample": "20,1%"
+    },
+    {
+      "name": "Despesas Operacionais",
+      "description": "Despesas operacionais realizadas, em valor positivo.",
+      "expr": "- CALCULATE ( [Realizado], dm_conta[Grupo] = \"Despesas operacionais\" )",
+      "format": "\\R\\$ #,0",
+      "folder": "DRE",
+      "sample": "R$ 14,2 mi"
+    },
+    {
+      "name": "Despesas Orçadas",
+      "description": "Despesas operacionais orçadas, em valor positivo.",
+      "expr": "- CALCULATE ( [Orçado], dm_conta[Grupo] = \"Despesas operacionais\" )",
+      "format": "\\R\\$ #,0",
+      "folder": "DRE"
+    },
+    {
+      "name": "Texto Var Receita",
+      "description": "Linha do KPI de receita: distância para o orçado, com seta.",
+      "expr": "VAR _d = DIVIDE ( [Receita Líquida] - [Receita Líquida Orçada], [Receita Líquida Orçada] ) RETURN IF ( ISBLANK ( _d ), BLANK (), IF ( _d >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"0.0%\" ) & IF ( _d >= 0, \" acima\", \" abaixo\" ) & \" do orçado\" )",
+      "folder": "Textos",
+      "sample": "▲ 2,1% acima do orçado"
+    },
+    {
+      "name": "Cor Var Receita",
+      "description": "Cor da linha do KPI de receita: verde no orçado ou acima.",
+      "expr": "IF ( [Receita Líquida] >= [Receita Líquida Orçada], \"#00824D\", \"#CE2C31\" )",
+      "folder": "Cores",
+      "sampleColor": "#00824D"
+    },
+    {
+      "name": "Texto Var EBITDA",
+      "description": "Linha do KPI de EBITDA: distância para o orçado, em reais.",
+      "expr": "VAR _d = [EBITDA] - [EBITDA Orçado] RETURN IF ( ISBLANK ( [EBITDA Orçado] ), BLANK (), IF ( _d >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"R$ #,0\" ) & IF ( _d >= 0, \" acima\", \" abaixo\" ) & \" do orçado\" )",
+      "folder": "Textos",
+      "sample": "▼ R$ 412.330 abaixo do orçado"
+    },
+    {
+      "name": "Cor Var EBITDA",
+      "description": "Cor da linha do KPI de EBITDA: verde no orçado ou acima.",
+      "expr": "IF ( [EBITDA] >= [EBITDA Orçado], \"#00824D\", \"#CE2C31\" )",
+      "folder": "Cores",
+      "sampleColor": "#CE2C31"
+    },
+    {
+      "name": "Texto Var Despesas",
+      "description": "Linha do KPI de despesas: distância para o orçado; gastar menos é favorável.",
+      "expr": "VAR _d = DIVIDE ( [Despesas Operacionais] - [Despesas Orçadas], [Despesas Orçadas] ) RETURN IF ( ISBLANK ( _d ), BLANK (), IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"0.0%\" ) & IF ( _d > 0, \" acima\", \" abaixo\" ) & \" do orçado\" )",
+      "folder": "Textos",
+      "sample": "▼ 3,4% abaixo do orçado"
+    },
+    {
+      "name": "Cor Var Despesas",
+      "description": "Cor da linha do KPI de despesas: vermelho acima do orçado.",
+      "expr": "IF ( [Despesas Operacionais] > [Despesas Orçadas], \"#CE2C31\", \"#00824D\" )",
+      "folder": "Cores",
+      "sampleColor": "#00824D"
+    },
+    {
+      "name": "Cor Desvio",
+      "description": "Cor do desvio em tabelas: vermelho quando desfavorável.",
+      "expr": "IF ( [Desvio] < 0, \"#CE2C31\", \"#333333\" )",
+      "folder": "Cores"
+    },
+    {
+      "name": "Titulo Receita",
+      "description": "Título do gráfico de receita mensal, com o total contra o orçado.",
+      "expr": "\"Receita líquida: \" & FORMAT ( [Receita Líquida], \"R$ #,0\" ) & \" de \" & FORMAT ( [Receita Líquida Orçada], \"R$ #,0\" ) & \" orçados\"",
+      "folder": "Títulos",
+      "sample": "Receita líquida: R$ 48.302.118 de R$ 47.311.904 orçados"
+    }
+  ],
+  "series": {
+    "dm_centro_custo[Diretoria]": [
+      6.1,
+      4.2,
+      2.6,
+      1.3
+    ],
+    "dm_conta[Linha DRE]": [
+      58.2,
+      -9.9,
+      -24.4,
+      -9.1,
+      -5.1
+    ]
+  },
+  "pages": [
+    {
+      "name": "Visão Geral",
+      "icon": "layout-dashboard",
+      "rows": [
+        {
+          "height": 88,
+          "visuals": [
+            {
+              "type": "kpi",
+              "measure": "Receita Líquida",
+              "label": "Receita líquida",
+              "variation": "Texto Var Receita",
+              "variationColor": "Cor Var Receita"
+            },
+            {
+              "type": "kpi",
+              "measure": "EBITDA",
+              "label": "EBITDA",
+              "variation": "Texto Var EBITDA",
+              "variationColor": "Cor Var EBITDA"
+            },
+            {
+              "type": "kpi",
+              "measure": "% Margem EBITDA",
+              "label": "Margem EBITDA"
+            },
+            {
+              "type": "kpi",
+              "measure": "Despesas Operacionais",
+              "label": "Despesas operacionais",
+              "variation": "Texto Var Despesas",
+              "variationColor": "Cor Var Despesas"
+            }
+          ]
+        },
+        {
+          "height": 248,
+          "split": [
+            2,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "combo",
+              "category": "dm_calendario[Ano-Mês]",
+              "values": [
+                "Receita Líquida"
+              ],
+              "lineValues": [
+                "Receita Líquida Orçada"
+              ],
+              "titleMeasure": "Titulo Receita",
+              "alt": "Receita líquida realizada por mês em colunas e orçada em linha"
+            },
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_centro_custo[Diretoria]",
+              "values": [
+                "Despesas Operacionais"
+              ],
+              "title": "Despesas por diretoria",
+              "sort": "desc",
+              "alt": "Despesas operacionais por diretoria, da maior para a menor"
+            }
+          ]
+        },
+        {
+          "height": 248,
+          "visuals": [
+            {
+              "type": "waterfallChart",
+              "category": "dm_conta[Linha DRE]",
+              "values": [
+                "Realizado"
+              ],
+              "title": "Da receita bruta ao EBITDA",
+              "sort": "category",
+              "sentiment": {
+                "increase": "#00824D",
+                "decrease": "#CE2C31",
+                "total": "#666666"
+              },
+              "alt": "Cascata da DRE da receita bruta ao EBITDA"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DRE",
+      "icon": "chart-bar",
+      "rows": [
+        {
+          "height": 616,
+          "visuals": [
+            {
+              "type": "matrix",
+              "rows": [
+                "dm_conta[Linha DRE]",
+                "dm_conta[Conta]"
+              ],
+              "values": [
+                "Realizado",
+                "Orçado",
+                "Desvio",
+                "% Desvio"
+              ],
+              "title": "DRE gerencial: realizado contra orçado",
+              "highlight": {
+                "column": "Desvio",
+                "colorMeasure": "Cor Desvio"
+              },
+              "alt": "Matriz da DRE por linha e conta com realizado, orçado e desvio"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Centros de Custo",
+      "icon": "list-details",
+      "rows": [
+        {
+          "height": 616,
+          "visuals": [
+            {
+              "type": "tableEx",
+              "title": "Centros de custo com maior desvio desfavorável",
+              "columns": [
+                "dm_centro_custo[Centro de Custo]",
+                "dm_centro_custo[Diretoria]",
+                "Despesas Operacionais",
+                "Despesas Orçadas",
+                "Desvio",
+                "% Desvio"
+              ],
+              "sortBy": "Desvio asc",
+              "highlight": {
+                "column": "Desvio",
+                "colorMeasure": "Cor Desvio"
+              },
+              "alt": "Tabela de centros de custo com despesas realizadas, orçadas e desvio"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
