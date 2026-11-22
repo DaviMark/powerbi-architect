@@ -1,5 +1,13 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/1.0.0/schema.json",
+  "layoutOptimization": "None",
+  "settings": {
+    "useStylableVisualContainerHeader": true,
+    "exportDataMode": "AllowSummarized",
+    "defaultDrillFilterOtherVisuals": true,
+    "allowChangeFilterTypes": true,
+    "useEnhancedTooltips": true
+  },
   "themeCollection": {
     "customTheme": {
       "name": "powerbi-architect-acessivel.json",
@@ -7,7 +15,6 @@
       "type": "RegisteredResources"
     }
   },
-  "layoutOptimization": "None",
   "resourcePackages": [
     {
       "name": "RegisteredResources",
@@ -17,15 +24,33 @@
           "name": "powerbi-architect-acessivel.json",
           "path": "powerbi-architect-acessivel.json",
           "type": "CustomTheme"
+        },
+        {
+          "name": "arrow-left.png",
+          "path": "arrow-left.png",
+          "type": "Image"
+        },
+        {
+          "name": "chart-bar.png",
+          "path": "chart-bar.png",
+          "type": "Image"
+        },
+        {
+          "name": "file-description.png",
+          "path": "file-description.png",
+          "type": "Image"
+        },
+        {
+          "name": "layout-dashboard.png",
+          "path": "layout-dashboard.png",
+          "type": "Image"
+        },
+        {
+          "name": "list-details.png",
+          "path": "list-details.png",
+          "type": "Image"
         }
       ]
     }
-  ],
-  "settings": {
-    "useStylableVisualContainerHeader": true,
-    "exportDataMode": "AllowSummarized",
-    "defaultDrillFilterOtherVisuals": true,
-    "allowChangeFilterTypes": true,
-    "useEnhancedTooltips": true
-  }
+  ]
 }

@@ -2,4 +2,4 @@
 role 'Gestor Regional'
 	modelPermission: read
 
-	tablePermission 'Dim Regional' = 'Dim Regional'[Email Gestor] = USERPRINCIPALNAME ()
+	tablePermission dm_regional = dm_regional[Email Gestor] = USERPRINCIPALNAME ()

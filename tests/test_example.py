@@ -45,10 +45,10 @@ class TestExampleGraph(unittest.TestCase):
 
     def test_readme_commands_work(self):
         """The commands shown in README.md must answer on the example."""
-        impact = graph(self.repo, "impact", "Fato Titulos[Dias Atraso]").stdout
-        for expected in ("Valor Vencido", "Dias Atraso Medio", "Visão Geral"):
+        impact = graph(self.repo, "impact", "ft_titulos[Dias Atraso]").stdout
+        for expected in ("Valor Vencido", "Atraso Médio (dias)", "Visão Geral"):
             self.assertIn(expected, impact)
-        self.assertIn("Fato Titulos", graph(self.repo, "explain", "Valor Vencido").stdout)
+        self.assertIn("ft_titulos", graph(self.repo, "explain", "Valor Vencido").stdout)
         self.assertIn("Valor Vencido", graph(self.repo, "path", "Regional", "Valor Vencido").stdout)
         self.assertIn("Visão Geral", graph(self.repo, "query", "o que alimenta a página Visão Geral?").stdout)
 
@@ -61,7 +61,7 @@ class TestExampleGraph(unittest.TestCase):
 
     def test_hierarchy_levels_count_as_usage(self):
         targets = {t for _, t in self.rels("hierarchy_level")}
-        self.assertTrue({"Calendario[Ano]", "Calendario[Mês]"} <= targets or {"Ano", "Mês"} <= targets, targets)
+        self.assertTrue({"dm_calendario[Ano]", "dm_calendario[Mês]"} <= targets or {"Ano", "Mês"} <= targets, targets)
 
     def test_measure_in_dynamic_title_counts_as_usage(self):
         targets = {t for _, t in self.rels("uses_measure")}
@@ -80,8 +80,8 @@ class TestCrossModelFindings(unittest.TestCase):
                                                                        "Cobranca.SemanticModel"), encoding="utf-8")
             m = repo / "b" / "Cobranca.SemanticModel" / "definition" / "tables" / "_Medidas.tmdl"
             m.write_text(m.read_text(encoding="utf-8").replace(
-                "CALCULATE ( [Valor Aberto], 'Fato Titulos'[Dias Atraso] > 0 )",
-                "CALCULATE ( [Valor Aberto], 'Fato Titulos'[Dias Atraso] > 30 )"), encoding="utf-8")
+                "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 0 )",
+                "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 30 )"), encoding="utf-8")
             self.assertEqual(graph(repo, "build", ".").returncode, 0)
             rep = (repo / "powerbi-graph" / "GRAPH_REPORT.md").read_text(encoding="utf-8")
             self.assertIn("dw.fato_titulos_receber", rep)          # shared source

@@ -43,6 +43,7 @@ Talk to the user in **their language**. Write documentation in the project langu
    If you cannot name the question, do not build it.
 2. **Star schema.** Facts with a declared grain + conformed dimensions. One‑to‑many, single direction,
    integer keys. A dedicated date dimension; auto date/time **off**. Bridges only by design (ADR).
+   Tables are named `ft_<subject>` (facts) and `dm_<entity>` (dimensions, `dm_calendario` for dates).
 3. **Import the minimum.** Only columns used by a measure, visual, relationship, sort or RLS rule.
    No `SELECT *`. No audit columns, free text, GUIDs or high‑cardinality IDs that are not keys.
 4. **Zero logic in Power Query.** One step per table: connector + native SQL with parameters.
@@ -79,7 +80,7 @@ Never skip the two human gates. Never claim numbers are correct without a check 
 - **Fact vs dimension:** numbers you aggregate → fact; things you filter/group by → dimension.
   Low‑cardinality attributes with no other use may stay in the fact (degenerate dimension).
 - **Many facts?** Share dimensions (conformed). Different grains → separate facts, never mix.
-- **Dates:** relate the fact's main date to `Calendario/Date`; extra dates as inactive relationships +
+- **Dates:** relate the fact's main date to `dm_calendario[Data]`; extra dates as inactive relationships +
   `USERELATIONSHIP`, or role‑playing only when the user filters by both at once.
 - **Storage:** Import by default. DirectQuery only for freshness/size requirements, with
   aggregations or composite design (ADR). Direct Lake when the source is a Fabric lakehouse/warehouse:
@@ -106,7 +107,7 @@ Mapping table (question → best native visual and why): [references/visual-sele
 
 ```tmdl
 	/// Business definition in one sentence (this text appears in the Documentation page).
-	measure 'Valor Vencido' = CALCULATE ( [Saldo em Aberto], 'Fato Titulos'[Dias Atraso] > 0 )
+	measure 'Valor Vencido' = CALCULATE ( [Saldo em Aberto], ft_titulos[Dias Atraso] > 0 )
 		formatString: \R\$ #,0
 		displayFolder: Valores
 ```
@@ -122,17 +123,41 @@ Calculation groups, field parameters, visual calculations and DAX functions (onl
 Think like a product designer obsessed with the user: start from the decision the person must make
 and work backwards to the pixels. Remove until it breaks, then add back one thing.
 
-- **Never generic, never the default Microsoft look.** Every report is a branded product: app shell
-  (brand-color sidebar with logo and page navigator, white top bar with breadcrumb, period and Filters),
-  white rounded cards on a soft canvas, brand color ramp. Spec: [references/report-design.md](references/report-design.md) §0.
-- 1280×720, 8‑px grid, 20‑px margins, 16‑px gutters; aligned edges; consistent visual heights.
-- KPI cards: label · value · variation vs. previous period with arrow, colored by the metric's direction.
-- Header: conclusion title · subtitle with the question · "Updated at" · at most 2 slicers.
-- Color: primary = focus, grey = context, green/red only for good/bad, ≤ 6 categories.
+- **Never generic, never the default Microsoft look.** Every report is a calm, precise product in the
+  style of Twenty (the open-source CRM): grey canvas, quiet 220 px sidebar with the page navigator,
+  white panel (radius 8, hairline border) with a 56 px top bar (breadcrumb · updated at · ≤ 2 compact
+  slicers), small type, one accent colour. Exact positions: [references/report-design.md](references/report-design.md) §0.
+- 1280×720, **4 px grid**, 12 px panel padding, 16 px gutters; aligned edges; rows of 88 · 248 · 248.
+- **Type:** one family. No brand font → Segoe UI + Segoe UI Semibold. Sizes 9 (body) · 10 (titles) ·
+  12 (page title) · 20 (KPI value); never above 14 in text boxes or 24 anywhere.
+- **Filters stay small:** dropdown slicers 176×40 px in the top bar, at most 2 per page.
+- KPI cards: label · value · one context or variation line (vs. target or previous period) whose colour
+  comes from a measure that knows the metric's good direction. DAX pattern: [references/dax.md](references/dax.md).
+- Color: one accent for focus, greys for context, green/red only for good/bad, ≤ 6 categories.
 - Direct data labels over axes and legends; sort by value; no 3D, gradients, shadows, pies > 3 slices.
 - Accessibility: contrast ≥ 4.5:1, alt text, tab order, color never the only signal, readable at 100 %.
+- **Words matter as much as pixels:** titles are questions or conclusions, measure names read like
+  business language with accents, empty states and tooltips explain. Guide: [references/copywriting.md](references/copywriting.md).
 
-Full guide with layouts and page archetypes: [references/report-design.md](references/report-design.md).
+**How to build a report (always this loop):**
+1. **Theme.** Brand colour known → `python scripts/make_theme.py --primary "#RRGGBB" --name "<Brand>"`
+   (darkens it until it passes contrast, refuses fonts Power BI cannot render). Otherwise use
+   `templates/theme/powerbi-architect-acessivel.json`.
+2. **Layout spec, not coordinates.** Describe pages as rows of visuals in a JSON spec and run
+   `python scripts/pbir_layout.py layout.json <Name>.Report --theme <theme.json>`. It writes the shell,
+   icons, KPI lines, charts, tables, drill-through, tooltip and phone layouts on the 4 px grid. Archetypes
+   and a full spec: [templates/pbir-pages/](templates/pbir-pages/README.md). Never type positions by hand.
+3. **Look at it.** `python scripts/preview_pbir.py <Name>.Report --sample sample.json --png preview/`
+   writes one PNG per page (headless Edge or Chrome, already on Windows; `--mobile` for the phone layout).
+   Open every PNG with your image-reading tool and look at it as the user will: alignment, rhythm,
+   truncated labels, empty space, what the eye sees first. Fix the spec, regenerate, look again. Generating
+   the preview is not reviewing it: you are not done until you have looked at every page image. No image
+   tool? Say so to the user and ask them to open `preview.html`.
+4. **Audit.** `python scripts/audit_pbip.py <project> --min-harmony 90`: zero blockers and every page at
+   90 or more (rules `PBI046`–`PBI058`: slicer size, font scale, grid, naming, fonts, page bounds, tab
+   order, text contrast, titles, axis titles, colour count).
+
+Full guide with layouts, archetypes, chart defaults and mobile: [references/report-design.md](references/report-design.md).
 
 ## 7. When editing files directly
 
@@ -144,7 +169,7 @@ Full guide with layouts and page archetypes: [references/report-design.md](refer
 - **The `.pbip` must open after every edit** (the user may open it at any moment). Validate JSON, run the
   project's validator (`pbw validar`) or
   `python scripts/audit_pbip.py <project-folder>` from this skill (`--help`: rule codes, `--json`, `--sarif`,
-  suppression). Ready PBIR pages and an accessible theme: [templates/pbir-pages/](templates/pbir-pages/README.md).
+  suppression). Prefer regenerating pages with `scripts/pbir_layout.py` over editing visual JSON by hand.
 
 ## 8. Refactoring legacy dashboards
 

@@ -46,7 +46,7 @@ python scripts/pbi_graph.py stats
 python scripts/pbi_graph.py uninstall [REPO]
 ```
 
-Names match accent- and case-insensitively: `"Saldo em Aberto"`, `"Fato Titulos[Dias Atraso]"` and
+Names match accent- and case-insensitively: `"Saldo em Aberto"`, `"ft_titulos[Dias Atraso]"` and
 `"dias atraso"` all work.
 
 ## Findings it reports

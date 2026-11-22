@@ -1,11 +1,11 @@
-relationship 9fce74731a9205336b29
-	fromColumn: 'Fato Titulos'.id_cliente
-	toColumn: 'Dim Cliente'.id_cliente
+relationship 293d8fa89ebb0f54fe81
+	fromColumn: ft_titulos.id_cliente
+	toColumn: dm_cliente.id_cliente
 
-relationship a93455d6e3a72562c3c0
-	fromColumn: 'Fato Titulos'.id_regional
-	toColumn: 'Dim Regional'.id_regional
+relationship c458883cbad9abc15912
+	fromColumn: ft_titulos.id_regional
+	toColumn: dm_regional.id_regional
 
-relationship 313649b7b5fb5b753fc9
-	fromColumn: 'Fato Titulos'.'Data Vencimento'
-	toColumn: Calendario.Data
+relationship d3f81f0ee4c4c0dbd758
+	fromColumn: ft_titulos.'Data Vencimento'
+	toColumn: dm_calendario.Data
