@@ -1,0 +1,460 @@
+{
+  "id": "rh",
+  "app": "Pessoas",
+  "project": "Pessoas",
+  "description": "Quadro de pessoal, admissões, desligamentos, turnover e salário médio por área e nível, sem dados pessoais identificáveis.",
+  "slicers": [
+    "dm_area[Diretoria]",
+    "dm_cargo[Cargo]"
+  ],
+  "tables": [
+    {
+      "name": "ft_quadro",
+      "description": "Foto mensal do quadro: uma linha por colaborador ativo ou desligado no mês. Sem nome nem documento (LGPD).",
+      "grain": "1 linha por colaborador e mês",
+      "source": "dw.vw_fato_quadro_mensal",
+      "columns": [
+        {
+          "name": "id_area",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_area"
+        },
+        {
+          "name": "id_cargo",
+          "type": "int64",
+          "hidden": true,
+          "references": "dm_cargo"
+        },
+        {
+          "name": "Data Referencia",
+          "type": "dateTime",
+          "hidden": true,
+          "format": "dd/mm/yyyy",
+          "sql": "t.ultimo_dia_mes",
+          "references": "dm_calendario",
+          "description": "Último dia do mês da foto."
+        },
+        {
+          "name": "Ativo",
+          "type": "int64",
+          "hidden": true,
+          "sql": "t.ativo_fim_mes",
+          "description": "1 quando o colaborador está ativo no último dia do mês."
+        },
+        {
+          "name": "Admitido",
+          "type": "int64",
+          "hidden": true,
+          "sql": "t.admitido_no_mes"
+        },
+        {
+          "name": "Desligado",
+          "type": "int64",
+          "hidden": true,
+          "sql": "t.desligado_no_mes"
+        },
+        {
+          "name": "Desligado Voluntario",
+          "type": "int64",
+          "hidden": true,
+          "sql": "t.pedido_demissao_no_mes",
+          "description": "1 quando o desligamento foi a pedido do colaborador."
+        },
+        {
+          "name": "Salario",
+          "type": "decimal",
+          "hidden": true,
+          "format": "\\R\\$ #,0.00",
+          "sql": "t.salario_base",
+          "description": "Salário base mensal no fim do mês."
+        }
+      ]
+    },
+    {
+      "name": "dm_area",
+      "description": "Áreas da empresa e a diretoria a que respondem.",
+      "grain": "1 linha por área",
+      "source": "dw.vw_dim_area",
+      "columns": [
+        {
+          "name": "id_area",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Área",
+          "type": "string",
+          "sql": "t.nome",
+          "examples": [
+            "Vendas",
+            "Atendimento",
+            "Produção",
+            "Logística",
+            "Tecnologia",
+            "Financeiro",
+            "Pessoas",
+            "Marketing",
+            "Jurídico",
+            "Compras",
+            "Qualidade",
+            "Manutenção"
+          ]
+        },
+        {
+          "name": "Diretoria",
+          "type": "string",
+          "sql": "t.diretoria",
+          "examples": [
+            "Comercial",
+            "Operações",
+            "Administrativa",
+            "Tecnologia"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dm_cargo",
+      "description": "Cargos e o nível na carreira.",
+      "grain": "1 linha por cargo",
+      "source": "dw.vw_dim_cargo",
+      "columns": [
+        {
+          "name": "id_cargo",
+          "type": "int64",
+          "hidden": true,
+          "key": true
+        },
+        {
+          "name": "Cargo",
+          "type": "string",
+          "sql": "t.nome",
+          "examples": [
+            "Analista",
+            "Assistente",
+            "Coordenador",
+            "Especialista",
+            "Gerente"
+          ]
+        },
+        {
+          "name": "Nível",
+          "type": "string",
+          "sql": "t.nivel",
+          "sortBy": "Ordem Nível",
+          "examples": [
+            "Operacional",
+            "Técnico",
+            "Analista",
+            "Liderança"
+          ]
+        },
+        {
+          "name": "Ordem Nível",
+          "type": "int64",
+          "hidden": true,
+          "sql": "t.ordem_nivel"
+        }
+      ]
+    }
+  ],
+  "measures": [
+    {
+      "name": "Headcount",
+      "description": "Colaboradores ativos no último mês do período selecionado.",
+      "expr": "CALCULATE ( SUM ( ft_quadro[Ativo] ), LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( ft_quadro ) ) ) )",
+      "format": "#,0",
+      "folder": "Quadro",
+      "sample": "2.318"
+    },
+    {
+      "name": "Admissões",
+      "description": "Admissões no período.",
+      "expr": "SUM ( ft_quadro[Admitido] )",
+      "format": "#,0",
+      "folder": "Movimentação"
+    },
+    {
+      "name": "Desligamentos",
+      "description": "Desligamentos no período, voluntários ou não.",
+      "expr": "SUM ( ft_quadro[Desligado] )",
+      "format": "#,0",
+      "folder": "Movimentação"
+    },
+    {
+      "name": "Desligamentos Voluntários",
+      "description": "Desligamentos a pedido do colaborador no período.",
+      "expr": "SUM ( ft_quadro[Desligado Voluntario] )",
+      "format": "#,0",
+      "folder": "Movimentação"
+    },
+    {
+      "name": "Turnover Mensal",
+      "description": "Média mensal de desligamentos sobre o quadro do mês.",
+      "expr": "AVERAGEX ( VALUES ( dm_calendario[Ano-Mês] ), DIVIDE ( [Desligamentos], [Headcount] ) )",
+      "format": "0.0%",
+      "folder": "Indicadores",
+      "sample": "1,8%"
+    },
+    {
+      "name": "% Voluntário",
+      "description": "Parcela dos desligamentos que foi a pedido do colaborador.",
+      "expr": "DIVIDE ( [Desligamentos Voluntários], [Desligamentos] )",
+      "format": "0%",
+      "folder": "Indicadores",
+      "sample": "57%"
+    },
+    {
+      "name": "Salário Médio",
+      "description": "Salário base médio dos ativos no último mês do período.",
+      "expr": "DIVIDE ( CALCULATE ( SUM ( ft_quadro[Salario] ), ft_quadro[Ativo] = 1, LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( ft_quadro ) ) ) ), [Headcount] )",
+      "format": "\\R\\$ #,0",
+      "folder": "Indicadores",
+      "sample": "R$ 5.940"
+    },
+    {
+      "name": "Meta Turnover",
+      "description": "Teto de turnover mensal definido pela diretoria de Pessoas.",
+      "expr": "0.015",
+      "format": "0.0%",
+      "folder": "Metas"
+    },
+    {
+      "name": "Texto Admissões",
+      "description": "Linha do KPI de headcount: admissões e desligamentos no período.",
+      "expr": "FORMAT ( [Admissões], \"#,0\" ) & \" admissões, \" & FORMAT ( [Desligamentos], \"#,0\" ) & \" desligamentos\"",
+      "folder": "Textos",
+      "sample": "214 admissões, 187 desligamentos"
+    },
+    {
+      "name": "Texto Var Turnover",
+      "description": "Linha do KPI de turnover: distância para o teto, em pontos percentuais.",
+      "expr": "VAR _d = [Turnover Mensal] - [Meta Turnover] RETURN IF ( ISBLANK ( [Turnover Mensal] ), BLANK (), IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & IF ( _d > 0, \"acima\", \"abaixo\" ) & \" do teto de \" & FORMAT ( [Meta Turnover], \"0.0%\" ) )",
+      "folder": "Textos",
+      "sample": "▲ 0,3 p.p. acima do teto de 1,5%"
+    },
+    {
+      "name": "Cor Var Turnover",
+      "description": "Cor da linha do KPI de turnover: vermelho acima do teto.",
+      "expr": "IF ( [Turnover Mensal] > [Meta Turnover], \"#CE2C31\", \"#00824D\" )",
+      "folder": "Cores",
+      "sampleColor": "#CE2C31"
+    },
+    {
+      "name": "Cor Turnover",
+      "description": "Cor do turnover em tabelas: vermelho acima do teto.",
+      "expr": "IF ( [Turnover Mensal] > [Meta Turnover], \"#CE2C31\", \"#333333\" )",
+      "folder": "Cores"
+    },
+    {
+      "name": "Titulo Headcount",
+      "description": "Título do gráfico de quadro mensal, com o quadro atual.",
+      "expr": "\"Quadro ao fim de cada mês: \" & FORMAT ( [Headcount], \"#,0\" ) & \" pessoas hoje\"",
+      "folder": "Títulos",
+      "sample": "Quadro ao fim de cada mês: 2.318 pessoas hoje"
+    }
+  ],
+  "series": {
+    "dm_area[Área]": [
+      3.4,
+      3.1,
+      2.6,
+      2.4,
+      2.1,
+      1.9,
+      1.7,
+      1.5,
+      1.2,
+      1.1,
+      0.9,
+      0.8
+    ],
+    "dm_cargo[Nível]": [
+      2.4,
+      1.9,
+      1.5,
+      0.9
+    ],
+    "Headcount": [
+      2205,
+      2214,
+      2231,
+      2240,
+      2238,
+      2252,
+      2266,
+      2271,
+      2280,
+      2294,
+      2305,
+      2318
+    ]
+  },
+  "pages": [
+    {
+      "name": "Visão Geral",
+      "icon": "layout-dashboard",
+      "rows": [
+        {
+          "height": 88,
+          "visuals": [
+            {
+              "type": "kpi",
+              "measure": "Headcount",
+              "label": "Pessoas no quadro",
+              "variation": "Texto Admissões"
+            },
+            {
+              "type": "kpi",
+              "measure": "Turnover Mensal",
+              "label": "Turnover mensal médio",
+              "variation": "Texto Var Turnover",
+              "variationColor": "Cor Var Turnover"
+            },
+            {
+              "type": "kpi",
+              "measure": "% Voluntário",
+              "label": "Desligamentos a pedido"
+            },
+            {
+              "type": "kpi",
+              "measure": "Salário Médio",
+              "label": "Salário base médio"
+            }
+          ]
+        },
+        {
+          "height": 248,
+          "split": [
+            2,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "lineChart",
+              "category": "dm_calendario[Ano-Mês]",
+              "values": [
+                "Headcount"
+              ],
+              "titleMeasure": "Titulo Headcount",
+              "sort": "category",
+              "alt": "Quantidade de pessoas no quadro ao fim de cada mês"
+            },
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_cargo[Nível]",
+              "values": [
+                "Turnover Mensal"
+              ],
+              "title": "Turnover por nível",
+              "sort": "category",
+              "alt": "Turnover mensal médio por nível de cargo"
+            }
+          ]
+        },
+        {
+          "height": 248,
+          "visuals": [
+            {
+              "type": "combo",
+              "category": "dm_calendario[Ano-Mês]",
+              "values": [
+                "Admissões"
+              ],
+              "lineValues": [
+                "Desligamentos"
+              ],
+              "title": "Admissões em colunas, desligamentos na linha",
+              "alt": "Admissões por mês em colunas e desligamentos em linha"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Turnover",
+      "icon": "chart-bar",
+      "rows": [
+        {
+          "height": 300,
+          "split": [
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "scatter",
+              "details": "dm_area[Área]",
+              "x": "Headcount",
+              "y": "Turnover Mensal",
+              "title": "Áreas grandes com turnover alto ficam no canto superior direito",
+              "alt": "Dispersão de áreas por quadro e turnover"
+            },
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_area[Área]",
+              "values": [
+                "Desligamentos Voluntários"
+              ],
+              "title": "Desligamentos a pedido por área",
+              "sort": "desc",
+              "alt": "Desligamentos voluntários por área, do maior para o menor"
+            }
+          ]
+        },
+        {
+          "height": 300,
+          "visuals": [
+            {
+              "type": "matrix",
+              "rows": [
+                "dm_area[Diretoria]",
+                "dm_area[Área]"
+              ],
+              "columns": [
+                "dm_cargo[Nível]"
+              ],
+              "values": [
+                "Turnover Mensal"
+              ],
+              "title": "Turnover por área e nível",
+              "alt": "Matriz de turnover mensal por diretoria, área e nível"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Áreas",
+      "icon": "list-details",
+      "rows": [
+        {
+          "height": 616,
+          "visuals": [
+            {
+              "type": "tableEx",
+              "title": "Áreas por turnover",
+              "columns": [
+                "dm_area[Área]",
+                "dm_area[Diretoria]",
+                "Headcount",
+                "Admissões",
+                "Desligamentos",
+                "Turnover Mensal",
+                "Salário Médio"
+              ],
+              "sortBy": "Turnover Mensal desc",
+              "highlight": {
+                "column": "Turnover Mensal",
+                "colorMeasure": "Cor Turnover"
+              },
+              "alt": "Tabela de áreas com quadro, admissões, desligamentos, turnover e salário médio"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

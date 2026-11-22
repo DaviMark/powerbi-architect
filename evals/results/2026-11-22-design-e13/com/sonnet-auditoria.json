@@ -1,0 +1,11 @@
+[
+  {
+    "rule": "PBI043",
+    "severity": "SUGGESTION",
+    "law": "8",
+    "where": ".",
+    "line": 0,
+    "message": "no README.md next to Entregas.pbip",
+    "bpa": []
+  }
+]

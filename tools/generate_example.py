@@ -17,13 +17,19 @@ RP = ROOT / f"{NAME}.Report"
 SCHEMA = "https://developer.microsoft.com/json-schemas/fabric"
 
 
+
+def write_lf(path: Path, text: str) -> None:
+    """UTF-8 with LF line endings on every OS (write_text has no newline= before Python 3.10)."""
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+
 def hid(*parts: str) -> str:
     return hashlib.sha1("/".join(parts).encode()).hexdigest()[:20]
 
 
 def write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8", newline="\n")
+    write_lf(path, text)
 
 
 def wjson(path: Path, obj) -> None:
@@ -154,7 +160,7 @@ write(D / "tables" / "dm_regional.tmdl",
                       "SELECT r.id_regional, r.nome AS Regional, r.email_gestor AS [Email Gestor] FROM dw.dim_regional AS r"))
 
 write(D / "tables" / "dm_calendario.tmdl",
-      "/// Calendário de 24 meses até o fim do ano corrente. Marcado como tabela de datas.\n"
+      "/// Calendário de 1º de janeiro de dois anos atrás até o fim do ano corrente: cobre os 24 meses das tabelas fato. Marcado como tabela de datas.\n"
       "table dm_calendario\n\tdataCategory: Time\n\n"
       + col("Data", "dateTime", key=True, fmt="dd/mm/yyyy", inferred=True) + "\n"
       + col("Ano", "int64", fmt="0", inferred=True) + "\n"
@@ -165,7 +171,7 @@ write(D / "tables" / "dm_calendario.tmdl",
       + "\thierarchy 'Ano > Mês'\n\n\t\tlevel Ano\n\t\t\tcolumn: Ano\n\n\t\tlevel Mês\n\t\t\tcolumn: Mês\n\n"
       + "\tpartition dm_calendario = calculated\n\t\tmode: import\n\t\tsource =\n"
       + "\t\t\t\tVAR _fim = DATE ( YEAR ( TODAY () ), 12, 31 )\n"
-      + "\t\t\t\tVAR _inicio = DATE ( YEAR ( TODAY () ) - 1, 1, 1 )\n"
+      + "\t\t\t\tVAR _inicio = DATE ( YEAR ( TODAY () ) - 2, 1, 1 )\n"
       + "\t\t\t\tRETURN\n"
       + "\t\t\t\t    ADDCOLUMNS (\n"
       + "\t\t\t\t        CALENDAR ( _inicio, _fim ),\n"

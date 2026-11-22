@@ -165,7 +165,15 @@ The theme sets these defaults; only override per visual with a reason.
 - **Tables**: right‑align numbers; one column coloured by a measure at most (`highlight` in the layout
   spec), the colour measure returns a hex that passes 4.5:1; horizontal hairlines only; totals
   intentional; column widths fit content; ≤ 7 columns visible.
-- **Matrix**: subtotals only where they mean something; stepped layout; collapse by default.
+- **Matrix** (`matrix` in the spec: `rows`, `columns`, `values`): subtotals only where they mean
+  something; stepped layout; collapse by default; ≤ 6 columns across.
+- **Combo** (`combo`: `values` as columns, `lineValues` as the line): only when the line is a different
+  measure on the same scale story (volume and average, actual and target); never two unrelated units.
+- **Scatter** (`scatter`: `details`, `x`, `y`, optional `size`): to show which items are outliers on two
+  measures at once; title says what the corners mean ("Clientes com muito saldo e muito atraso no canto
+  superior direito").
+- **KPI with trend** (`kpiTrend`: `measure`, `trend` date field, optional `goal`): when the history
+  matters more than the variation line; same height as the cards of its row (88 or 120), label 9 pt.
 - **Pies/donuts**: only for 2–3 parts of a whole that sum to 100 %.
 - **Maps**: only when location *is* the insight.
 - Remove: gridlines, axis titles that repeat the title, legends for single series, borders inside

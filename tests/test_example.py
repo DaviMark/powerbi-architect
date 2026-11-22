@@ -68,24 +68,61 @@ class TestExampleGraph(unittest.TestCase):
         self.assertTrue(any("Titulo Vencido" in t for t in targets), targets)
 
 
-class TestCrossModelFindings(unittest.TestCase):
-    def test_shared_source_and_divergent_measure(self):
+class TestClaudeHooks(unittest.TestCase):
+    def test_install_adds_graph_and_audit_hooks_once_and_uninstall_removes_them(self):
         with tempfile.TemporaryDirectory() as d:
             repo = Path(d)
-            shutil.copytree(EXAMPLE, repo / "a")
-            shutil.copytree(EXAMPLE, repo / "b")
+            shutil.copytree(EXAMPLE, repo / "contas-a-receber")
+            settings = repo / ".claude" / "settings.json"
+            settings.parent.mkdir()
+            mine = {"matcher": "Bash", "hooks": [{"type": "command", "command": "echo mine"}]}
+            settings.write_text(json.dumps({"hooks": {"PostToolUse": [mine]}}), encoding="utf-8")
+            for _ in range(2):
+                self.assertEqual(graph(repo, "install", ".", "--no-agents").returncode, 0)
+            post = json.loads(settings.read_text(encoding="utf-8"))["hooks"]["PostToolUse"]
+            commands = [h["command"] for g in post for h in g["hooks"]]
+            self.assertEqual(sum("audit_pbip.py" in c and "--hook" in c for c in commands), 1, commands)
+            self.assertEqual(sum("pbi_graph.py" in c for c in commands), 1, commands)
+            self.assertIn("echo mine", commands)
+            self.assertEqual(graph(repo, "uninstall", ".").returncode, 0)
+            post = json.loads(settings.read_text(encoding="utf-8"))["hooks"]["PostToolUse"]
+            self.assertEqual([h["command"] for g in post for h in g["hooks"]], ["echo mine"])
+
+
+class TestCrossModelFindings(unittest.TestCase):
+    def build_two(self, rename: bool):
+        d = tempfile.TemporaryDirectory()
+        repo = Path(d.name)
+        shutil.copytree(EXAMPLE, repo / "a")
+        shutil.copytree(EXAMPLE, repo / "b")
+        model = "ContasReceber"
+        if rename:
             (repo / "b" / "ContasReceber.SemanticModel").rename(repo / "b" / "Cobranca.SemanticModel")
             pbir = repo / "b" / "ContasReceber.Report" / "definition.pbir"
             pbir.write_text(pbir.read_text(encoding="utf-8").replace("ContasReceber.SemanticModel",
                                                                        "Cobranca.SemanticModel"), encoding="utf-8")
-            m = repo / "b" / "Cobranca.SemanticModel" / "definition" / "tables" / "_Medidas.tmdl"
-            m.write_text(m.read_text(encoding="utf-8").replace(
-                "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 0 )",
-                "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 30 )"), encoding="utf-8")
-            self.assertEqual(graph(repo, "build", ".").returncode, 0)
-            rep = (repo / "powerbi-graph" / "GRAPH_REPORT.md").read_text(encoding="utf-8")
-            self.assertIn("dw.fato_titulos_receber", rep)          # shared source
-            self.assertIn("valor vencido", rep.split("different DAX", 1)[1].split("\n", 1)[0].lower())
+            model = "Cobranca"
+        m = repo / "b" / f"{model}.SemanticModel" / "definition" / "tables" / "_Medidas.tmdl"
+        m.write_text(m.read_text(encoding="utf-8").replace(
+            "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 0 )",
+            "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 30 )"), encoding="utf-8")
+        self.assertEqual(graph(repo, "build", ".").returncode, 0)
+        rep = (repo / "powerbi-graph" / "GRAPH_REPORT.md").read_text(encoding="utf-8")
+        d.cleanup()
+        return rep
+
+    def check(self, rep):
+        self.assertIn("dw.fato_titulos_receber", rep.split("read by more than one model", 1)[1].split("\n", 1)[0])
+        self.assertIn("valor vencido", rep.split("different DAX", 1)[1].split("\n", 1)[0].lower())
+
+    def test_shared_source_and_divergent_measure(self):
+        self.check(self.build_two(rename=True))
+
+    def test_models_with_the_same_name_in_different_folders(self):
+        """Issue #11: two models named alike used to merge and hide both findings."""
+        rep = self.build_two(rename=False)
+        self.check(rep)
+        self.assertIn("(`a/ContasReceber.SemanticModel`)", rep)
 
 
 if __name__ == "__main__":

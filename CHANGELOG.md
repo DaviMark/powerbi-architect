@@ -34,7 +34,28 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   dos KPIs (contexto, meta e variação, com cor conforme o sentido bom da métrica).
 - Avaliações de design E11 e E12, corrigidas pelas próprias ferramentas: com a skill, 8 de 8 itens e
   harmonia 100; sem a skill, 3 de 8 e harmonia 0 e 22 (`evals/results/2026-11-21-design`).
+- Auditoria a cada edição: o `pbi_graph.py install` registra um hook do Claude Code que roda
+  `audit_pbip.py --hook` depois de cada edição de relatório ou modelo e devolve ao agente, na hora, os
+  bloqueadores e as páginas abaixo de 90 no placar de harmonia.
+- `pbir_layout.py --extract`: lê um relatório PBIR existente, com qualquer layout, e escreve o layout em
+  JSON que o reconstrói no padrão visual. Também troca pizza por barra ordenada e lista o que precisa de
+  uma pessoa. Um relatório legado de teste foi de harmonia 0 para 96.
+- Novos visuais no motor de layout e no preview: matriz, colunas com linha, dispersão e KPI com
+  tendência e meta. O tema ganhou estilos para os quatro.
+- Kits iniciais de vendas, financeiro, RH e estoque, com `scripts/new_project.py`. Cada kit gera um
+  projeto PBIP completo (modelo estrela, SQL por tabela, medidas documentadas, páginas, documentação e
+  dados de amostra) que sai sem nenhum achado na auditoria e com nota 100 em todas as páginas.
+- Calibração do preview: as medidas internas dos visuais ficam em `CALIBRATION` e podem ser ajustadas com
+  `--calibration`. Com `--overlay`, capturas do Power BI Desktop aparecem por cima de cada página.
+  Passo a passo em `docs/calibrar-preview.md`.
+- Avaliação de design E13 com um modelo de logística que a skill não traz, em dois modelos de IA
+  (Sonnet e Haiku), com e sem a skill, e um avaliador cego: com a skill, 4 de 4 itens, harmonia 100 e
+  preferência do avaliador nos dois casos; sem a skill, 0 de 4 (`evals/results/2026-11-22-design-e13`).
+- `tools/context_cost.py` e um teste que limita o custo de contexto da descrição, do `SKILL.md` e de
+  cada referência.
 ### Alterado
+- `SKILL.md` reescrito de forma mais direta: 18% menor (cerca de 2.900 tokens), sem perder regras,
+  links ou comandos. A descrição passou de 690 para 554 caracteres.
 - Tema refeito com os neutros e as cores do Twenty, mantendo contraste de 4,5:1 no texto; estilos
   prontos para navegação de páginas, cartões, tabelas, slicers, caixas de texto e formas.
 - Projeto de exemplo e modelos de página PBIR com a estrutura nova e as tabelas renomeadas
@@ -47,6 +68,15 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   medidas de contexto e meta para os KPIs; a medida `Dias Atraso Medio` passa a se chamar
   `Atraso Médio (dias)`.
 - Linhas de texto sem moldura (variação do KPI, data da carga) não contam como visuais separados.
+### Corrigido
+- O calendário dos kits e do exemplo não cobria os meses mais antigos das tabelas fato; agora vai da
+  primeira à última data da fato, em anos completos.
+- Os scripts voltam a rodar no Python 3.9 (`write_text` com `newline=` só existe a partir do 3.10).
+- O grafo separa modelos com o mesmo nome em pastas diferentes; antes eles se misturavam e escondiam os
+  achados entre modelos (#11).
+- Com dois filtros na barra do topo, a ordem do teclado ia da direita para a esquerda.
+- O preview desenhava errado a cascata com valores negativos e deixava achatadas as linhas com valores
+  altos; agora o eixo das linhas se ajusta aos dados, como no Power BI.
 
 ## [1.2.0] — 2026-11-21
 ### Adicionado

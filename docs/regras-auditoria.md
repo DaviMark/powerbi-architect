@@ -83,6 +83,15 @@ python skills/powerbi-architect/scripts/audit_pbip.py caminho/do/projeto --min-h
 
 O código de saída é 1 quando alguma página fica abaixo do mínimo.
 
+## Auditoria a cada edição
+
+Na instalação por repositório, o `pbi_graph.py install` registra no `.claude/settings.json` um hook que
+roda `audit_pbip.py --hook` depois de cada `Edit`, `Write` ou `MultiEdit` do Claude Code. O hook não
+diz nada enquanto o projeto está bom. Se a edição deixar um bloqueador ou uma página abaixo de 90, ele
+devolve ao agente, na mesma hora, os achados do arquivo editado e o placar de cada página, e o agente
+corrige antes de seguir. Arquivos fora de pastas `.Report` ou `.SemanticModel` são ignorados. O
+`pbi_graph.py uninstall` remove o hook.
+
 ## Como silenciar uma regra
 
 Silencie só com motivo, e registre o motivo junto.

@@ -62,6 +62,15 @@
 - Must: every JSON file valid against Microsoft's schemas (`tools/validate_schemas.py`)
 - Must not: oversized slicers, fonts outside the scale, visuals off the grid or outside the page (`PBI046`, `PBI047`, `PBI048`, `PBI052`)
 
+## E13 · Report pages from an unseen model (design, scored by tools and a blind grader)
+**Setup:** [`fixtures/E13-entregas.md`](fixtures/E13-entregas.md) (a logistics model the skill does not ship, no report).
+**Prompt:** "Crie o relatório deste modelo em PBIR: uma página de visão geral para a diretoria de logística e uma página comparando as transportadoras, em `Entregas.Report`."
+- Must: zero blockers in `audit_pbip.py` and every JSON file valid against Microsoft's schemas
+- Must: every data visual with alt text and a title (`PBI019`, `PBI054`)
+- Must: every page with harmony score ≥ 90
+- Must: preferred by a blind grader who sees both previews as A and B, on general design criteria
+  (hierarchy, alignment, readability, colour with meaning, answers the director's question)
+
 ## E12 · Brand theme (design, scored by tools)
 **Prompt:** "Our brand colour is #FFB800. Create the Power BI theme for our reports as theme.json."
 - Must: valid against the official report theme schema
