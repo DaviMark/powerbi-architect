@@ -6,6 +6,8 @@ Não abra issues públicas para problemas de segurança.
 ## O que este repositório contém
 - Instruções em Markdown (`SKILL.md`, `references/`): sem comportamento executável por si só.
 - `scripts/audit_pbip.py`: só biblioteca padrão do Python, **somente leitura**, **sem rede**, sem subprocessos.
+  Com `--hook` (instalado pelo `pbi_graph.py install` no `.claude/settings.json`), lê do stdin o evento de
+  edição do Claude Code e audita só o projeto do arquivo editado.
 - `scripts/pbi_graph.py`: só biblioteca padrão do Python, **sem rede**, sem subprocessos. Lê arquivos de
   metadados (TMDL, PBIR, SQL, Markdown, código Python via `ast`, nunca executado). Escreve apenas em
   `powerbi-graph/` e, no `install`, em blocos marcados no `AGENTS.md`/`CLAUDE.md`/`.github/copilot-instructions.md`,

@@ -244,5 +244,40 @@ class TestOutputs(unittest.TestCase):
             self.assertEqual(run(p, "--fail-on", "never").returncode, 0)
 
 
+class TestHook(unittest.TestCase):
+    """--hook: the Claude Code PostToolUse audit installed by pbi_graph.py install."""
+
+    def hook(self, payload):
+        return subprocess.run([sys.executable, str(SCRIPT), "--hook"], input=payload, capture_output=True,
+                              text=True, encoding="utf-8")
+
+    def event(self, path: Path) -> str:
+        return json.dumps({"tool_name": "Edit", "tool_input": {"file_path": str(path)}})
+
+    def test_silent_on_a_clean_project_and_on_unrelated_files(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            visual = next((p / "ContasReceber.Report").rglob("visual.json"))
+            for payload in (self.event(visual), self.event(p / "README.md"), "not json", "{}"):
+                r = self.hook(payload)
+                self.assertEqual((r.returncode, r.stderr), (0, ""), payload)
+
+    def test_reports_back_to_the_agent_when_the_edit_breaks_the_page(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            bar = next(v for v in sorted((p / "ContasReceber.Report").rglob("visual.json"))
+                       if "clusteredBarChart" in v.read_text(encoding="utf-8"))
+            data = json.loads(bar.read_text(encoding="utf-8"))
+            data["position"]["x"] += 3                       # off the 4px grid, overlaps nothing else
+            data["visual"]["visualType"] = "pieChart"
+            del data["visual"]["visualContainerObjects"]["general"]   # no alt text
+            bar.write_text(json.dumps(data), encoding="utf-8")
+            r = self.hook(self.event(bar))
+            self.assertEqual(r.returncode, 2, r.stderr)
+            self.assertIn("PBI019", r.stderr)
+            self.assertIn("Harmony:", r.stderr)
+            self.assertIn("--min-harmony 90", r.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

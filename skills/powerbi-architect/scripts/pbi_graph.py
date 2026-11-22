@@ -1362,13 +1362,19 @@ def install(repo: Path, hooks: bool, agents: bool, commit_graph: bool) -> int:
         if gh.exists():
             print(f"[ok] .github/copilot-instructions.md: {upsert_block(gh, sec, MARK_START, MARK_END)}")
     if hooks:
-        claude_hooks(repo, f"{cmd} update --quiet")
+        audit_cmd = cmd.replace("pbi_graph.py", "audit_pbip.py")
+        claude_hooks(repo, f"{cmd} update --quiet", f"{audit_cmd} --hook")
         git_hooks(repo, f"{cmd} update --quiet")
     print("\nDone. Agents now read powerbi-graph/GRAPH_REPORT.md first and query the graph instead of raw files.")
     return 0
 
 
-def claude_hooks(repo: Path, command: str) -> None:
+def ours(hook: dict) -> bool:
+    c = hook.get("command", "")
+    return "pbi_graph.py" in c or ("audit_pbip.py" in c and "--hook" in c)
+
+
+def claude_hooks(repo: Path, command: str, audit_command: str | None = None) -> None:
     sp = repo / ".claude" / "settings.json"
     try:
         settings = json.loads(sp.read_text(encoding="utf-8")) if sp.exists() else {}
@@ -1379,15 +1385,18 @@ def claude_hooks(repo: Path, command: str) -> None:
     wanted = {"SessionStart": None, "PostToolUse": "Edit|Write|MultiEdit|NotebookEdit"}
     for event, matcher in wanted.items():
         groups = hooks.setdefault(event, [])
-        groups[:] = [grp for grp in groups if not any("pbi_graph.py" in h.get("command", "")
-                                                      for h in grp.get("hooks", []))]
+        groups[:] = [grp for grp in groups if not any(ours(h) for h in grp.get("hooks", []))]
         entry = {"hooks": [{"type": "command", "command": command, "timeout": 60}]}
         if matcher:
             entry = {"matcher": matcher, **entry}
         groups.append(entry)
+        if matcher and audit_command:
+            groups.append({"matcher": "Edit|Write|MultiEdit",
+                           "hooks": [{"type": "command", "command": audit_command, "timeout": 60}]})
     sp.parent.mkdir(parents=True, exist_ok=True)
     sp.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print("[ok] .claude/settings.json: graph refresh on SessionStart and after edits")
+    print("[ok] .claude/settings.json: graph refresh on SessionStart and after edits"
+          + ("; audit after every report or model edit" if audit_command else ""))
 
 
 def git_hooks(repo: Path, command: str) -> None:
@@ -1422,7 +1431,7 @@ def uninstall(repo: Path) -> int:
         try:
             s = json.loads(sp.read_text(encoding="utf-8"))
             for ev, groups in list(s.get("hooks", {}).items()):
-                groups[:] = [g for g in groups if not any("pbi_graph.py" in h.get("command", "") for h in g.get("hooks", []))]
+                groups[:] = [g for g in groups if not any(ours(h) for h in g.get("hooks", []))]
                 if not groups:
                     del s["hooks"][ev]
             if not s.get("hooks"):

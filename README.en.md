@@ -57,7 +57,8 @@ targeted lookups it runs `query`, `explain`, `impact` ("what breaks if I change 
 `path`.
 
 The installer also adds a short section to `AGENTS.md`/`CLAUDE.md`. It adds refresh hooks too: Claude
-Code `SessionStart` + after edits, and git `post-commit/merge/checkout`. Everything is idempotent.
+Code `SessionStart` + after edits, and git `post-commit/merge/checkout`. In Claude Code every report or
+model edit is also audited; the agent hears about blockers or a page below harmony 90 at once. Everything is idempotent.
 `pbi_graph.py uninstall` removes it all. Details:
 [references/graph.md](skills/powerbi-architect/references/graph.md).
 
