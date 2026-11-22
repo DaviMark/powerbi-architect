@@ -175,6 +175,11 @@ Full guide with layouts, archetypes, chart defaults and mobile: [references/repo
 
 Inventory → questions the report really answers → new star schema with parity map (old measure →
 new measure) → move every Power Query step to SQL → rebuild pages → prove numbers match.
+**Restyle an existing PBIR report:** `python scripts/pbir_layout.py --extract <Name>.Report --out layout.json`
+writes the spec of what is there (rows from positions, titles, alt text, sorting, drill-through,
+tooltips; pies become sorted bars; decoration dropped) and lists on stderr what needs a person. Fix the
+notes in the spec (real alt text, labels in business language, the "updated" measure), commit, then
+build it into the same folder and run the loop of §6 from step 3. Bookmarks that point at old visuals break.
 Playbook: [references/refactoring.md](references/refactoring.md).
 
 ## 9. Security & governance
