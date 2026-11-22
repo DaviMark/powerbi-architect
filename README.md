@@ -285,6 +285,10 @@ Detalhes em [SECURITY.md](SECURITY.md).
 - CI no Linux e no Windows, do Python 3.9 ao 3.13: testes da auditoria, do grafo e dos instaladores sobre o
   projeto de exemplo; todo exemplo de código das referências conferido; JSON validado pelos schemas da
   Microsoft; **`.pbiviz` reconstruído** com as ferramentas oficiais.
+- Custo de contexto medido a cada mudança (`tools/context_cost.py`): a descrição, que fica sempre no
+  contexto do agente, ocupa cerca de 140 tokens. O `SKILL.md`, lido quando a skill é acionada, ocupa
+  cerca de 2.900. Cada referência só entra quando a tarefa pede, com 450 a 4.200 tokens. Um teste
+  impede que esses números cresçam sem querer.
 - Próximos passos: [ROADMAP.md](ROADMAP.md).
 
 ## Contribua

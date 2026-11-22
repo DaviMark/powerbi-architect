@@ -42,6 +42,15 @@ class TestSkill(unittest.TestCase):
         lines = (SKILL / "SKILL.md").read_text(encoding="utf-8").count("\n")
         self.assertLess(lines, 500, "keep SKILL.md under 500 lines; move detail to references/")
 
+    def test_context_budget(self):
+        """tools/context_cost.py: what the skill costs in an agent's context stays within budget."""
+        sys.path.insert(0, str(ROOT / "tools"))
+        import context_cost
+        over = [(name, chars) for when, name, chars in context_cost.measure()
+                if chars > context_cost.BUDGET["description" if when == "sempre" else
+                                             "SKILL.md" if name == "SKILL.md" else "reference"]]
+        self.assertEqual(over, [], "trim these or move detail to a reference loaded on demand")
+
     def test_relative_links_resolve(self):
         broken = []
         skip = {"node_modules", ".tmp", ".git", "powerbi-graph", "results"}
