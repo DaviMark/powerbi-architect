@@ -35,7 +35,12 @@ Spec (JSON):
 }
 
 Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, waterfallChart, tableEx
-(options: "columns", "highlight": {"column": <measure>, "colorMeasure": <measure>}), slicer.
+(options: "columns", "highlight": {"column": <measure>, "colorMeasure": <measure>}), slicer ("field"), and
+  matrix    {"rows": [fields], "columns": [fields], "values": [measures], "highlight": {...}}
+  combo     {"category": field, "values": [column measures], "lineValues": [line measures]}
+  scatter   {"details": field, "x": measure, "y": measure, "size": measure}
+  kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
+A field parameter is just a column: use its column as "category" or "rows" and put a slicer on it.
 Every data visual needs "alt" (alt text) and "title" or "titleMeasure" (kpi uses "label").
 Row heights plus 16 px gutters must fit the 616 px content area. --check validates without writing.
 """
@@ -57,6 +62,7 @@ NAV_X, NAV_Y, NAV_ITEM = 8, 76, 32
 PHONE_W, PHONE_MARGIN = 320, 8
 ICONS = Path(__file__).resolve().parent.parent / "templates" / "icons"
 CHARTS = {"lineChart", "clusteredBarChart", "clusteredColumnChart", "waterfallChart"}
+SPEC_TYPES = {"kpi", "card", "tableEx", "slicer", "matrix", "combo", "scatter", "kpiTrend"} | CHARTS
 
 
 class SpecError(ValueError):
@@ -185,7 +191,9 @@ class Builder:
         if not alt:
             raise SpecError(f"visual {spec} needs 'alt' text")
         x, y, w, h = pos
-        key = spec.get("key") or f"{t}-{spec.get('measure') or spec.get('category') or spec.get('columns', [''])[0]}"
+        first = (spec.get("measure") or spec.get("category") or spec.get("details")
+                 or (spec.get("columns") or spec.get("rows") or [""])[0])
+        key = spec.get("key") or f"{t}-{first}"
         if t in ("kpi", "card"):
             out = [(key, pos, self.data_visual("card", {"Values": {"projections": [self.proj(spec["measure"])]}},
                                                alt, title=spec.get("label") or spec.get("title")))]
@@ -213,8 +221,14 @@ class Builder:
             return [(key, pos, self.data_visual(t, roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort,
                                                 objects=objects, tooltip_page=spec.get("tooltipPage")))]
-        if t == "tableEx":
-            roles = {"Values": {"projections": [self.proj(c) for c in spec["columns"]]}}
+        if t in ("tableEx", "matrix"):
+            if t == "tableEx":
+                roles = {"Values": {"projections": [self.proj(c) for c in spec["columns"]]}}
+            else:
+                roles = {"Rows": {"projections": [self.proj(c) for c in spec["rows"]]},
+                         "Values": {"projections": [self.proj(m) for m in spec["values"]]}}
+                if spec.get("columns"):
+                    roles["Columns"] = {"projections": [self.proj(c) for c in spec["columns"]]}
             sort = None
             if spec.get("sortBy"):
                 name, _, direction = spec["sortBy"].rpartition(" ")
@@ -225,8 +239,31 @@ class Builder:
                 kind, entity, prop = self.ref(hl["column"])
                 objects = {"values": [{"properties": {"fontColor": {"solid": {"color": self.measure_expr(hl["colorMeasure"])}}},
                                        "selector": {"metadata": f"{entity}.{prop}"}}]}
-            return [(key, pos, self.data_visual("tableEx", roles, alt, title=spec.get("title"),
+            vtype = "tableEx" if t == "tableEx" else "pivotTable"
+            return [(key, pos, self.data_visual(vtype, roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort, objects=objects))]
+        if t == "combo":
+            roles = {"Category": {"projections": [self.proj(spec["category"])]},
+                     "Y": {"projections": [self.proj(m) for m in spec["values"]]},
+                     "Y2": {"projections": [self.proj(m) for m in spec["lineValues"]]}}
+            sort = (spec["category"], "Ascending") if spec.get("sort", "category") in ("asc", "category") else None
+            return [(key, pos, self.data_visual("lineClusteredColumnComboChart", roles, alt, title=spec.get("title"),
+                                                title_measure=spec.get("titleMeasure"), sort=sort,
+                                                tooltip_page=spec.get("tooltipPage")))]
+        if t == "scatter":
+            roles = {"Category": {"projections": [self.proj(spec["details"])]},
+                     "X": {"projections": [self.proj(spec["x"])]}, "Y": {"projections": [self.proj(spec["y"])]}}
+            if spec.get("size"):
+                roles["Size"] = {"projections": [self.proj(spec["size"])]}
+            return [(key, pos, self.data_visual("scatterChart", roles, alt, title=spec.get("title"),
+                                                title_measure=spec.get("titleMeasure"),
+                                                tooltip_page=spec.get("tooltipPage")))]
+        if t == "kpiTrend":
+            roles = {"Indicator": {"projections": [self.proj(spec["measure"])]},
+                     "TrendLine": {"projections": [self.proj(spec["trend"])]}}
+            if spec.get("goal"):
+                roles["Goal"] = {"projections": [self.proj(spec["goal"])]}
+            return [(key, pos, self.data_visual("kpi", roles, alt, title=spec.get("label") or spec.get("title")))]
         if t == "slicer":
             return [(key, pos, self.data_visual("slicer", {"Values": {"projections": [self.proj(spec["field"])]}},
                                                 alt, objects={"data": [{"properties": {"mode": lit("'Dropdown'")}}]}))]

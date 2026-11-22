@@ -1,0 +1,11 @@
+{"app": "Contas a receber", "measures": "_Medidas", "updated": "Texto Atualizacao", "slicers": ["dm_cliente[Segmento]"],
+ "pages": [{"name": "Tendências", "icon": "chart-bar", "rows": [
+   {"height": 120, "visuals": [
+     {"type": "kpiTrend", "measure": "Valor Aberto", "trend": "dm_calendario[Ano-Mês]", "label": "Saldo em aberto", "alt": "Saldo em aberto e tendência mensal"},
+     {"type": "kpiTrend", "measure": "Valor Vencido", "trend": "dm_calendario[Ano-Mês]", "goal": "Valor Aberto", "label": "Vencido", "alt": "Vencido e tendência"},
+     {"type": "kpi", "measure": "% Vencido", "label": "% do saldo vencido"}]},
+   {"height": 232, "split": [2, 1], "visuals": [
+     {"type": "combo", "category": "dm_calendario[Ano-Mês]", "values": ["Valor Aberto"], "lineValues": ["Valor Vencido"], "title": "Saldo e vencido por mês", "alt": "Colunas com saldo e linha com vencido por mês"},
+     {"type": "scatter", "details": "dm_cliente[Cliente]", "x": "Valor Aberto", "y": "Atraso Médio (dias)", "title": "Saldo x atraso por cliente", "alt": "Dispersão de clientes por saldo e atraso"}]},
+   {"height": 232, "visuals": [
+     {"type": "matrix", "rows": ["dm_regional[Regional]"], "columns": ["dm_cliente[Segmento]"], "values": ["Valor Vencido"], "title": "Vencido por regional e segmento", "alt": "Matriz de vencido por regional e segmento"}]}]}]}

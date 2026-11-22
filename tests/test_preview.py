@@ -36,6 +36,22 @@ class TestPreview(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertIn("width:320px", out.read_text(encoding="utf-8"))
 
+    def test_more_visual_types(self):
+        sys.path.insert(0, str(SCRIPTS))
+        import pbir_layout
+        import shutil
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "X.Report"
+            shutil.copytree(REPORT, report)
+            spec = json.loads((ROOT / "tests" / "fixtures" / "layout-more-visuals.json").read_text(encoding="utf-8"))
+            pbir_layout.Builder(spec).build(report)
+            out = Path(d) / "p.html"
+            r = run("preview_pbir.py", report, "--sample", EXAMPLE / "preview-sample.json", "--out", out)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            html = out.read_text(encoding="utf-8")
+            for text in ("Meta: R$ 18,6 mi", "<polygon", "border-radius:50%", ">Varejo</th>", "Saldo e vencido por mês"):
+                self.assertIn(text, html)
+
 
 if __name__ == "__main__":
     unittest.main()
