@@ -263,10 +263,14 @@ def quote(s: str) -> str:
 class Builder:
     def __init__(self, spec: dict):
         self.spec = spec
+        self.current_page = ""
         self.measures = spec.get("measures", "_Medidas")
         self.measure_home = spec.get("measureHome", {})   # measures that live outside "measures"
         self.app = spec.get("app", "Relatório")
-        self.page_ids = {p["name"]: hid("page", p["name"]) for p in spec["pages"]}
+        # "id" pins a page or visual to an existing folder (set by --extract), so a rebuild lands on the
+        # same files instead of creating copies; otherwise ids are derived from the names.
+        self.page_ids = {p["name"]: p.get("id") or hid("page", p["name"]) for p in spec["pages"]}
+        self.ids: dict[tuple[str, str], str] = {}
         self.icons_used: set[str] = set()
 
     # ------------------------------------------------------------------ fields
@@ -404,6 +408,10 @@ class Builder:
         first = (spec.get("measure") or spec.get("category") or spec.get("details")
                  or (spec.get("columns") or spec.get("rows") or [""])[0])
         key = spec.get("key") or f"{t}-{first}"
+        if spec.get("id"):
+            self.ids[(self.current_page, key)] = spec["id"]
+        if spec.get("varId"):
+            self.ids[(self.current_page, key + "-var")] = spec["varId"]
         if t in ("kpi", "card"):
             out = [(key, pos, self.data_visual("card", {"Values": {"projections": [self.proj(spec["measure"])]}},
                                                alt, title=spec.get("label") or spec.get("title")))]
@@ -617,6 +625,7 @@ class Builder:
         for page in self.spec["pages"]:
             kind = page.get("kind", "page")
             pid = self.page_ids[page["name"]]
+            self.current_page = page["name"]
             if kind == "tooltip":
                 vis = page.get("visuals", [])
                 if len(vis) != 1:
@@ -652,7 +661,7 @@ class Builder:
             base = f"definition/pages/{pid}"
             files[f"{base}/page.json"] = dump(pdata)
             for i, (key, pos, visual) in enumerate(placed):
-                vid = hid("visual", page["name"], key)
+                vid = self.ids.get((page["name"], key)) or hid("visual", page["name"], key)
                 files[f"{base}/visuals/{vid}/visual.json"] = dump(self.container(vid, pos, i * 1000, visual))
                 if key in mobile:
                     x, y, w, h = mobile[key]
@@ -871,6 +880,8 @@ class Extractor:
         name = pdata.get("displayName", pdir.name)
         binding = (pdata.get("pageBinding") or {}).get("type")
         page: dict = {"name": name}
+        if pdir.name != hid("page", name):
+            page["id"] = pdir.name            # keep the folder: a rebuild must land on the same files
         items = []
         for f in sorted((pdir / "visuals").glob("*/visual.json")):
             c = json.loads(f.read_text(encoding="utf-8-sig"))
@@ -904,7 +915,7 @@ class Extractor:
                     m = self.roles(v, w)["Values"][0]
                     color_ = _prop(v.get("objects") or {}, "labels", "color") or {}
                     expr = (color_.get("solid") or {}).get("color", {}).get("expr", {})
-                    variations[host[2]] = (m, self.name(expr, w) if "Measure" in expr else None)
+                    variations[host[2]] = (m, self.name(expr, w) if "Measure" in expr else None, w.rsplit("/", 1)[-1])
         body = [(p, v, w) for p, v, w in body if not (v["visualType"] == "card" and self.chromeless(v))]
         loose_slicers = [(p, v, w) for p, v, w in body if v["visualType"] == "slicer"]
         body = [i for i in body if i not in loose_slicers]
@@ -958,10 +969,13 @@ class Extractor:
                 s = self.visual(v, w, page_names)
                 if not s:
                     continue
+                folder = w.rsplit("/", 1)[-1]
                 if s["type"] == "kpi" and w in variations:
-                    s["variation"], color_ = variations[w]
+                    s["variation"], color_, var_folder = variations[w]
                     if color_:
                         s["variationColor"] = color_
+                    s["_var"] = var_folder
+                s["_folder"] = folder
                 specs.append(s)
                 widths.append(p.get("width", 1))
             if not specs:
@@ -983,6 +997,14 @@ class Extractor:
                 seen[k] = seen.get(k, 0) + 1
                 if seen[k] > 1:
                     sp["key"] = f"{k}-{seen[k]}"
+            for sp in specs:                       # pin to the existing folder when the name would differ
+                key = sp.get("key") or f"{sp['type']}-" + (sp.get("measure") or sp.get("category") or sp.get("details")
+                                                           or (sp.get("columns") or sp.get("rows") or [""])[0])
+                folder, var_folder = sp.pop("_folder"), sp.pop("_var", None)
+                if folder != hid("visual", page_name, key):
+                    sp["id"] = folder
+                if var_folder and var_folder != hid("visual", page_name, key + "-var"):
+                    sp["varId"] = var_folder
             rows.append(row)
         kpi_rows = [r for r in rows if all(v["type"] == "kpi" for v in r["visuals"])]
         free = CONTENT_H - GUTTER * max(len(rows) - 1, 0) - 88 * len(kpi_rows)

@@ -162,13 +162,16 @@ class TestExtract(unittest.TestCase):
     def normalised(spec):
         spec = json.loads(json.dumps(spec))
         for page in spec["pages"]:
+            page.pop("id", None)
             for row in page.get("rows", []):
                 if len(set(row.get("split", [0]))) == 1:
                     row.pop("split", None)
                 for v in row["visuals"]:
-                    v.pop("key", None)
+                    for k in ("key", "id", "varId"):
+                        v.pop(k, None)
             for v in page.get("visuals", []):
-                v.pop("key", None)
+                for k in ("key", "id", "varId"):
+                    v.pop(k, None)
         return spec
 
     def test_round_trip_on_the_example(self):
@@ -196,6 +199,32 @@ class TestExtract(unittest.TestCase):
             after = audit_pbip.harmony(proj, audit_pbip.audit(proj))
             self.assertLess(before[0][2], 60, before)
             self.assertGreaterEqual(after[0][2], 90, after)
+
+    def test_extract_then_rebuild_lands_on_the_same_files(self):
+        """E14: extracting a report the user edited and rebuilding it must not copy their visuals."""
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "proj" / "ContasReceber.Report"
+            shutil.copytree(EXAMPLE, report.parent)
+            page = next(p for p in (report / "definition" / "pages").iterdir() if p.is_dir() and json.loads(
+                (p / "page.json").read_text(encoding="utf-8"))["displayName"] == "Clientes")
+            mine = page / "visuals" / "meuvisual0000000000a"
+            mine.mkdir()
+            (mine / "visual.json").write_text(json.dumps({
+                "name": "meuvisual0000000000a", "position": {"x": 232, "y": 80, "width": 400, "height": 248},
+                "visual": {"visualType": "clusteredBarChart", "query": {"queryState": {
+                    "Category": {"projections": [{"field": {"Column": {"Expression": {"SourceRef": {"Entity": "dm_cliente"}},
+                                                                       "Property": "Segmento"}}}]},
+                    "Y": {"projections": [{"field": {"Measure": {"Expression": {"SourceRef": {"Entity": "_Medidas"}},
+                                                                 "Property": "Valor Vencido"}}}]}}},
+                    "visualContainerObjects": {"title": [{"properties": {"text": {"expr": {"Literal": {"Value": "'Meu'"}}}}}],
+                                               "general": [{"properties": {"altText": {"expr": {"Literal": {"Value": "'m'"}}}}}]}}}),
+                encoding="utf-8")
+            before = sorted(p.relative_to(report).as_posix() for p in report.rglob("visual.json"))
+            spec, _ = pbir_layout.extract(report)
+            b = pbir_layout.Builder(spec)
+            b.build(report)
+            after = sorted(p.relative_to(report).as_posix() for p in report.rglob("visual.json"))
+            self.assertEqual(before, after)                       # no copies, nothing lost
 
     def test_cli(self):
         with tempfile.TemporaryDirectory() as d:
