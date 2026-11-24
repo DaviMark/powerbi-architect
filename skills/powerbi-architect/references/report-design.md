@@ -61,6 +61,16 @@ Apply that to every page:
   the craft even when they can't name it.
 - **The first three seconds.** The user must know the answer to the page's question in 3 s
   (headline + KPIs), the "why" in 30 s (trend + breakdown), and find the detail in 3 min (table/drill).
+- **One audience per page.** The audience sets how much fits; a page that serves the board and the
+  analyst serves neither:
+
+  | Audience | Opens it | Headline KPIs | Rest of the page |
+  |---|---|---|---|
+  | Board, directors | weekly or monthly meeting | 3 to 4 | one trend and one breakdown, conclusions in the titles |
+  | Managers, operations | every day | up to 8 (two rows of 4) | lists to act on today: who to call, what is late |
+  | Analysts | on demand | as needed | slicers, matrix, drill-through and tooltip pages to explore |
+
+  Every KPI needs a reference (target, previous period or plan) or it is a number without meaning.
 
 ## 2. From question to page
 For each page, fill this before placing any visual:

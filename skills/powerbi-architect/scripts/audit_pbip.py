@@ -425,6 +425,8 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI069": ("SUGGESTION", "1", "Two visuals that show the same thing", ()),
     "PBI078": ("IMPORTANT", "1", "Dynamic title reused on visuals that show different things", ()),
     "PBI079": ("SUGGESTION", "6", "Measure with a target shown without it (no target line, no colour)", ()),
+    "PBI080": ("SUGGESTION", "6", "Title or alt text that reads as machine-written (dash between clauses, "
+                                  "empty praise, emoji)", ()),
     # Numbers that come out wrong without any error message.
     "PBI070": ("IMPORTANT", "5", "Average of a percentage (wrong in every total)", ()),
     "PBI071": ("IMPORTANT", "5", "Balance or stock summed over time", ()),
@@ -784,6 +786,25 @@ def projections(visual: dict) -> dict[str, list[tuple[str, str, str]]]:
             ent = ((inner.get("Expression") or {}).get("SourceRef") or {}).get("Entity", "")
             out.setdefault(role, []).append((kind, ent, inner.get("Property", "")))
     return out
+
+
+MACHINE_WORDS = re.compile(
+    r"\b(robust[oa]s?|abrangentes?|poderos[oa]s?|incr[ií]ve(?:l|is)|insights?|"
+    r"al[eé]m disso|vale (?:ressaltar|destacar)|[eé] importante notar|em resumo|em suma|"
+    r"seamless(?:ly)?|robust|comprehensive|powerful|cutting-edge|leverag\w*)\b", re.I)
+EMOJI = re.compile("[\U0001F300-\U0001FAFF]")
+
+
+def machine_text(text: str) -> str | None:
+    """Why a title or alt text reads as generated (copywriting.md §6), or None."""
+    if re.search(r"\S\s*[—–]\s*\S", text):
+        return "a dash joins two clauses: use a colon, a comma or two sentences"
+    if EMOJI.search(text):
+        return "an emoji: use words, or ▲/▼ for direction"
+    word = MACHINE_WORDS.search(text)
+    if word:
+        return f"'{word.group(0)}' is empty praise or filler: say the fact"
+    return None
 
 
 TARGET_NAME = re.compile(r"\b(?:meta|target|objetivo|alvo|goal|or[cç]ado|budget)\b", re.I)
@@ -1164,6 +1185,11 @@ def audit(root: Path, config: dict | None = None) -> list:
                     .get("properties", {}).get("altText")
                 if not alt:
                     add("PBI019", rel(vj), f"{vtype} on page '{display}' has no alt text")
+                alt_text = str(((alt or {}).get("expr") or {}).get("Literal", {}).get("Value", "")).strip("'")                     if isinstance(alt, dict) else ""
+                for label, text_ in (("title", literal), ("alt text", alt_text)):
+                    why = machine_text(text_) if text_ else None
+                    if why:
+                        add("PBI080", where_v, f"{vtype} on page '{display}': {label} '{text_}': {why}")
                 if vtype in ("pieChart", "donutChart"):
                     add("PBI040", rel(vj), f"{vtype} on page '{display}' — ≤ 3 slices, otherwise a sorted bar")
                 for rule, msg in design_review(v, w, h, literal, page_w, measure_dax, time_columns):

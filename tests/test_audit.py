@@ -85,6 +85,14 @@ class TestTargetsAndTitles(unittest.TestCase):
             rules = [i["rule"] for i in ap.audit(proj)]
             self.assertIn("PBI078", rules)
 
+    def test_machine_sounding_titles(self):
+        for text in ("Vencido — concentrado no Sul", "Visão robusta da carteira", "Além disso, o atraso cresce",
+                     "Vencido por regional 🚀"):
+            self.assertIsNotNone(ap.machine_text(text), text)
+        for text in ("Vencido por regional", "Clientes que concentram o vencido", "▲ 2,3 p.p. acima da meta",
+                     "Pedido perfeito por transportadora", "Faixa 0-30 dias"):
+            self.assertIsNone(ap.machine_text(text), text)
+
 
 class TestDocs(unittest.TestCase):
     def test_every_rule_is_documented(self):
