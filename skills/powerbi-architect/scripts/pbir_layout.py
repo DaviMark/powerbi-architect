@@ -42,6 +42,7 @@ Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, wat
   scatter   {"details": field, "x": measure, "y": measure, "size": measure}
   kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
 Chart craft: "target": m on lineChart and combo adds the target as a thin grey dashed line;
+combo puts the line on the columns' axis when it has a target ("sameAxis": true/false to choose);
 "colorMeasure": m on bar and column charts colours each bar from a measure that returns a hex (red below
 target, accent otherwise). Row "height": "auto" fits the content (bars: 52 + 32 per expected category,
 set "items": n on the visual); "fill" takes what is left of the 616 px.
@@ -470,6 +471,9 @@ class Builder:
                      "Y": {"projections": [self.proj(m) for m in spec["values"]]},
                      "Y2": {"projections": [self.proj(m) for m in lines]}}
             objects = self.target_series(spec["target"]) if spec.get("target") else {}
+            if spec.get("sameAxis", bool(spec.get("target"))):
+                # One scale for columns and line: a target or last year must sit on the columns' axis.
+                objects["valueAxis"] = [{"properties": {"secShow": lit("false")}}]
             if spec.get("colorMeasure"):
                 objects["dataPoint"] = objects.get("dataPoint", []) + [self.colour_by(spec["colorMeasure"])]
             sort = (spec["category"], "Ascending") if spec.get("sort", "category") in ("asc", "category") else None

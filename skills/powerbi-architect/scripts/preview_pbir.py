@@ -326,6 +326,8 @@ class Preview:
             names = self.labels(cat, 12) or [""] * 12
             xs = self.series((roles.get("X") or [None])[0], len(names), [2, 3.5, 5, 6, 7.5, 3, 8, 4.5, 6.5, 9, 2.5, 5.5])
             ys = self.series(m, len(names), [3, 5, 4, 7, 6, 2, 8, 6.5, 4.5, 7.5, 5, 3.5])
+            x0, y0 = min(xs) * 0.9, min(ys) * 0.9           # axes fit the data, like Power BI
+            xs, ys = [x - x0 for x in xs], [y - y0 for y in ys]
             xp, yp = max(xs) or 1, max(ys) or 1
             dots = "".join(f'<div title="{html.escape(n)}" style="position:absolute;left:{4 + 90 * x / xp:.1f}%;'
                            f'top:{88 - 80 * y / yp:.1f}%;width:8px;height:8px;margin:-4px;border-radius:50%;'
@@ -353,7 +355,10 @@ class Preview:
             line_v = self.series(lines[0] if lines else None, len(labels),
                                  [4, 4.2, 4.1, 4.6, 4.4, 5, 4.8, 5.3, 5.1, 5.6, 5.4, 6]) if lines else []
             target_v = (self.sample.get("series", {}).get(target) or [max(cols_v) * 0.85] * len(labels)) if target else []
-            peak = max(cols_v + line_v + list(target_v)) or 1
+            shared = str(lit(prop(objs, "valueAxis", "secShow"))).lower() == "false"
+            peak = max(cols_v + list(target_v) + (line_v if shared else [])) or 1
+            if line_v and not shared:                      # secondary axis: the line has its own scale
+                line_v = [v / (max(line_v) or 1) * peak * 0.9 for v in line_v]
             n = len(labels)
             fills = self.bar_colours(objs, n)
             bars = "".join(f'<rect x="{i * 100 / n + 100 / n * 0.2:.1f}" y="{66 - 60 * v / peak:.1f}" '
@@ -373,7 +378,10 @@ class Preview:
         n = (min(len(self.labels(cat, 10)) or 5, 10) if "bar" in kind or "column" in kind or kind == "waterfallchart"
              else 12)
         labels = self.labels(cat, n) or [""] * n
-        vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
+        by_measure, by_category = (self.sample.get("series", {}).get(k or "") for k in (m, cat))
+        # A time series belongs to the measure; a ranking belongs to the category it ranks.
+        first, second = (by_measure, by_category) if kind == "linechart" else (by_category, by_measure)
+        vals = (first or second or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
         peak = max(vals) or 1
         lab = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2}"
         if "bar" in kind:
