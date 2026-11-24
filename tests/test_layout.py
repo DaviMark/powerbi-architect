@@ -70,6 +70,35 @@ class TestLayoutEngine(unittest.TestCase):
             chart = [v for r in back["pages"][0]["rows"] for v in r["visuals"] if v["type"] == "clusteredBarChart"][0]
             self.assertEqual(chart.get("target"), "Meta % No Prazo")
 
+    def test_rankings_are_shaded_by_value_and_months_are_not(self):
+        spec = self.spec(rows=[{"height": 248, "split": [1, 1], "visuals": [
+            {"type": "clusteredBarChart", "category": "dm_x[Regional]", "values": ["M"], "title": "a", "alt": "a"},
+            {"type": "clusteredColumnChart", "category": "dm_calendario[Ano-Mês]", "values": ["M"], "title": "b",
+             "alt": "b"}]}])
+        files = self.build(spec)
+        charts = {v["visual"]["visualType"]: v["visual"] for v in files.values()
+                  if (v.get("visual") or {}).get("visualType", "").startswith("clustered")}
+        fill = charts["clusteredBarChart"]["objects"]["dataPoint"][0]["properties"]["fill"]["solid"]["color"]["expr"]
+        grad = fill["FillRule"]["FillRule"]["linearGradient2"]
+        self.assertEqual(fill["FillRule"]["Input"]["Measure"]["Property"], "M")
+        self.assertNotEqual(grad["min"]["color"]["Literal"]["Value"], grad["max"]["color"]["Literal"]["Value"])
+        self.assertNotIn("dataPoint", charts["clusteredColumnChart"].get("objects") or {})
+
+    def test_kpi_trend_is_a_quiet_line_that_extract_reads_back(self):
+        spec = self.spec(rows=[{"height": 88, "visuals": [
+            {"type": "kpi", "measure": "M", "label": "M", "alt": "m", "trend": "dm_calendario[Ano-Mês]"}]}])
+        files = self.build(spec)
+        line = next(v for v in files.values() if (v.get("visual") or {}).get("visualType") == "lineChart")
+        self.assertEqual(line["visual"]["visualContainerObjects"]["title"][0]["properties"]["show"]["expr"]
+                         ["Literal"]["Value"], "false")
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "X.Report"
+            pbir_layout.Builder(spec).build(report)
+            back, _ = pbir_layout.extract(report)
+            kpi = back["pages"][0]["rows"][0]["visuals"][0]
+            self.assertEqual(kpi.get("trend"), "dm_calendario[Ano-Mês]")
+            self.assertEqual(len(back["pages"][0]["rows"][0]["visuals"]), 1)
+
     def test_a_bar_row_much_taller_than_its_bars_is_noted(self):
         b = pbir_layout.Builder(self.spec(rows=[{"height": 400, "visuals": [
             {"type": "clusteredBarChart", "category": "dm_x[X]", "values": ["M"], "title": "Barras", "alt": "a", "items": 5}]}]))

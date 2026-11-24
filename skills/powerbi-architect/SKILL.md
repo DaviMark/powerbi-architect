@@ -116,9 +116,9 @@ parameters, visual calculations, DAX functions: [references/semantic-features.md
 
 Start from the decision the person must make and work back to the pixels. Remove until it breaks.
 
-- **Never the default Microsoft look.** Every report is a calm product in the style of Twenty (the
-  open-source CRM): `#F5F5F7` canvas, quiet 220 px sidebar, borderless white cards (radius 8),
-  56 px top bar (breadcrumb · updated at · ≤ 2 compact slicers), one accent, thin bars.
+- **Never the default Microsoft look.** Every report reads like a modern product: `#F4F4F5` canvas,
+  white sidebar, white cards with a hairline border (radius 12), page name as a heading, ink and greys
+  with colour only for good/bad, KPI cards with a trend line, thin bars shaded by value.
   Exact positions: [references/report-design.md](references/report-design.md) §0.
 - 1280×720, **4 px grid**, 16 px gutters, aligned edges. **Type:** one family (Segoe UI + Semibold when
   there is no brand font); sizes 9 · 10 · 12 · 20, never above 14 in text boxes or 24 anywhere.

@@ -372,25 +372,29 @@
               "measure": "Receita",
               "label": "Receita líquida",
               "variation": "Texto Var Receita",
-              "variationColor": "Cor Var Receita"
+              "variationColor": "Cor Var Receita",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "% Margem",
               "label": "Margem",
               "variation": "Texto Var Margem",
-              "variationColor": "Cor Var Margem"
+              "variationColor": "Cor Var Margem",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "Pedidos",
               "label": "Pedidos faturados",
-              "variation": "Texto Clientes"
+              "variation": "Texto Clientes",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "Ticket Médio",
-              "label": "Ticket médio por pedido"
+              "label": "Ticket médio por pedido",
+              "trend": "dm_calendario[Ano-Mês]"
             }
           ]
         },

@@ -24,9 +24,9 @@ the JSON of each archetype, or copy one by hand when you cannot run Python.
 | `tooltip/` | Tooltip page | 320×240, one visual; bound to visuals through `visualTooltip` |
 | `documentation/` | Documentation | measures catalog (608×616) + loads (400×616); needs `_Documentacao` and `_Cargas` ([documentation.md](../../references/documentation.md)) |
 
-Every page also has the shell: sidebar (app mark, section label, page navigator, one 16 px icon per page
-from [`templates/icons/`](../icons/README.md)), white panel, top bar (breadcrumb, "updated at",
-≤ 2 slicers of 176×40) and a `mobile.json` next to each content visual (phone layout, stacked).
+Every page also has the shell: white sidebar (app mark, section label, page navigator, one 16 px icon per
+page from [`templates/icons/`](../icons/README.md), "updated at" at its foot), a header (report name above
+the page name, ≤ 2 slicers of 176×40) and a `mobile.json` next to each content visual (phone layout, stacked).
 
 ## Copying a page by hand
 

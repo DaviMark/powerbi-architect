@@ -44,11 +44,14 @@ Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, wat
   combo     {"category": field, "values": [column measures], "lineValues": [line measures]}
   scatter   {"details": field, "x": measure, "y": measure, "size": measure, "labels": true (≤ 12 points)}
   kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
+  kpi "trend": date field adds a small trend line at the card's right (no axes, own scale)
 Chart craft: "target": m on lineChart and combo adds the target as a thin grey dashed line;
 combo puts the line on the columns' axis when it has a target ("sameAxis": true/false to choose);
 "target": m on bar and column charts paints the bars below the target red and the rest in the accent
 ("higherIsBetter": false flips it, "belowColor" changes the red); "colorMeasure": m colours each bar from a
-measure that returns a hex instead. Row "height": "auto" fits the content (bars: 52 + 32 per expected category,
+measure that returns a hex instead. Bar and column charts with one measure and neither are shaded by
+value by default, a pale tint of the accent up to the accent ("emphasis": "none" for flat bars); time
+on the axis (calendar, month, date) stays one colour. Row "height": "auto" fits the content (bars: 52 + 32 per expected category,
 set "items": n on the visual; tables: 64 + 28 per row); "fill" takes what is left of the 616 px.
 A field parameter is just a column: use its column as "category" or "rows" and put a slicer on it.
 Every data visual needs "alt" (alt text) and "title" or "titleMeasure" (kpi uses "label").
@@ -76,9 +79,12 @@ import sys
 from pathlib import Path
 
 SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition"
-INK, INK3, LINE, ACCENT = "#1D1D1F", "#6E6E73", "#E8E8ED", "#2F6FEB"
+INK, INK3, LINE, ACCENT = "#18181B", "#71717A", "#E4E4E7", "#18181B"
 TARGET = "#999999"   # target and reference series: visible, but quieter than the data
 ALERT = "#CE2C31"    # bars on the wrong side of their target
+SPARK = "#A1A1AA"    # the small trend line inside a KPI card
+# Months and days on the axis: shading those by value reads as noise, so they stay one colour.
+TIME_FIELD = re.compile(r"calend|\[(?:data|date|m[eê]s|ano|year|month|semana|week|dia|day)\b", re.I)
 PAGE_W, PAGE_H = 1280, 720
 CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H, GUTTER = 232, 80, 1024, 616, 16
 NAV_X, NAV_Y, NAV_ITEM = 8, 76, 32
@@ -93,6 +99,13 @@ def write_lf(path: Path, text: str) -> None:
     """UTF-8 with LF line endings on every OS (write_text has no newline= before Python 3.10)."""
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
+
+def tint(hex_: str, share: float) -> str:
+    """`hex_` mixed with white: share 0 keeps the colour, 1 is white."""
+    h = hex_.lstrip("#")
+    rgb = [int(h[k:k + 2], 16) for k in (0, 2, 4)]
+    return "#" + "".join(f"{round(c + (255 - c) * share):02X}" for c in rgb)
+
 
 class SpecError(ValueError):
     pass
@@ -424,6 +437,17 @@ class Builder:
         return {"properties": {"fill": {"solid": {"color": {"expr": rule}}}},
                 "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}
 
+    def emphasis(self, measure: str) -> dict:
+        """Bars shaded by their own value, a pale tint of the accent up to the accent: the eye lands on the
+        largest values first and the rest recede. Power BI's built-in gradient rule (no DAX measure)."""
+        def stop(c):
+            return {"color": {"Literal": {"Value": f"'{c}'"}}}
+        rule = {"FillRule": {"Input": self.field(measure), "FillRule": {"linearGradient2": {
+            "min": stop(tint(self.accent, 0.78)), "max": stop(self.accent),
+            "nullColoringStrategy": {"strategy": {"Literal": {"Value": "'asZero'"}}}}}}}
+        return {"properties": {"fill": {"solid": {"color": {"expr": rule}}}},
+                "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}
+
     @staticmethod
     def auto_height(visuals: list[dict]) -> int:
         """Row height that fits its content: bars grow with the expected number of categories."""
@@ -468,6 +492,21 @@ class Builder:
                 out.append((key + "-var", (x + 12, y + h - 28, w - 24, 20), self.data_visual(
                     "card", {"Values": {"projections": [self.proj(spec["variation"])]}},
                     f"Variação de {spec.get('label', spec['measure'])}", chrome=False, objects=objects)))
+            if spec.get("trend"):
+                if w < 236:
+                    self.notes.append(f"KPI '{spec.get('label', spec['measure'])}' is {w} px wide: the trend "
+                                      "needs 236 px, left out")
+                else:
+                    off = {"show": lit("false")}
+                    objects = {"categoryAxis": [{"properties": dict(off)}], "valueAxis": [{"properties": dict(off)}],
+                               "labels": [{"properties": dict(off)}], "legend": [{"properties": dict(off)}],
+                               "dataPoint": [{"properties": {"fill": color(SPARK)}}],
+                               "lineStyles": [{"properties": {"strokeWidth": lit("2D"), "showMarker": lit("false")}}]}
+                    roles = {"Category": {"projections": [self.proj(spec["trend"])]},
+                             "Y": {"projections": [self.proj(spec["measure"])]}}
+                    out.append((key + "-spark", (x + w - 100, y + 28, 88, 36), self.data_visual(
+                        "lineChart", roles, f"Tendência de {spec.get('label', spec['measure'])}",
+                        sort=(spec["trend"], "Ascending"), chrome=False, objects=objects)))
             return out
         if t in CHARTS:
             cat_role = "Category"
@@ -498,6 +537,12 @@ class Builder:
                                                               spec.get("higherIsBetter", True))]
             elif spec.get("target") and t != "lineChart":
                 raise SpecError(f"'target' works on lineChart, combo, bar and column charts, not {t}")
+            elif (t in ("clusteredBarChart", "clusteredColumnChart") and len(spec["values"]) == 1
+                  and spec.get("emphasis", "none" if TIME_FIELD.search(spec["category"]) else "gradient")
+                  == "gradient"):
+                objects["dataPoint"] = [self.emphasis(spec["values"][0])]
+            elif spec.get("emphasis") not in (None, "gradient", "none"):
+                raise SpecError(f"'emphasis' is \"gradient\" (default on bar and column charts) or \"none\"")
             objects = objects or None
             return [(key, pos, self.data_visual(t, roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort,
@@ -626,6 +671,8 @@ class Builder:
         if len(slicers) > 2:
             raise SpecError(f"page '{name}': at most 2 slicers in the top bar")
         items = [
+            ("lateral", (0, 0, 224, 720), self.shape("#FFFFFF")),
+            ("divisa", (224, 0, 1, 720), self.shape(LINE)),
             ("marca", (16, 20, 16, 16), self.shape(self.accent, rounded=True)),
             ("app", (40, 16, 172, 24), self.textbox(self.run(self.app, 10, INK, semibold=True))),
             ("secao", (8, 52, 204, 24), self.textbox(self.run(self.spec.get("navLabel", "Páginas"), 9, INK3))),
@@ -637,14 +684,14 @@ class Builder:
                 items.append((f"icone-{i}", (16, NAV_Y + 8 + NAV_ITEM * i, 16, 16),
                               self.image(p["icon"], f"Ícone da página {p['name']}")))
         crumb_x = 232
-        runs = [self.run(f"{self.app}  /  ", 12, INK3)]
+        trail = self.app
         if kind == "drillthrough":
-            items.append(("voltar", (232, 28, 24, 24), self.image("arrow-left", "Voltar para a página anterior", back=True)))
+            items.append(("voltar", (232, 36, 24, 24), self.image("arrow-left", "Voltar para a página anterior", back=True)))
             crumb_x = 264
             if page.get("parent"):
-                runs.append(self.run(f"{page['parent']}  /  ", 12, INK3))
-        runs.append(self.run(name, 12, INK, semibold=True))
-        items.append(("caminho", (crumb_x, 28, 520, 24), self.textbox(*runs)))
+                trail += f"  /  {page['parent']}"
+        items.append(("caminho", (crumb_x, 8, 520, 24), self.textbox(self.run(trail, 9, INK3))))
+        items.append(("titulo", (crumb_x, 32, 600, 36), self.textbox(self.run(name, 14, INK, semibold=True))))
         right = 1256
         bar = []                                   # placed right to left, added left to right (tab order)
         for i, f in enumerate(reversed(slicers)):
@@ -654,7 +701,7 @@ class Builder:
                 objects={"data": [{"properties": {"mode": lit("'Dropdown'")}}]})))
             right = x - GUTTER
         if self.spec.get("updated"):
-            bar.append(("atualizado", (right - 200, 28, 200, 24), self.data_visual(
+            bar.append(("atualizado", (16, 680, 192, 24), self.data_visual(
                 "card", {"Values": {"projections": [self.proj(self.spec["updated"])]}},
                 "Data e hora da última carga", chrome=False,
                 objects={"labels": [{"properties": {"fontSize": lit("9D"), "color": color(INK3),
@@ -677,7 +724,7 @@ class Builder:
         kpis = [p for p in placed if p[2].get("visualType") == "card" and not p[0].endswith("-var")
                 and p[0] != "atualizado"]
         others = [p for p in placed if p not in slicers and p not in kpis and p[0] != "atualizado"
-                  and not p[0].endswith("-var") and p[2].get("visualType") not in ("shape", "textbox", "image",
+                  and not p[0].endswith(("-var", "-spark")) and p[2].get("visualType") not in ("shape", "textbox", "image",
                                                                                      "pageNavigator")
                   and not self.too_wide_for_phone(p[2])]
         for key, *_ in slicers:
@@ -688,6 +735,8 @@ class Builder:
             out[key] = (PHONE_MARGIN, y, inner, 88)
             if f"{key}-var" in keys:
                 out[f"{key}-var"] = (PHONE_MARGIN + 12, y + 60, inner - 24, 20)
+            if f"{key}-spark" in keys:
+                out[f"{key}-spark"] = (PHONE_MARGIN + inner - 100, y + 24, 88, 40)
             y += 88 + PHONE_MARGIN
         for key, pos, _ in others:
             h = min(pos[3], 240)
@@ -1004,6 +1053,10 @@ class Extractor:
                     self.app = self.app or "".join(runs).strip()
                 elif len(runs) == 3 and binding == "Drillthrough":                # App / Parent / Page
                     page["parent"] = runs[1].strip().rstrip("/").strip()
+                elif len(runs) == 1 and binding == "Drillthrough" and pos.get("y", 99) < 32:   # "App  /  Parent"
+                    parts = [x.strip() for x in runs[0].split("/")]
+                    if len(parts) >= 2:
+                        page["parent"] = parts[1]
             if not vis or vis.get("visualType") in DECORATION:
                 continue
             if c.get("filterConfig"):
@@ -1017,7 +1070,19 @@ class Extractor:
                 slicers.append(self.roles(v, w)["Values"][0])
             elif v["visualType"] == "card" and self.chromeless(v):
                 self.updated = self.roles(v, w)["Values"][0]
+        for p, v, w in list(body):                        # "updated at" at the foot of the sidebar
+            if v["visualType"] == "card" and self.chromeless(v) and p.get("x", 999) < 224:
+                self.updated = self.roles(v, w)["Values"][0]
+                body.remove((p, v, w))
         cards = [(p, v, w) for p, v, w in body if v["visualType"] in CARDS and not self.chromeless(v)]
+        trends = {}
+        for p, v, w in list(body):                        # small trend charts inside KPI cards
+            if v["visualType"] == "lineChart" and self.chromeless(v):
+                host = next((c for c in cards if c[0]["x"] <= p["x"] <= c[0]["x"] + c[0]["width"]
+                             and c[0]["y"] <= p["y"] <= c[0]["y"] + c[0]["height"]), None)
+                if host:
+                    trends[host[2]] = self.roles(v, w)["Category"][0]
+                    body.remove((p, v, w))
         variations = {}
         for p, v, w in body:                              # variation lines inside KPI cards
             if v["visualType"] == "card" and self.chromeless(v):
@@ -1056,6 +1121,7 @@ class Extractor:
             self.notes.append(f"{name}: {len(slicers)} slicers; kept {slicers[:2]}, move the rest to the filter pane")
         if slicers[:2] != shared_slicers:
             page["slicers"] = slicers[:2]
+        self._trends = trends
         page["rows"] = self.rows(body, page_names, variations, name)
         return page
 
@@ -1082,6 +1148,8 @@ class Extractor:
                 if not s:
                     continue
                 folder = w.rsplit("/", 1)[-1]
+                if s["type"] == "kpi" and w in getattr(self, "_trends", {}):
+                    s["trend"] = self._trends[w]
                 if s["type"] == "kpi" and w in variations:
                     s["variation"], color_, var_folder = variations[w]
                     if color_:

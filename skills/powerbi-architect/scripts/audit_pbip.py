@@ -419,7 +419,7 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI063": ("SUGGESTION", "6", "KPI cards too narrow or too many in one row", ()),
     "PBI064": ("SUGGESTION", "6", "Chart too small to read", ()),
     "PBI065": ("SUGGESTION", "a11y", "Theme colours that look alike to people with colour-vision deficiency", ()),
-    "PBI066": ("SUGGESTION", "6", "Corners rounder than 8 px (the generic 'AI dashboard' look)", ()),
+    "PBI066": ("SUGGESTION", "6", "Corners rounder than 12 px (the generic 'AI dashboard' look)", ()),
     "PBI067": ("SUGGESTION", "6", "Shadow or glow on a visual", ()),
     "PBI068": ("SUGGESTION", "6", "Uneven, cramped or loose gutters between visuals", ()),
     "PBI069": ("SUGGESTION", "1", "Two visuals that show the same thing", ()),
@@ -1124,9 +1124,9 @@ def audit(root: Path, config: dict | None = None) -> list:
                     add("PBI048", where_v, f"{vtype or 'visual'} on page '{display}': {', '.join(off)} not a "
                                            "multiple of 4 px — align it to the grid")
                 radius = num_literal(((vco_or(v).get("border") or [{}])[0].get("properties") or {}).get("radius"))
-                if radius is not None and radius > 8:
+                if radius is not None and radius > 12:
                     add("PBI066", where_v, f"{vtype or 'visual'} on page '{display}': corner radius {radius:g} px — "
-                                           "keep 0–8 px; very round cards read as a template, not a product")
+                                           "keep 0–12 px; very round cards read as a template, not a product")
                 shadow = ((vco_or(v).get("dropShadow") or [{}])[0].get("properties") or {}).get("show")
                 if str(num_literal(shadow, raw=True)).lower() == "true":
                     add("PBI067", where_v, f"{vtype or 'visual'} on page '{display}' has a shadow — use the "
