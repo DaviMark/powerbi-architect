@@ -235,59 +235,10 @@
       "folder": "DRE"
     },
     {
-      "name": "Texto Var Receita",
-      "description": "Linha do KPI de receita: distância para o orçado, com seta.",
-      "expr": "VAR _d = DIVIDE ( [Receita Líquida] - [Receita Líquida Orçada], [Receita Líquida Orçada] ) RETURN IF ( ISBLANK ( _d ), BLANK (), IF ( _d >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"0.0%\" ) & IF ( _d >= 0, \" acima\", \" abaixo\" ) & \" do orçado\" )",
-      "folder": "Textos",
-      "sample": "▲ 2,1% acima do orçado"
-    },
-    {
-      "name": "Cor Var Receita",
-      "description": "Cor da linha do KPI de receita: verde no orçado ou acima.",
-      "expr": "IF ( [Receita Líquida] >= [Receita Líquida Orçada], \"#00824D\", \"#CE2C31\" )",
-      "folder": "Cores",
-      "sampleColor": "#00824D"
-    },
-    {
-      "name": "Texto Var EBITDA",
-      "description": "Linha do KPI de EBITDA: distância para o orçado, em reais.",
-      "expr": "VAR _d = [EBITDA] - [EBITDA Orçado] RETURN IF ( ISBLANK ( [EBITDA Orçado] ), BLANK (), IF ( _d >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"R$ #,0\" ) & IF ( _d >= 0, \" acima\", \" abaixo\" ) & \" do orçado\" )",
-      "folder": "Textos",
-      "sample": "▼ R$ 412.330 abaixo do orçado"
-    },
-    {
-      "name": "Cor Var EBITDA",
-      "description": "Cor da linha do KPI de EBITDA: verde no orçado ou acima.",
-      "expr": "IF ( [EBITDA] >= [EBITDA Orçado], \"#00824D\", \"#CE2C31\" )",
-      "folder": "Cores",
-      "sampleColor": "#CE2C31"
-    },
-    {
-      "name": "Texto Var Despesas",
-      "description": "Linha do KPI de despesas: distância para o orçado; gastar menos é favorável.",
-      "expr": "VAR _d = DIVIDE ( [Despesas Operacionais] - [Despesas Orçadas], [Despesas Orçadas] ) RETURN IF ( ISBLANK ( _d ), BLANK (), IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"0.0%\" ) & IF ( _d > 0, \" acima\", \" abaixo\" ) & \" do orçado\" )",
-      "folder": "Textos",
-      "sample": "▼ 3,4% abaixo do orçado"
-    },
-    {
-      "name": "Cor Var Despesas",
-      "description": "Cor da linha do KPI de despesas: vermelho acima do orçado.",
-      "expr": "IF ( [Despesas Operacionais] > [Despesas Orçadas], \"#CE2C31\", \"#00824D\" )",
-      "folder": "Cores",
-      "sampleColor": "#00824D"
-    },
-    {
       "name": "Cor Desvio",
       "description": "Cor do desvio em tabelas: vermelho quando desfavorável.",
       "expr": "IF ( [Desvio] < 0, \"#CE2C31\", \"#333333\" )",
       "folder": "Cores"
-    },
-    {
-      "name": "Titulo Receita",
-      "description": "Título do gráfico de receita mensal, com o total contra o orçado.",
-      "expr": "\"Receita líquida: \" & FORMAT ( [Receita Líquida], \"R$ #,0\" ) & \" de \" & FORMAT ( [Receita Líquida Orçada], \"R$ #,0\" ) & \" orçados\"",
-      "folder": "Títulos",
-      "sample": "Receita líquida: R$ 48.302.118 de R$ 47.311.904 orçados"
     }
   ],
   "series": {
@@ -311,37 +262,39 @@
       "icon": "layout-dashboard",
       "rows": [
         {
-          "height": 88,
+          "height": 104,
           "visuals": [
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Receita Líquida",
               "label": "Receita líquida",
-              "variation": "Texto Var Receita",
-              "variationColor": "Cor Var Receita",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Receita Líquida Orçada",
+              "alt": "Receita líquida no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "EBITDA",
               "label": "EBITDA",
-              "variation": "Texto Var EBITDA",
-              "variationColor": "Cor Var EBITDA",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "EBITDA Orçado",
+              "alt": "EBITDA no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "% Margem EBITDA",
               "label": "Margem EBITDA",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Margem EBITDA no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Despesas Operacionais",
               "label": "Despesas operacionais",
-              "variation": "Texto Var Despesas",
-              "variationColor": "Cor Var Despesas",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Despesas Orçadas",
+              "higherIsBetter": false,
+              "alt": "Despesas operacionais no último mês, com a variação e a tendência"
             }
           ]
         },
@@ -353,16 +306,15 @@
           ],
           "visuals": [
             {
-              "type": "combo",
+              "type": "trend",
               "category": "dm_calendario[Ano-Mês]",
               "values": [
                 "Receita Líquida"
               ],
-              "lineValues": [
-                "Receita Líquida Orçada"
-              ],
-              "titleMeasure": "Titulo Receita",
-              "alt": "Receita líquida realizada por mês em colunas e orçada em linha"
+              "title": "Receita líquida por mês",
+              "seriesName": "Receita Líquida",
+              "alt": "Receita líquida realizada por mês em colunas e orçada em linha",
+              "compare": "Receita Líquida Orçada"
             },
             {
               "type": "clusteredBarChart",
@@ -377,7 +329,7 @@
           ]
         },
         {
-          "height": 248,
+          "height": 232,
           "visuals": [
             {
               "type": "waterfallChart",

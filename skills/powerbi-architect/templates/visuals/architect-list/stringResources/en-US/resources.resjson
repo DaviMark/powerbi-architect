@@ -1,0 +1,12 @@
+{
+  "Role_Tooltips": "Tooltips",
+  "Role_Period": "Period",
+  "Role_Value": "Value",
+  "Role_Item": "Item",
+  "Role_Detail": "Second line",
+  "Role_Status": "Status",
+  "Role_Values": "Values",
+  "Role_Progress": "Progress (0 to 1)",
+  "Landing_Title": "Architect List",
+  "Landing_Hint": "Add an Item and the Values; optionally a Second line, a Status and Progress."
+}

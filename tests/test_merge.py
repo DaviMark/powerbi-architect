@@ -49,12 +49,12 @@ class TestManualEditsSurvive(unittest.TestCase):
 
     def test_edits_by_hand_and_spec_changes_both_land(self):
         v = visuals(self.report)
-        bar_path, bar = v[("Visão Geral", "clusteredBarChart", "Vencido por regional")]
+        bar_path, bar = v[("Diagnóstico", "clusteredBarChart", "Vencido por segmento")]
         bar["position"]["x"] += 8                                   # moved in Desktop
         bar["visual"]["visualContainerObjects"]["title"][0]["properties"]["text"] = \
-            {"expr": {"Literal": {"Value": "'Vencido por regional (R$)'"}}}
+            {"expr": {"Literal": {"Value": "'Vencido por segmento (R$)'"}}}
         save(bar_path, bar)
-        table_path, _ = v[("Clientes", "tableEx", "Clientes que concentram o valor vencido")]
+        table_path, _ = v[("Diagnóstico", "tableEx", "Regionais acima da meta de vencido")]
         shutil.rmtree(table_path.parent)                            # deleted in Desktop
         mine = table_path.parents[1] / "meuvisual00000000000"
         mine.mkdir()
@@ -65,45 +65,45 @@ class TestManualEditsSurvive(unittest.TestCase):
         order = json.loads(pages.read_text(encoding="utf-8"))
         order["pageOrder"].insert(0, order["pageOrder"].pop(2))     # pages reordered in Desktop
         save(pages, order)
-        col_path, col = v[("Visão Geral", "clusteredColumnChart", "Vencido por faixa de atraso")]
+        col_path, col = v[("Detalhe do cliente", "clusteredColumnChart", "Vencido do cliente por faixa de atraso")]
         save(col_path, col)                                         # untouched, only reformatted
 
         spec = json.loads(json.dumps(self.spec))
-        row = spec["pages"][0]["rows"][1]["visuals"]
-        row[1]["title"] = "Vencido por faixa"                       # spec changes another visual
-        spec["pages"][0]["rows"][2]["visuals"][0]["sort"] = "asc"   # and the visual the user moved
+        detail = next(p for p in spec["pages"] if p["name"] == "Detalhe do cliente")
+        detail["rows"][1]["visuals"][1]["title"] = "Vencido por faixa"     # spec changes another visual
+        spec["pages"][1]["rows"][0]["visuals"][1]["sort"] = "asc"   # and the visual the user moved
         spec["pages"].insert(3, {"name": "Nova", "icon": "chart-bar", "rows": [{"height": 88, "visuals": [
             {"type": "kpi", "measure": "Valor Aberto", "label": "Saldo"}]}]})
         m = self.build(spec)
 
         after = visuals(self.report)
-        moved = after[("Visão Geral", "clusteredBarChart", "Vencido por regional (R$)")][1]
+        moved = after[("Diagnóstico", "clusteredBarChart", "Vencido por segmento (R$)")][1]
         self.assertEqual(moved["position"]["x"], bar["position"]["x"])              # your move kept
         self.assertEqual(moved["visual"]["query"]["sortDefinition"]["sort"][0]["direction"], "Ascending")
-        self.assertIn(("Visão Geral", "clusteredColumnChart", "Vencido por faixa"), after)   # spec applied
-        self.assertNotIn(("Clientes", "tableEx", "Clientes que concentram o valor vencido"), after)
+        self.assertIn(("Detalhe do cliente", "clusteredColumnChart", "Vencido por faixa"), after)   # spec applied
+        self.assertNotIn(("Diagnóstico", "tableEx", "Regionais acima da meta de vencido"), after)
         self.assertTrue((mine / "visual.json").exists())
         new_order = json.loads(pages.read_text(encoding="utf-8"))["pageOrder"]
         self.assertEqual(new_order[:-1], [p for p in order["pageOrder"]])         # your order kept
         self.assertEqual(new_order[-1], pbir_layout.hid("page", "Nova"))           # new page appended
         self.assertTrue(m.merged and m.deleted_by_you)
         text = "\n".join(m.lines(self.report))
-        self.assertIn("Vencido por regional (R$)", text)
+        self.assertIn("Vencido por segmento (R$)", text)
 
     def test_conflict_keeps_your_value_and_force_restores_the_spec(self):
         v = visuals(self.report)
-        path, line = v[("Visão Geral", "lineChart", next(k[2] for k in v if k[1] == "lineChart"))]
+        path, line = next(pv for k, pv in v.items() if k[0] == "Visão Geral" and k[1].startswith("architectTrend"))
         line["position"]["height"] = 300
         save(path, line)
         spec = json.loads(json.dumps(self.spec))
-        spec["pages"][0]["rows"][1]["height"] = 252                 # spec also changes that height
-        spec["pages"][0]["rows"][2]["height"] = 244
+        spec["pages"][0]["rows"][1]["height"] = 248                 # spec also changes that height
+        spec["pages"][0]["rows"][2]["height"] = 232
         m = self.build(spec)
         rel = path.relative_to(self.report).as_posix()
         self.assertIn("position.height", m.conflicts[rel])
         self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["position"]["height"], 300)
         self.build(spec, force=True)
-        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["position"]["height"], 252)
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["position"]["height"], 248)
 
     def test_untouched_report_rebuilds_byte_for_byte(self):
         for f in self.report.rglob("*.json"):            # a Windows checkout (core.autocrlf) uses CRLF

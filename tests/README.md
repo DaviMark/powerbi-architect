@@ -16,7 +16,7 @@ Python 3.9 ao 3.13.
 | `test_skill.py` | `SKILL.md` e `references/` | estrutura da skill, links que resolvem, custo de contexto dentro do orçamento |
 | `test_references.py` | exemplos das referências | todo trecho de código das referências é válido |
 | `test_audit.py` | `audit_pbip.py` | cada regra, silenciamento, formatos de saída, linha de comando |
-| `test_layout.py` | `pbir_layout.py` | grade de 4 px, alturas automáticas, meta e cor nas barras, Top N, `--extract` |
+| `test_layout.py` | `pbir_layout.py` | grade de 4 px, alturas automáticas, meta e cor nas barras, Top N, `--extract`, visuais da skill dentro do relatório |
 | `test_merge.py` | `pbir_layout.py` | edições feitas à mão sobrevivem a uma nova geração |
 | `test_changes.py` | `pbip_changes.py` | edições feitas à mão são percebidas e descritas |
 | `test_preview.py` | `preview_pbir.py` | números no formato da amostra, meta, cores, crítica pixel a pixel |

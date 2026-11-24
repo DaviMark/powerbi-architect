@@ -84,6 +84,28 @@ WOBBLE = [1.0, 0.93, 0.88, 0.97, 0.9, 1.04, 0.95, 0.86, 1.02, 0.91, 0.99, 0.94, 
 TREND = [0.95, 0.965, 0.955, 0.975, 0.985, 0.97, 0.99, 1.005, 0.995, 1.015, 1.0, 1.02]   # months: a gentle climb
 
 
+VISUALS_JS = Path(__file__).resolve().parent / "visuals.js"
+# Renders the skill's custom visuals with the same drawing code Power BI runs (templates/visuals/core).
+ARCHITECT_RUN = """
+(function () {
+  var P = window.PBIArchitect; if (!P) return;
+  document.querySelectorAll('[data-pa]').forEach(function (el) {
+    var m = JSON.parse(el.getAttribute('data-model')), t = P.brandTokens(m.brand || {});
+    var w = el.clientWidth, h = el.clientHeight, kind = el.getAttribute('data-pa');
+    if (kind === 'kpi') P.renderKpi(el, m, w, h, t);
+    if (kind === 'list') { P.renderList(el, m, w, h, t);
+      if (el.dataset.scroll) el.querySelectorAll('table').forEach(function (x) { x.dataset.scroll = '1'; }); }
+    if (kind === 'trend') {
+      m.tick = function (v) { var d = Number.isInteger(v) ? 0 : 1;
+        return m.tickPrefix + v.toLocaleString('pt-BR', {minimumFractionDigits: d, maximumFractionDigits: d}) + m.tickSuffix; };
+      P.renderTrend(el, m, w, h, t);
+    }
+  });
+})();
+"""
+STATUSES = ["Atrasado", "Em risco", "A vencer", "Em dia", "Em dia", "Atrasado", "Em risco", "Em dia"]
+
+
 def parse_like(like: str | None):
     """(prefix, value, decimals, suffix) of a formatted sample value such as 'R$ 3,1 mi' or '91,4%'."""
     m = NUMBER.match(like or "")
@@ -244,6 +266,114 @@ class Preview:
         qs = (vis.get("query") or {}).get("queryState") or {}
         return {r: [self.field_of(p) for p in v.get("projections", [])] for r, v in qs.items()}
 
+    def display_name(self, vis: dict, role: str) -> str | None:
+        qs = (vis.get("query") or {}).get("queryState") or {}
+        projs = (qs.get(role) or {}).get("projections") or [{}]
+        return projs[0].get("displayName")
+
+    def architect_model(self, kind: str, vtype: str, vis: dict, roles: dict, objs: dict, w: float, h: float) -> dict:
+        """The data a custom visual of the skill gets, made from the sample (see templates/visuals/core)."""
+        style = ((self.theme.get("visualStyles") or {}).get(vtype) or {}).get("*", {}).get("brand") or [{}]
+        b = style[0]
+        brand = {"accent": self.color(b.get("accent")), "ink": self.color(b.get("text")),
+                 "muted": self.color(b.get("secondary")), "track": self.color(b.get("context")),
+                 "font": b.get("fontFamily") if b.get("fontFamily") and b.get("fontFamily") != "Segoe UI" else None}
+        brand = {k: v for k, v in brand.items() if v}
+        first = lambda r: (roles.get(r) or [None])[0]  # noqa: E731
+        props = lambda o: (objs.get(o) or [{}])[0].get("properties", {})  # noqa: E731
+        if kind == "kpi":
+            m = first("value")
+            text = self.sample.get("measures", {}).get(m or "") or "—"
+            p = parse_like(text)
+            pts = None
+            delta, tone, note = None, "neutral", None
+            if p:
+                cur = p[1]
+                shape = [TREND[i] * (0.9 + 0.1 * WOBBLE[(i * 5 + len(m or "")) % len(WOBBLE)]) for i in range(12)]
+                pts = [cur * x / shape[-1] for x in shape] if first("period") else None
+                ref = first("reference")
+                rp = parse_like(self.sample.get("measures", {}).get(ref or "")) if ref else None
+                base = rp[1] if rp else (pts[-2] if pts else None)
+                if base:
+                    percent = "%" in p[3]
+                    diff = (cur - base) if percent else (cur - base) / abs(base) * 100
+                    shown = f"{abs(diff):.1f}".replace(".", ",")
+                    delta = f"{'▲' if diff > 0 else '▼' if diff < 0 else '='} {shown}{' p.p.' if percent else '%'}"
+                    higher = str(lit(props("kpi").get("higherIsBetter"), "true")).lower() != "false"
+                    tone = "neutral" if diff == 0 else "good" if (diff > 0) == higher else "bad"
+                    months = self.labels(first("period"), 24)
+                    note = (f"meta {self.sample['measures'][ref]}" if rp
+                            else f"vs {months[-2]}" if len(months) > 1 else "vs período anterior")
+            custom_note = lit(props("kpi").get("note")) or self.sample.get("measures", {}).get(first("note") or "")
+            return {"label": self.display_name(vis, "value") or m, "value": text, "delta": delta, "tone": tone,
+                    "note": custom_note or note, "points": pts, "spark": lit(props("kpi").get("spark"), "auto"),
+                    "brand": brand}
+        if kind == "trend":
+            m, cat, cmp_ = first("value"), first("period"), first("compare")
+            labels = self.labels(cat, 12) or ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+            n = len(labels)
+            like = self.like(m)
+            vals = (self.sample.get("series", {}).get(cat or "") or
+                    self.series(m, n, [5, 6, 5.5, 7, 6.5, 8, 7.5, 8.5, 8, 9, 8.8, 10]))
+            vals = (vals + vals[-1:] * n)[:n]
+            comp = None
+            if cmp_:
+                comp = self.sample.get("series", {}).get(cmp_) or [v * (0.84 + 0.04 * WOBBLE[i % len(WOBBLE)])
+                                                                    for i, v in enumerate(vals)]
+            pl = parse_like(like) or ("", 0, 1, "")
+            last = n - 1
+            base = comp[last] if comp else vals[last - 1] if n > 1 else 0
+            note = None
+            if base:
+                diff = (vals[last] - base) / abs(base) * 100
+                against = self.display_name(vis, "compare") or cmp_ if comp else labels[last - 1]
+                note = f"{labels[last]} · {'▲' if diff > 0 else '▼'} {abs(diff):.1f}% vs {against}".replace(".", ",")
+            header = props("header")
+            show = str(lit(header.get("showHeadline"), "true")).lower() != "false"
+            return {"title": lit(header.get("title")) or self.display_name(vis, "value") or m,
+                    "total": fmt(vals[last], like) if show else None, "totalNote": note if show else None,
+                    "labels": labels, "values": vals, "valueTexts": [fmt(v, like) for v in vals],
+                    "seriesName": self.display_name(vis, "value") or m, "compare": comp,
+                    "compareName": (self.display_name(vis, "compare") or cmp_) if comp else None,
+                    "highlight": lit(props("focus").get("highlight"), "last"),
+                    "tickPrefix": pl[0], "tickSuffix": pl[3], "brand": brand}
+        item = first("item")
+        two = bool(first("detail"))
+        n = max(1, min(int((h - 30) // (52 if two else 36)) + 1, 12))
+        names = (self.labels(item, n) or [f"Item {i + 1}" for i in range(n)])[:n]
+        details = self.labels(first("detail"), 50)
+        statuses = self.labels(first("status"), 50) or STATUSES
+        columns, cells = [], [[] for _ in names]
+        if first("status"):
+            columns.append({"title": self.display_name(vis, "status") or first("status").split("[")[-1].rstrip("]"),
+                            "kind": "status"})
+            for i, row in enumerate(cells):
+                row.append({"kind": "status", "text": statuses[i % len(statuses)]})
+        for j, f in enumerate(roles.get("values") or []):
+            is_col = "[" in f and not f.startswith("[")
+            columns.append({"title": f.split("[")[-1].rstrip("]"), "kind": "text" if is_col else "number"})
+            if is_col:
+                vals = self.labels(f, 50) or ["—"]
+                texts = [vals[(i * 3 + j) % len(vals)] for i in range(len(names))]
+            else:
+                raw = (self.sample.get("series", {}).get(item or "") if j == 0 else None) or                     self.sample.get("series", {}).get(f) or self.synth(f, len(names), offset=j * 3) or []
+                raw = sorted(raw, reverse=True) if j == 0 else raw
+                texts = [self.num_text(x, f) for x in raw[:len(names)]] + ["—"] * len(names)
+            for i, row in enumerate(cells):
+                row.append({"kind": "text" if is_col else "number", "text": html.unescape(texts[i])})
+        if first("progress"):
+            columns.append({"title": first("progress").split("[")[-1].rstrip("]"), "kind": "progress"})
+            prog = self.synth(first("progress"), len(names), offset=5) or []
+            for i, row in enumerate(cells):
+                pct = prog[i] if i < len(prog) else [42, 58, 77, 93, 35, 66, 81, 50][i % 8]
+                v = pct / 100 if pct > 1 else pct
+                row.append({"kind": "progress", "value": v, "text": f"{v * 100:.0f}%"})
+        return {"title": lit(props("list").get("title")) or None,
+                "itemTitle": self.display_name(vis, "item") or (item or "").split("[")[-1].rstrip("]"),
+                "columns": columns, "avatars": str(lit(props("list").get("avatars"), "true")).lower() != "false",
+                "rows": [{"item": nm, "sub": details[(i * 7) % len(details)] if details and two else None, "cells": c}
+                         for i, (nm, c) in enumerate(zip(names, cells))], "brand": brand}
+
     def render_visual(self, v: dict, pos: dict, page_names: list[str], current: str) -> str:
         vis = v.get("visual", {}) or {}
         vtype = vis.get("visualType", "")
@@ -281,7 +411,16 @@ class Preview:
         bar = lambda width, height=8: (f'<span style="display:inline-block;width:{width}%;height:{height}px;'  # noqa: E731
                                        f'background:#EBEBEB;border-radius:2px"></span>')
 
-        if vtype == "textbox":
+        kind = next((k for k, prefix in (("kpi", "architectKpi"), ("list", "architectList"), ("trend", "architectTrend"))
+                     if vtype.startswith(prefix)), None)
+        if kind:
+            model = self.architect_model(kind, vtype, vis, roles, objs, w, h)
+            if kind == "list" and self.top_n(v):            # Power BI's Top N filter keeps only these rows
+                model["rows"] = model["rows"][:self.top_n(v)]
+            scroll = ' data-scroll="1"' if kind == "list" and h >= 400 else ""
+            inner = title + (f'<div data-pa="{kind}"{scroll} data-model="{html.escape(json.dumps(model, ensure_ascii=False))}" '
+                             f'style="width:100%;height:{h - (28 if title else 0)}px"></div>')
+        elif vtype == "textbox":
             for para in prop(objs, "general", "paragraphs", []) or []:
                 runs = []
                 for r in para.get("textRuns", []):
@@ -695,11 +834,14 @@ class Preview:
 
     @staticmethod
     def document(body: str, margin: int = 24) -> str:
+        runner = ""
+        if "data-pa=" in body and VISUALS_JS.exists():
+            runner = ("<script>" + VISUALS_JS.read_text(encoding="utf-8") + "</script><script>" + ARCHITECT_RUN + "</script>")
         return ("<!doctype html><meta charset='utf-8'><title>PBIR preview</title><style>"
                 f"body{{margin:{margin}px;background:#DADADA;font-family:{FONT}}}"
                 f"h2{{font:600 14px {FONT};color:#333;margin:24px 0 8px}}"
                 ".page{position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.15)}"
-                ".v{position:absolute;box-sizing:border-box;overflow:hidden}</style>" + body)
+                ".v{position:absolute;box-sizing:border-box;overflow:hidden}</style>" + body + runner)
 
     def pages(self, mobile: bool = False) -> list[tuple[str, int, int, str]]:
         """(title, width, height, html) for every page."""

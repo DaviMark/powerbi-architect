@@ -6,6 +6,18 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 
 ## [Não publicado]
 ### Adicionado
+- **Três visuais customizados da skill** (`templates/visuals`), para o que os visuais nativos não
+  desenham com acabamento de produto: `kpiCard` (rótulo, valor, pílula de variação verde ou vermelha,
+  nota e minitendência), `trend` (colunas densas com o número do último período, variação, legenda e o
+  período atual em destaque) e `list` (avatar, nome com segunda linha, situação em etiqueta, números e
+  barra de progresso). O motor coloca e empacota os visuais dentro do relatório; o `--extract` os lê
+  de volta. Compilam, passam no ESLint oficial e empacotam com `pbiviz` (CI).
+- **Identidade da empresa nos visuais.** `make_theme.py --primary --font` grava a cor de destaque, as
+  cores de texto e a fonte dos três visuais no tema; o acabamento é o mesmo para qualquer marca.
+- O preview desenha esses visuais com o mesmo código que roda no Power BI (`scripts/visuals.js`, gerado
+  por `tools/build_visuals.py`).
+- Exemplo: Visão Geral e Clientes com os visuais novos e a medida `Situação`; os kits ganharam KPIs e
+  tendência no mesmo padrão.
 - **Visual no estilo de produto moderno.** Tema em tinta (`#18181B`) e cinzas, com verde e vermelho só
   para bom e ruim; menu lateral branco; nome da página como título; cartões com borda fina e cantos de
   12 px. Barras de ranking e de categoria ganham sombreamento pelo próprio valor (cinza claro até a

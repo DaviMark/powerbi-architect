@@ -203,7 +203,7 @@ MEASURES = [
     ("Texto A Vencer", "Linha de contexto do KPI de saldo: quanto ainda não venceu.",
      "FORMAT ( [Valor a Vencer], \"R$ #,0\" ) & \" ainda a vencer\"", None, "Textos"),
     ("Texto Clientes Vencidos", "Linha de contexto do KPI de vencido: quantos clientes estão em atraso.",
-     "FORMAT ( [Clientes Vencidos], \"#,0\" ) & \" clientes com parcela vencida\"", None, "Textos"),
+     "FORMAT ( [Clientes Vencidos], \"#,0\" ) & \" clientes em atraso\"", None, "Textos"),
     ("Texto Var % Vencido", "Distância do % vencido para a meta, em pontos percentuais, com seta.",
      "VAR _d = [% Vencido] - [Meta % Vencido] RETURN IF ( ISBLANK ( [% Vencido] ), BLANK (), "
      "IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & "
@@ -220,14 +220,15 @@ MEASURES = [
      "IF ( [Atraso Médio (dias)] > [Meta Dias Atraso], \"#CE2C31\", \"#00824D\" )", None, "Cores"),
     ("Cor % Vencido", "Cor do % vencido em tabelas: vermelho quando passa da meta.",
      "IF ( [% Vencido] > [Meta % Vencido], \"#CE2C31\", \"#333333\" )", None, "Cores"),
-    ("Cor Atraso", "Cor do atraso médio em tabelas: vermelho acima de 60 dias, âmbar acima de 30.",
-     "SWITCH ( TRUE (), [Atraso Médio (dias)] > 60, \"#CE2C31\", [Atraso Médio (dias)] > 30, \"#AD6200\", \"#333333\" )",
-     None, "Cores"),
     ("Texto Atualizacao", "Data e hora da última carga, para a barra do topo.",
      "\"Atualizado em \" & FORMAT ( MAX ( '_Medidas'[Data Carga] ), \"dd/mm/yyyy hh:nn\" )", None, "Títulos"),
     ("Titulo Vencido", "Título dinâmico da página Visão Geral: valor vencido e participação no saldo.",
      "\"Vencido: \" & FORMAT ( [Valor Vencido], \"R$ #,0\" ) & \" (\" & FORMAT ( [% Vencido], \"0.0%\" ) & \" do saldo)\"",
      None, "Títulos"),
+    ("Situação", "Situação do cliente para listas de cobrança: Atrasado acima de 60 dias, Em risco acima de 30, "
+     "Em dia sem parcela vencida.",
+     "SWITCH ( TRUE (), ISBLANK ( [Valor Aberto] ), BLANK (), [Atraso Médio (dias)] > 60, \"Atrasado\", "
+     "[Atraso Médio (dias)] > 30, \"Em risco\", [Valor Vencido] > 0, \"A vencer\", \"Em dia\" )", None, "Textos"),
 ]
 
 

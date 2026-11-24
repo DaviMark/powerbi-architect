@@ -189,7 +189,22 @@ def build(primary: str, name: str, font: str) -> tuple[dict, list[str]]:
     for k in ("foreground", "foregroundNeutralSecondary", "foregroundNeutralTertiary", "hyperlink"):
         if contrast(t[k]) < 4.5:
             raise ValueError(f"{k} {t[k]} is below 4.5:1 on white")
+    brand_visuals(t, accent=accent, font=font)
     return t, notes
+
+
+def brand_visuals(theme: dict, accent: str, font: str) -> None:
+    """The skill's custom visuals (templates/visuals) read the identity from their "brand" card: the accent
+    for the focus, the theme's text colours and font. Same craft for every brand, only these change."""
+    folder = Path(__file__).resolve().parent.parent / "templates" / "visuals"
+    style = {"accent": {"solid": {"color": accent}},
+             "text": {"solid": {"color": theme.get("foreground", "#18181B")}},
+             "secondary": {"solid": {"color": theme.get("foregroundNeutralSecondary", "#71717A")}},
+             "context": {"solid": {"color": "#D4D4D8"}},
+             "fontFamily": font}
+    for pbiviz in sorted(folder.glob("architect-*/pbiviz.json")):
+        guid = json.loads(pbiviz.read_text(encoding="utf-8"))["visual"]["guid"]
+        theme["visualStyles"][guid] = {"*": {"brand": [dict(style)]}}
 
 
 def main() -> int:

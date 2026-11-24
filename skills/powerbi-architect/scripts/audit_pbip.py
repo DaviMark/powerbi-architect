@@ -579,6 +579,26 @@ def font_usage(visual: dict) -> tuple[list[float], set[str]]:
     return sizes, families
 
 
+def architect_title(visual: dict, vtype: str) -> str | None:
+    """The title a custom visual of the skill (templates/visuals) draws itself, or None for other visuals:
+    the KPI's label (the value's display name), the trend's header, the list's title ("" when it has none)."""
+    def first_name(role: str) -> str:
+        p = ((((visual.get("query") or {}).get("queryState") or {}).get(role) or {}).get("projections") or [{}])[0]
+        f = p.get("field") or {}
+        return p.get("displayName") or next((v.get("Property", "") for v in f.values() if isinstance(v, dict)), "")
+
+    def prop_text(obj: str, name: str) -> str:
+        v = (((visual.get("objects") or {}).get(obj) or [{}])[0].get("properties", {}).get(name) or {})
+        return str(v.get("expr", {}).get("Literal", {}).get("Value", "")).strip("'")
+    if vtype.startswith("architectKpi"):
+        return first_name("value")
+    if vtype.startswith("architectTrend"):
+        return prop_text("header", "title") or first_name("value")
+    if vtype.startswith("architectList"):
+        return prop_text("list", "title")
+    return None
+
+
 def chromeless(container: dict) -> bool:
     """A data visual with no title, background or border annotates another element (a KPI's variation
     line, the "updated at" text): it does not count as a separate visual on the page."""
@@ -1019,7 +1039,8 @@ def audit(root: Path, config: dict | None = None) -> list:
                 code = strip_dax(m.expression)
                 is_text = ("FORMAT" in m.expression.upper() or m.expression.lstrip().startswith('"')
                            or re.search(r'"#[0-9A-Fa-f]{6}"', m.expression) is not None
-                           or re.search(r'"\s*&|&\s*"', m.expression) is not None)
+                           or re.search(r'"\s*&|&\s*"', m.expression) is not None
+                           or re.search(r'\b(?:SWITCH|IF)\s*\(.*,\s*"[^"]*"\s*[,)]', m.expression, re.S) is not None)
                 if not m.description:
                     add("PBI005", path, f"measure [{m.name}] missing description", m.line, m_ign)
                 if not (m.format_string or is_text):
@@ -1174,6 +1195,9 @@ def audit(root: Path, config: dict | None = None) -> list:
                 title_text = tprops.get("text", {})
                 literal = str(title_text.get("expr", {}).get("Literal", {}).get("Value", "")).strip("'") \
                     if isinstance(title_text, dict) else ""
+                own = architect_title(v, vtype)
+                if own is not None:            # the skill's custom visuals draw their own title or label
+                    title_show, literal = "true", own
                 has_title = title_show != "false" and bool(literal or "Measure" in str(title_text))
                 if not has_title:
                     add("PBI056", where_v, f"{vtype} on page '{display}' has no title — say what it shows, "

@@ -1,0 +1,17 @@
+{
+		"version": "1.0.0.0",
+		"author": {"name":"powerbi-architect","email":"maintainers@example.com"},
+		"resources": [
+			{
+				"resourceId": "rId0",
+				"sourceType": 5,
+				"file": "resources/architectKpi65B0C3629EF349A48053C4786DFC05A7.pbiviz.json"
+			}
+		],
+		"visual": {"name":"architectKpi","displayName":"Architect KPI","guid":"architectKpi65B0C3629EF349A48053C4786DFC05A7","visualClassName":"Visual","version":"1.0.0.0","description":"KPI card: value, variation pill, note and a small trend (powerbi-architect).","supportUrl":"https://github.com/DaviMark/powerbi-architect","gitHubUrl":"https://github.com/DaviMark/powerbi-architect"},
+		"metadata": {
+			"pbivizjson": {
+				"resourceId": "rId0"
+			}
+		}
+	}

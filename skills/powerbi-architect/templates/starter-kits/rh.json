@@ -229,31 +229,10 @@
       "sample": "214 admissões, 187 desligamentos"
     },
     {
-      "name": "Texto Var Turnover",
-      "description": "Linha do KPI de turnover: distância para o teto, em pontos percentuais.",
-      "expr": "VAR _d = [Turnover Mensal] - [Meta Turnover] RETURN IF ( ISBLANK ( [Turnover Mensal] ), BLANK (), IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & IF ( _d > 0, \"acima\", \"abaixo\" ) & \" do teto de \" & FORMAT ( [Meta Turnover], \"0.0%\" ) )",
-      "folder": "Textos",
-      "sample": "▲ 0,3 p.p. acima do teto de 1,5%"
-    },
-    {
-      "name": "Cor Var Turnover",
-      "description": "Cor da linha do KPI de turnover: vermelho acima do teto.",
-      "expr": "IF ( [Turnover Mensal] > [Meta Turnover], \"#CE2C31\", \"#00824D\" )",
-      "folder": "Cores",
-      "sampleColor": "#CE2C31"
-    },
-    {
       "name": "Cor Turnover",
       "description": "Cor do turnover em tabelas: vermelho acima do teto.",
       "expr": "IF ( [Turnover Mensal] > [Meta Turnover], \"#CE2C31\", \"#333333\" )",
       "folder": "Cores"
-    },
-    {
-      "name": "Titulo Headcount",
-      "description": "Título do gráfico de quadro mensal, com o quadro atual.",
-      "expr": "\"Quadro ao fim de cada mês: \" & FORMAT ( [Headcount], \"#,0\" ) & \" pessoas hoje\"",
-      "folder": "Títulos",
-      "sample": "Quadro ao fim de cada mês: 2.318 pessoas hoje"
     }
   ],
   "series": {
@@ -298,34 +277,39 @@
       "icon": "layout-dashboard",
       "rows": [
         {
-          "height": 88,
+          "height": 104,
           "visuals": [
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Headcount",
               "label": "Pessoas no quadro",
-              "variation": "Texto Admissões",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "noteMeasure": "Texto Admissões",
+              "alt": "Pessoas no quadro no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Turnover Mensal",
               "label": "Turnover mensal médio",
-              "variation": "Texto Var Turnover",
-              "variationColor": "Cor Var Turnover",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Meta Turnover",
+              "higherIsBetter": false,
+              "alt": "Turnover mensal médio no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "% Voluntário",
               "label": "Desligamentos a pedido",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "higherIsBetter": false,
+              "alt": "Desligamentos a pedido no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Salário Médio",
               "label": "Salário base médio",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Salário base médio no último mês, com a variação e a tendência"
             }
           ]
         },
@@ -337,13 +321,13 @@
           ],
           "visuals": [
             {
-              "type": "lineChart",
+              "type": "trend",
               "category": "dm_calendario[Ano-Mês]",
               "values": [
                 "Headcount"
               ],
-              "titleMeasure": "Titulo Headcount",
-              "sort": "category",
+              "title": "Pessoas no quadro por mês",
+              "seriesName": "Headcount",
               "alt": "Quantidade de pessoas no quadro ao fim de cada mês"
             },
             {
@@ -359,7 +343,7 @@
           ]
         },
         {
-          "height": 248,
+          "height": 232,
           "visuals": [
             {
               "type": "combo",
