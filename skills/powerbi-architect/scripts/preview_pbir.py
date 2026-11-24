@@ -111,7 +111,8 @@ class Preview:
         if isinstance(c, dict):
             m = measure_name(c)
             if m:
-                return self.sample.get("colors", {}).get(m, default)
+                c = self.sample.get("colors", {}).get(m, default)
+                return c[0] if isinstance(c, list) and c else c    # a list is one colour per bar
             return lit(c, default)
         return default
 
