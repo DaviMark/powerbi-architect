@@ -96,7 +96,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Como cada faixa de atraso compõe o vencido'"
+                  "Value": "'Como as faixas compõem o vencido'"
                 }
               }
             }

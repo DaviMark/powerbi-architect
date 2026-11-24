@@ -83,8 +83,17 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
 2. **Layout descrito, não desenhado:** a IA descreve as páginas em linhas de visuais e `pbir_layout.py`
    calcula cada posição na grade de 4 px, com sidebar, barra do topo, KPIs com linha de meta, gráficos,
    tabelas, páginas de drill-through e de tooltip e o layout de celular.
-3. **Ver antes de entregar:** `preview_pbir.py` desenha cada página, com dados de amostra, para a IA olhar
-   e corrigir o que estiver desalinhado ou pesado. Os espaçamentos internos dos visuais são aproximações;
+3. **Criticar até não sobrar nada, e só então olhar:** `preview_pbir.py --critique` desenha cada página
+   no navegador e mede pixel a pixel:
+   - texto cortado ou vazando;
+   - valor que não cabe;
+   - texto colado na borda;
+   - visuais sobrepostos;
+   - gutters irregulares;
+   - colunas desalinhadas entre linhas;
+   - cartões grandes demais para o conteúdo.
+
+   A IA corrige e roda de novo até zerar. Depois abre cada imagem e faz a revisão de três segundos. Os espaçamentos internos dos visuais são aproximações;
    [calibrar o preview](docs/calibrar-preview.md) mostra como compará-los com capturas do Desktop.
 4. **Auditar:** `audit_pbip.py` dá uma nota de harmonia de 0 a 100 por página e só aceita entregar com 90
    ou mais.
