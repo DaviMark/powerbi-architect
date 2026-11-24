@@ -1,0 +1,144 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
+  "name": "9b32e9f121e835fa573f",
+  "position": {
+    "x": 852,
+    "y": 200,
+    "z": 38000,
+    "width": 404,
+    "height": 228,
+    "tabOrder": 38000
+  },
+  "visual": {
+    "visualType": "architectRing689D7C06BDE24EB68F1D5159F5A63988",
+    "query": {
+      "queryState": {
+        "category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "ft_titulos"
+                    }
+                  },
+                  "Property": "Faixa Atraso"
+                }
+              },
+              "queryRef": "ft_titulos.Faixa Atraso",
+              "nativeQueryRef": "Faixa Atraso"
+            }
+          ]
+        },
+        "value": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Valor Vencido"
+                }
+              },
+              "queryRef": "_Medidas.Valor Vencido",
+              "nativeQueryRef": "Valor Vencido"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "ft_titulos"
+                  }
+                },
+                "Property": "Faixa Atraso"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Valor vencido dividido pelas faixas de atraso, com o total no centro'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "header": [
+        {
+          "properties": {
+            "title": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Vencido por faixa de atraso'"
+                }
+              }
+            },
+            "centerNote": {
+              "expr": {
+                "Literal": {
+                  "Value": "'vencido'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "ring": [
+        {
+          "properties": {
+            "center": {
+              "expr": {
+                "Literal": {
+                  "Value": "'total'"
+                }
+              }
+            },
+            "higherIsBetter": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -40,7 +40,7 @@ class TestMakeTheme(unittest.TestCase):
     def test_brand_reaches_the_skills_visuals(self):
         theme, _ = make_theme.build("#C2410C", "Marca", "Segoe UI")
         styles = [v for k, v in theme["visualStyles"].items() if k.startswith("architect")]
-        self.assertEqual(len(styles), 3)
+        self.assertEqual(len(styles), 4)
         for style in styles:
             brand = style["*"]["brand"][0]
             self.assertEqual(brand["accent"]["solid"]["color"], theme["dataColors"][0])

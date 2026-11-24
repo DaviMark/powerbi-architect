@@ -140,9 +140,10 @@ export class Visual implements IVisual {
             const percent = /%/.test(valueCol.source.format || "");
             const diff = percent ? (current - base) * 100 : (current - base) / Math.abs(base) * 100;
             const shown = Math.abs(diff).toLocaleString(this.host.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-            const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "=";
+            const flat = Math.abs(diff) < 0.05;          // shows as 0,0: no direction, no colour
+            const arrow = flat ? "=" : diff > 0 ? "▲" : "▼";
             delta = `${arrow} ${shown}${percent ? " p.p." : "%"}`;
-            if (diff !== 0) {
+            if (!flat) {
                 tone = (diff > 0) === this.settings.kpi.higherIsBetter.value ? "good" : "bad";
             }
         }

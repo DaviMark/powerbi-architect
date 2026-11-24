@@ -53,6 +53,12 @@ The skill's custom visuals (templates/visuals; packaged inside the report, ident
             "headline": true, "focus": "last"|"max"|"none"}  dense columns, headline and legend
   list      {"item": field, "detail": field, "status": field, "values": [...], "progress": m (0-1),
             "itemTitle", "title", "sortBy", "top", "avatars"}  rows to act on, status chips
+  ring      {"category", "values": [m]} slices of a whole, or {"measure", "target"} progress to a goal;
+            "title", "centerNote", "center": "total"|"first", "sort": "desc", "label", "targetLabel"
+Shell options: spec "subtitle" (under the app name), "source" (sidebar foot), "dateRange": date column
+(two date boxes in the header, where ≤ 2 filters allow); page "section" (sidebar group), "badge": count
+measure beside the page row, "tabs": field-parameter column (Mês · Trimestre · Ano tiles, "tabItems": n),
+"action": {"text", "page"} (a button in the header that opens a page).
 Chart craft: "target": m on lineChart and combo adds the target as a thin grey dashed line;
 combo puts the line on the columns' axis when it has a target ("sameAxis": true/false to choose);
 "target": m on bar and column charts paints the bars below the target red and the rest in the accent
@@ -111,10 +117,10 @@ def _architect_guid(folder: str) -> str:
 
 # The skill's own custom visuals (templates/visuals): spec type -> (folder, visualType in PBIR).
 ARCHITECT = {t: (f, _architect_guid(f)) for t, f in (("kpiCard", "architect-kpi"), ("trend", "architect-trend"),
-                                                    ("list", "architect-list"))}
+                                                    ("list", "architect-list"), ("ring", "architect-ring"))}
 CHARTS = {"lineChart", "clusteredBarChart", "clusteredColumnChart", "waterfallChart"}
 SPEC_TYPES = {"kpi", "card", "tableEx", "slicer", "matrix", "combo", "scatter", "kpiTrend", "kpiCard", "trend",
-              "list"} | CHARTS
+              "list", "ring"} | CHARTS
 
 
 
@@ -349,9 +355,37 @@ class Builder:
         return out
 
     @staticmethod
-    def textbox(*runs):
+    def textbox(*runs, align=None):
+        para = {"textRuns": list(runs)}
+        if align:
+            para["horizontalTextAlignment"] = align
         return {"visualType": "textbox",
-                "objects": {"general": [{"properties": {"paragraphs": [{"textRuns": list(runs)}]}}]},
+                "objects": {"general": [{"properties": {"paragraphs": [para]}}]},
+                "drillFilterOtherVisuals": True}
+
+    def button(self, alt: str, page: str | None = None, *, text: str | None = None, fill: str | None = None,
+               ink: str = "#FFFFFF"):
+        """A Power BI button. With `page`, a click goes to that page; without `text` and `fill` it is an
+        invisible layer over a drawn item (the sidebar's rows)."""
+        objects = {"text": [{"properties": {"show": lit("true" if text else "false")}}],
+                   "icon": [{"properties": {"show": lit("false")}}],
+                   "outline": [{"properties": {"show": lit("false")}}],
+                   "fill": [{"properties": {"show": lit("true" if fill else "false")}}],
+                   "shape": [{"properties": {"tileShape": lit("'rectangleRounded'")}}]}
+        if text:
+            objects["text"][0]["properties"].update({"text": lit(quote(text)), "fontColor": color(ink),
+                                                     "fontSize": lit("9D"), "fontFamily": lit("'Segoe UI Semibold'")})
+        if fill:
+            objects["fill"][0]["properties"].update({"fillColor": color(fill), "transparency": lit("0D")})
+        vco = {"general": [{"properties": {"altText": lit(quote(alt))}}],
+               "background": [{"properties": {"show": lit("false")}}],
+               "border": [{"properties": {"show": lit("false")}}]}
+        if page:
+            if page not in self.page_ids:
+                raise SpecError(f"button to '{page}': not a page in the spec")
+            vco["visualLink"] = [{"properties": {"show": lit("true"), "type": lit("'PageNavigation'"),
+                                                 "navigationSection": lit(quote(self.page_ids[page]))}}]
+        return {"visualType": "actionButton", "objects": objects, "visualContainerObjects": vco,
                 "drillFilterOtherVisuals": True}
 
     @staticmethod
@@ -518,6 +552,25 @@ class Builder:
                                                  "showHeadline": boolean(spec.get("headline", True))}}]
             if spec.get("focus"):
                 objects["focus"] = [{"properties": {"highlight": text(spec["focus"])}}]
+        elif t == "ring":
+            if spec.get("category"):
+                if len(spec.get("values", [])) != 1:
+                    raise SpecError("'ring' with a category takes one measure in \"values\"")
+                roles = {"category": {"projections": [self.proj(spec["category"])]},
+                         "value": {"projections": [self.proj(spec["values"][0])]}}
+                if spec.get("sort") == "desc":
+                    sort = (spec["values"][0], "Descending")
+                else:
+                    sort = (spec["category"], "Ascending")
+            elif spec.get("measure") and spec.get("target"):
+                roles = {"value": {"projections": [named(spec["measure"], spec.get("label"))]},
+                         "target": {"projections": [named(spec["target"], spec.get("targetLabel"))]}}
+            else:
+                raise SpecError("'ring' needs \"category\" and \"values\" (slices) or \"measure\" and \"target\" (goal)")
+            objects["header"] = [{"properties": {"title": text(spec.get("title", "")),
+                                                 "centerNote": text(spec.get("centerNote", ""))}}]
+            objects["ring"] = [{"properties": {"center": text(spec.get("center", "total")),
+                                               "higherIsBetter": boolean(spec.get("higherIsBetter", True))}}]
         else:
             roles = {"item": {"projections": [named(spec["item"], spec.get("itemTitle"))]}}
             for role in ("detail", "status", "progress"):
@@ -760,21 +813,23 @@ class Builder:
         name = page["name"]
         kind = page.get("kind", "page")
         slicers = page.get("slicers", self.spec.get("slicers", [])) if kind != "tooltip" else []
-        if len(slicers) > 2:
-            raise SpecError(f"page '{name}': at most 2 slicers in the top bar")
+        tabs = page.get("tabs")
+        date_range = page.get("dateRange") if kind != "tooltip" else None
+        if date_range is None and kind != "tooltip" and len(slicers) + bool(tabs) < 2:
+            date_range = self.spec.get("dateRange")          # the report-wide date range, where it fits
+        if len(slicers) + bool(tabs) + bool(date_range) > 2:
+            raise SpecError(f"page '{name}': at most 2 filters in the top bar (slicers, tabs and dateRange together)")
         items = [
             ("lateral", (0, 0, 224, 720), self.shape("#FFFFFF")),
             ("divisa", (224, 0, 1, 720), self.shape(LINE)),
-            ("marca", (16, 20, 16, 16), self.shape(self.accent, rounded=True)),
-            ("app", (40, 16, 172, 24), self.textbox(self.run(self.app, 10, INK, semibold=True))),
-            ("secao", (8, 52, 204, 24), self.textbox(self.run(self.spec.get("navLabel", "Páginas"), 9, INK3))),
-            ("navegacao", (NAV_X, NAV_Y, 204, NAV_ITEM * len(visible_pages)),
-             {"visualType": "pageNavigator", "drillFilterOtherVisuals": True}),
+            ("marca", (16, 16, 32, 32), self.mark()),
+            ("app", (56, 12 if self.spec.get("subtitle") else 20, 160, 24),
+             self.textbox(self.run(self.app, 10, INK, semibold=True))),
         ]
-        for i, p in enumerate(visible_pages):
-            if p.get("icon"):
-                items.append((f"icone-{i}", (16, NAV_Y + 8 + NAV_ITEM * i, 16, 16),
-                              self.image(p["icon"], f"Ícone da página {p['name']}")))
+        if self.spec.get("subtitle"):
+            items.append(("app-sub", (56, 32, 160, 24), self.textbox(self.run(self.spec["subtitle"], 8, INK3))))
+        items += self.navigation(page, visible_pages)
+        items += self.footer()
         crumb_x = 232
         trail = self.app
         if kind == "drillthrough":
@@ -782,23 +837,112 @@ class Builder:
             crumb_x = 264
             if page.get("parent"):
                 trail += f"  /  {page['parent']}"
-        items.append(("caminho", (crumb_x, 8, 520, 24), self.textbox(self.run(trail, 9, INK3))))
-        items.append(("titulo", (crumb_x, 32, 600, 36), self.textbox(self.run(name, 14, INK, semibold=True))))
         right = 1256
         bar = []                                   # placed right to left, added left to right (tab order)
+        action = page.get("action")
+        if action and kind == "page":
+            w = max(96, 32 + 7 * len(action["text"])) // 4 * 4
+            right -= w
+            bar.append(("acao", (right, 28, w, 32), self.button(
+                action.get("alt") or f"{action['text']}: abre a página {action['page']}", action["page"],
+                text=action["text"], fill=self.accent)))
+            right -= 12
+        if date_range:
+            right -= 224
+            bar.append(("periodo", (right, 24, 224, 40), self.data_visual(
+                "slicer", {"Values": {"projections": [self.proj(date_range)]}}, "Intervalo de datas",
+                objects={"data": [{"properties": {"mode": lit("'Between'")}}],
+                         "header": [{"properties": {"show": lit("false")}}],
+                         "slider": [{"properties": {"show": lit("false")}}],
+                         "date": [{"properties": {"fontSize": lit("9D"), "fontColor": color(INK)}}]})))
+            right -= 12
         for i, f in enumerate(reversed(slicers)):
-            x = right - 176
-            bar.append((f"filtro-{i}", (x, 20, 176, 40), self.data_visual(
+            right -= 176
+            bar.append((f"filtro-{i}", (right, 24, 176, 40), self.data_visual(
                 "slicer", {"Values": {"projections": [self.proj(f)]}}, f"Filtro de {self.ref(f)[2]}",
                 objects={"data": [{"properties": {"mode": lit("'Dropdown'")}}]})))
-            right = x - GUTTER
-        if self.spec.get("updated"):
-            bar.append(("atualizado", (16, 680, 192, 24), self.data_visual(
-                "card", {"Values": {"projections": [self.proj(self.spec["updated"])]}},
-                "Data e hora da última carga", chrome=False,
-                objects={"labels": [{"properties": {"fontSize": lit("9D"), "color": color(INK3),
-                                                    "fontFamily": lit("'Segoe UI'")}}]})))
+            right -= 12
+        if tabs:
+            n = page.get("tabItems", 3)
+            w = 16 + 72 * n
+            right -= w
+            bar.append(("abas", (right, 24, w, 40), self.data_visual(
+                "slicer", {"Values": {"projections": [self.proj(tabs)]}}, f"Abas de {self.ref(tabs)[2]}",
+                objects={"data": [{"properties": {"mode": lit("'Basic'")}}],
+                         "general": [{"properties": {"orientation": lit("1D")}}],
+                         "selection": [{"properties": {"singleSelect": lit("true"), "strictSingleSelect": lit("true"),
+                                                       "selectAllCheckboxEnabled": lit("false")}}],
+                         "header": [{"properties": {"show": lit("false")}}],
+                         "items": [{"properties": {"fontColor": color(INK), "background": color("#FFFFFF"),
+                                                   "outline": lit("'None'"), "textSize": lit("9D"),
+                                                   "fontFamily": lit("'Segoe UI Semibold'")}}]})))
+            right -= 12
+        title_w = max(160, right - crumb_x - 4) // 4 * 4
+        items.append(("caminho", (crumb_x, 8, min(520, title_w), 24), self.textbox(self.run(trail, 9, INK3))))
+        items.append(("titulo", (crumb_x, 28, min(600, title_w), 36), self.textbox(self.run(name, 14, INK, semibold=True))))
         return items + bar[::-1]
+
+    def mark(self):
+        """The app's mark: its initial, white on the accent, in a rounded square."""
+        v = self.textbox(self.run(self.app.strip()[:1].upper(), 12, "#FFFFFF", semibold=True), align="center")
+        v["visualContainerObjects"] = {
+            "background": [{"properties": {"show": lit("true"), "color": color(self.accent), "transparency": lit("0D")}}],
+            "border": [{"properties": {"show": lit("false"), "radius": lit("8D")}}]}
+        return v
+
+    def navigation(self, page: dict, visible_pages: list[dict]):
+        """The sidebar: pages grouped into sections ("section" on each page), the current page filled, an
+        optional count at the right ("badge": a measure), a button over each row that opens its page."""
+        out, y = [], 68
+        out.append(("lateral-linha", (16, 60, 192, 1), self.shape(LINE)))
+        sections: list[tuple[str, list[dict]]] = []
+        for p in visible_pages:
+            label = p.get("section", self.spec.get("navLabel", "Páginas"))
+            if not sections or sections[-1][0] != label:
+                sections.append((label, []))
+            sections[-1][1].append(p)
+        current = page.get("parent") if page.get("kind") == "drillthrough" else page["name"]
+        for s, (label, pages) in enumerate(sections):
+            y += 8 if s == 0 else 12
+            out.append((f"secao-{s}", (12, y, 200, 24), self.textbox(self.run(label.upper(), 7, INK3, semibold=True))))
+            y += 24
+            for p in pages:
+                i = visible_pages.index(p)
+                on = p["name"] == current
+                if on:
+                    out.append(("nav-atual", (8, y, 208, 32), self.shape("#F4F4F5", rounded=True)))
+                if p.get("icon"):
+                    out.append((f"icone-{i}", (20, y + 8, 16, 16), self.image(p["icon"], f"Ícone da página {p['name']}")))
+                out.append((f"nav-{i}", (44, y + 4, 128, 24),
+                            self.textbox(self.run(p["name"], 10, INK if on else "#52525B", semibold=on))))
+                if p.get("badge"):
+                    out.append((f"nav-{i}-pilula", (172, y + 8, 36, 16),
+                                self.shape("#FFFFFF" if on else "#F4F4F5", rounded=True)))
+                    out.append((f"nav-{i}-conta", (172, y + 8, 36, 16), self.data_visual(
+                        "card", {"Values": {"projections": [self.proj(p["badge"])]}}, f"Quantidade em {p['name']}",
+                        chrome=False, objects={"labels": [{"properties": {
+                            "fontSize": lit("8D"), "color": color(INK3), "fontFamily": lit("'Segoe UI Semibold'")}}]})))
+                out.append((f"nav-{i}-botao", (8, y, 208, 32), self.button(f"Abrir a página {p['name']}", p["name"])))
+                y += 36
+        return out
+
+    def footer(self):
+        """The sidebar's foot: when the data was loaded and where it comes from, in a quiet panel."""
+        if not self.spec.get("updated"):
+            return []
+        source = self.spec.get("source")
+        top = 720 - 16 - (84 if source else 64)
+        out = [("rodape", (12, top, 200, 720 - 16 - top), self.shape("#FAFAFA", panel=True)),
+               ("rodape-ponto", (24, top + 16, 8, 8), self.shape("#16A34A", rounded=True)),
+               ("rodape-titulo", (36, top + 8, 168, 24), self.textbox(self.run("Dados em dia", 9, INK, semibold=True))),
+               ("atualizado", (24, top + 36, 180, 20), self.data_visual(
+                   "card", {"Values": {"projections": [self.proj(self.spec["updated"])]}},
+                   "Data e hora da última carga", chrome=False,
+                   objects={"labels": [{"properties": {"fontSize": lit("8D"), "color": color(INK3),
+                                                       "fontFamily": lit("'Segoe UI'")}}]}))]
+        if source:
+            out.append(("rodape-fonte", (20, top + 56, 184, 24), self.textbox(self.run(source, 8, INK3))))
+        return out
 
     @staticmethod
     def too_wide_for_phone(visual: dict) -> bool:
@@ -812,12 +956,12 @@ class Builder:
         """Stack the content visuals for the phone layout: slicers, KPIs, then the rest, full width."""
         out, y = {}, PHONE_MARGIN
         inner = PHONE_W - 2 * PHONE_MARGIN
+        shell = lambda p: p[0] == "atualizado" or p[0].startswith(("nav-", "rodape"))  # noqa: E731  (sidebar)
         slicers = [p for p in placed if p[2].get("visualType") == "slicer"]
-        kpis = [p for p in placed if p[2].get("visualType") == "card" and not p[0].endswith("-var")
-                and p[0] != "atualizado"]
-        others = [p for p in placed if p not in slicers and p not in kpis and p[0] != "atualizado"
-                  and not p[0].endswith(("-var", "-spark")) and p[2].get("visualType") not in ("shape", "textbox", "image",
-                                                                                     "pageNavigator")
+        kpis = [p for p in placed if p[2].get("visualType") == "card" and not p[0].endswith("-var") and not shell(p)]
+        others = [p for p in placed if p not in slicers and p not in kpis and not shell(p)
+                  and not p[0].endswith(("-var", "-spark")) and p[2].get("visualType") not in (
+                      "shape", "textbox", "image", "pageNavigator", "actionButton")
                   and not self.too_wide_for_phone(p[2])]
         for key, *_ in slicers:
             out[key] = (PHONE_MARGIN, y, inner, 40)
@@ -830,8 +974,10 @@ class Builder:
             if f"{key}-spark" in keys:
                 out[f"{key}-spark"] = (PHONE_MARGIN + inner - 100, y + 24, 88, 40)
             y += 88 + PHONE_MARGIN
-        for key, pos, _ in others:
-            h = min(pos[3], 240)
+        lists = ARCHITECT["list"][1]
+        for key, pos, vis in others:
+            # A list keeps the height its rows need; a long one gets 400 px and scrolls.
+            h = (pos[3] if pos[3] <= 320 else 400) if vis.get("visualType") == lists else min(pos[3], 240)
             out[key] = (PHONE_MARGIN, y, inner, h)
             y += h + PHONE_MARGIN
         return out
@@ -1067,6 +1213,27 @@ class Extractor:
             if prop("focus", "highlight"):
                 out["focus"] = prop("focus", "highlight")
             return out
+        if kind == "ring":
+            out = {"type": "ring"}
+            if first("category"):
+                out.update(category=first("category"), values=r.get("value", []))
+                by, direction = self.sort(vis)
+                if by and direction == "Descending":
+                    out["sort"] = "desc"
+            else:
+                out.update(measure=first("value"), target=first("target"))
+                if disp("value"):
+                    out["label"] = disp("value")
+                if disp("target"):
+                    out["targetLabel"] = disp("target")
+            for name in ("title", "centerNote"):
+                if prop("header", name):
+                    out[name] = prop("header", name)
+            if prop("ring", "center") and prop("ring", "center") != "total":
+                out["center"] = prop("ring", "center")
+            if str(prop("ring", "higherIsBetter")).lower() == "false":
+                out["higherIsBetter"] = False
+            return out
         out = {"type": "list", "item": first("item")}
         if disp("item"):
             out["itemTitle"] = disp("item")
@@ -1195,7 +1362,7 @@ class Extractor:
         else:
             self.notes.append(f"{where}: {t or 'unknown'} is not in the layout engine; rebuild it by hand")
             return None
-        if out["type"] not in ("kpi", "kpiTrend", "kpiCard", "trend", "list"):   # the skill's visuals carry their own
+        if out["type"] not in ("kpi", "kpiTrend", "kpiCard", "trend", "list", "ring"):   # the skill's visuals carry their own
             if title_measure:
                 out["titleMeasure"] = title_measure
             else:
@@ -1214,9 +1381,50 @@ class Extractor:
         if pdir.name != hid("page", name):
             page["id"] = pdir.name            # keep the folder: a rebuild must land on the same files
         items = []
+        # The shell this engine writes (sidebar, header controls) has known keys: read it back by them.
+        shell_keys = ["app", "app-sub", "rodape-fonte", "abas", "periodo", "acao", "atualizado"] + \
+            [f"secao-{s}" for s in range(12)] + [f"nav-{i}" for i in range(40)] + [f"nav-{i}-conta" for i in range(40)]
+        shell = {hid("visual", name, k): k for k in shell_keys}
+        sections, nav_y, badges = [], {}, {}
         for f in sorted((pdir / "visuals").glob("*/visual.json")):
             c = json.loads(f.read_text(encoding="utf-8-sig"))
             vis = c.get("visual")
+            key = shell.get(f.parent.name)
+            if key and vis:
+                where = f"{name}/{f.parent.name}"
+                text = "".join(r.get("value", "") for para in (_prop(vis.get("objects") or {}, "general", "paragraphs") or [])
+                               for r in para.get("textRuns", [])).strip()
+                y = c.get("position", {}).get("y", 0)
+                if key == "app":
+                    self.app = text
+                elif key == "app-sub":
+                    self.subtitle = text
+                elif key == "rodape-fonte":
+                    self.source = text
+                elif key == "atualizado":
+                    self.updated = self.roles(vis, where)["Values"][0]
+                elif key == "periodo":
+                    self.date_range = self.date_range or self.roles(vis, where)["Values"][0]
+                elif key == "abas":
+                    page["tabs"] = self.roles(vis, where)["Values"][0]
+                    n = (c.get("position", {}).get("width", 232) - 16) // 72
+                    if n != 3:
+                        page["tabItems"] = n
+                elif key == "acao":
+                    vco = vis.get("visualContainerObjects") or {}
+                    target = page_names.get(_lit(_prop(vco, "visualLink", "navigationSection")))
+                    label = _lit(_prop(vis.get("objects") or {}, "text", "text")) or ""
+                    page["action"] = {"text": label, "page": target}
+                    alt = _lit(_prop(vco, "general", "altText"))
+                    if alt and alt != f"{label}: abre a página {target}":
+                        page["action"]["alt"] = alt
+                elif key.startswith("secao-"):
+                    sections.append((y, text.capitalize()))
+                elif key.endswith("-conta"):
+                    badges[int(key.split("-")[1])] = self.roles(vis, where)["Values"][0]
+                elif key.startswith("nav-"):
+                    nav_y[int(key.split("-")[1])] = y
+                continue
             if vis and vis.get("visualType") == "textbox" and c.get("position", {}).get("y", 99) < CONTENT_Y - 8:
                 runs = [r.get("value", "") for para in (_prop(vis.get("objects") or {}, "general", "paragraphs") or [])
                         for r in para.get("textRuns", [])]
@@ -1295,6 +1503,8 @@ class Extractor:
             page["slicers"] = slicers[:2]
         self._trends = trends
         page["rows"] = self.rows(body, page_names, variations, name)
+        if nav_y and not self.nav:
+            self.nav = (sorted(sections), nav_y, badges)
         return page
 
     def rows(self, body, page_names, variations, page_name) -> list[dict]:
@@ -1382,6 +1592,8 @@ class Extractor:
         page_names = {pid: d.get("displayName", pid) for pid, d in datas.items()}
         self.updated = None
         self.app = None
+        self.subtitle = self.source = self.date_range = None
+        self.nav = None
         first_slicers: list = []
         pages, icon_i = [], 0
         for pid in order:
@@ -1395,6 +1607,15 @@ class Extractor:
         for p in pages:
             if "slicers" in p and p["slicers"] == first_slicers:
                 del p["slicers"]
+        if self.nav:                                     # sidebar sections and counts, read off the first page
+            sections, nav_y, badges = self.nav
+            visible = [p for p in pages if p.get("kind", "page") == "page"]
+            for i, p in enumerate(visible):
+                above = [label for y, label in sections if i in nav_y and y < nav_y[i]]
+                if above and above[-1] != "Páginas":
+                    p["section"] = above[-1]
+                if i in badges:
+                    p["badge"] = badges[i]
         counts: dict[str, int] = {}
         for ent in self.measure_tables.values():
             counts[ent] = counts.get(ent, 0) + 1
@@ -1408,6 +1629,9 @@ class Extractor:
             spec["updated"] = self.updated
         else:
             self.notes.append("no 'updated at' measure; add one (references/dax.md) and set \"updated\"")
+        for key, value in (("subtitle", self.subtitle), ("source", self.source), ("dateRange", self.date_range)):
+            if value:
+                spec[key] = value
         spec["slicers"] = first_slicers
         spec["pages"] = pages
         return spec

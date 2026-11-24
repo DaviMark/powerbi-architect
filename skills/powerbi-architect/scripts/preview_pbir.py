@@ -100,6 +100,7 @@ ARCHITECT_RUN = """
         return m.tickPrefix + v.toLocaleString('pt-BR', {minimumFractionDigits: d, maximumFractionDigits: d}) + m.tickSuffix; };
       P.renderTrend(el, m, w, h, t);
     }
+    if (kind === 'ring') P.renderRing(el, m, w, h, t);
   });
 })();
 """
@@ -202,6 +203,10 @@ class Preview:
             return html.escape(self.sample["measures"][measure])
         return placeholder
 
+    def axis(self, field: str | None) -> str | None:
+        """A field parameter's column stands for its first field (the tab selected by default)."""
+        return (self.sample.get("parameters") or {}).get(field or "", field)
+
     def labels(self, field: str | None, n: int) -> list[str]:
         vals = self.sample.get("fields", {}).get(field or "", [])
         return vals[:n] if vals else []
@@ -298,9 +303,10 @@ class Preview:
                     percent = "%" in p[3]
                     diff = (cur - base) if percent else (cur - base) / abs(base) * 100
                     shown = f"{abs(diff):.1f}".replace(".", ",")
-                    delta = f"{'▲' if diff > 0 else '▼' if diff < 0 else '='} {shown}{' p.p.' if percent else '%'}"
+                    flat = abs(diff) < 0.05
+                    delta = f"{'=' if flat else '▲' if diff > 0 else '▼'} {shown}{' p.p.' if percent else '%'}"
                     higher = str(lit(props("kpi").get("higherIsBetter"), "true")).lower() != "false"
-                    tone = "neutral" if diff == 0 else "good" if (diff > 0) == higher else "bad"
+                    tone = "neutral" if flat else "good" if (diff > 0) == higher else "bad"
                     months = self.labels(first("period"), 24)
                     note = (f"meta {self.sample['measures'][ref]}" if rp
                             else f"vs {months[-2]}" if len(months) > 1 else "vs período anterior")
@@ -309,7 +315,7 @@ class Preview:
                     "note": custom_note or note, "points": pts, "spark": lit(props("kpi").get("spark"), "auto"),
                     "brand": brand}
         if kind == "trend":
-            m, cat, cmp_ = first("value"), first("period"), first("compare")
+            m, cat, cmp_ = first("value"), self.axis(first("period")), first("compare")
             labels = self.labels(cat, 12) or ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
             n = len(labels)
             like = self.like(m)
@@ -337,6 +343,37 @@ class Preview:
                     "compareName": (self.display_name(vis, "compare") or cmp_) if comp else None,
                     "highlight": lit(props("focus").get("highlight"), "last"),
                     "tickPrefix": pl[0], "tickSuffix": pl[3], "brand": brand}
+        if kind == "ring":
+            header, ring = props("header"), props("ring")
+            title = lit(header.get("title")) or self.display_name(vis, "value") or first("value")
+            note = lit(header.get("centerNote")) or None
+            m = first("value")
+            like = self.like(m)
+            cat = first("category")
+            if cat:
+                labels = self.labels(cat, 6) or ["A", "B", "C"]
+                vals = (self.sample.get("series", {}).get(cat) or self.synth(m, len(labels)) or [3, 2, 1])[:len(labels)]
+                total = sum(max(v, 0) for v in vals) or 1
+                parts = [{"label": lb, "value": v, "text": fmt(v, like), "share": f"{v / total * 100:.0f}%"}
+                         for lb, v in zip(labels, vals)]
+                center = (parts[0]["share"] if lit(ring.get("center"), "total") == "first"
+                          else self.sample.get("measures", {}).get(m) or fmt(total, like))
+                return {"title": title, "center": center, "centerNote": note, "parts": parts, "brand": brand}
+            tgt = first("target")
+            pv, pt = parse_like(self.like(m)), parse_like(self.like(tgt))
+            v, t = (pv[1] if pv else 82.0), (pt[1] if pt else 100.0)
+            higher = str(lit(ring.get("higherIsBetter"), "true")).lower() != "false"
+            gap = t - v
+            prog = v / t if t else 0
+            return {"title": title, "center": f"{prog * 100:.0f}%", "centerNote": note or "da meta", "parts": [],
+                    "goal": {"progress": prog, "tone": "good" if (prog >= 1) == higher else "neutral",
+                             "legend": [{"label": self.display_name(vis, "value") or m, "value": v,
+                                         "text": self.sample.get("measures", {}).get(m) or fmt(v, like)},
+                                        {"label": self.display_name(vis, "target") or tgt, "value": t,
+                                         "text": self.sample.get("measures", {}).get(tgt) or fmt(t, like)},
+                                        {"label": "Falta" if (gap > 0) == higher else "Acima da meta",
+                                         "value": abs(gap), "text": fmt(abs(gap), like)}]},
+                    "brand": brand}
         item = first("item")
         two = bool(first("detail"))
         n = max(1, min(int((h - 30) // (52 if two else 36)) + 1, 12))
@@ -363,7 +400,8 @@ class Preview:
                 row.append({"kind": "text" if is_col else "number", "text": html.unescape(texts[i])})
         if first("progress"):
             columns.append({"title": first("progress").split("[")[-1].rstrip("]"), "kind": "progress"})
-            prog = self.synth(first("progress"), len(names), offset=5) or []
+            prog = ((self.sample.get("progress") or {}).get(item or "")
+                    or self.synth(first("progress"), len(names), offset=5) or [])
             for i, row in enumerate(cells):
                 pct = prog[i] if i < len(prog) else [42, 58, 77, 93, 35, 66, 81, 50][i % 8]
                 v = pct / 100 if pct > 1 else pct
@@ -411,8 +449,8 @@ class Preview:
         bar = lambda width, height=8: (f'<span style="display:inline-block;width:{width}%;height:{height}px;'  # noqa: E731
                                        f'background:#EBEBEB;border-radius:2px"></span>')
 
-        kind = next((k for k, prefix in (("kpi", "architectKpi"), ("list", "architectList"), ("trend", "architectTrend"))
-                     if vtype.startswith(prefix)), None)
+        kind = next((k for k, prefix in (("kpi", "architectKpi"), ("list", "architectList"), ("trend", "architectTrend"),
+                                          ("ring", "architectRing")) if vtype.startswith(prefix)), None)
         if kind:
             model = self.architect_model(kind, vtype, vis, roles, objs, w, h)
             if kind == "list" and self.top_n(v):            # Power BI's Top N filter keeps only these rows
@@ -429,7 +467,8 @@ class Preview:
                     wt = 600 if "Semibold" in st.get("fontFamily", "") or st.get("fontWeight") == "bold" else 400
                     runs.append(f'<span style="font:{wt} {size * PT:.1f}px {FONT};color:{st.get("color", ink)};'
                                 f'white-space:pre">{html.escape(r.get("value", ""))}</span>')
-                inner += f'<div style="padding:2px 4px">{"".join(runs)}</div>'
+                align = {"center": "center", "right": "right"}.get(para.get("horizontalTextAlignment"), "left")
+                inner += f'<div style="padding:2px 4px;text-align:{align}">{"".join(runs)}</div>'
         elif vtype == "shape":
             fill = self.color(prop(objs, "fill", "fillColor"), "#FFFFFF")
             if "background" not in vco:
@@ -440,6 +479,17 @@ class Preview:
             uri = self.image_uri(objs)
             if uri:
                 inner = f'<img src="{uri}" style="width:100%;height:100%;object-fit:contain">'
+        elif vtype == "actionButton":
+            text_on = str(lit(prop(objs, "text", "show"), "false")).lower() == "true"
+            fill_on = str(lit(prop(objs, "fill", "show"), "false")).lower() == "true"
+            if fill_on:
+                css.append(f"background:{self.color(prop(objs, 'fill', 'fillColor'), ink)};border-radius:8px")
+            if text_on:
+                fc = self.color(prop(objs, "text", "fontColor"), "#FFFFFF")
+                size = num(lit(prop(objs, "text", "fontSize"), 9), 9) * PT
+                inner = (f'<div style="height:100%;display:flex;align-items:center;justify-content:center;'
+                         f'font:600 {size:.1f}px {FONT};color:{fc};white-space:nowrap">'
+                         f'{html.escape(str(lit(prop(objs, "text", "text"), "")))}</div>')
         elif vtype == "pageNavigator":
             size = num(self.style("pageNavigator", "text", "fontSize", 10), 10) * PT
             margin = num(self.style("pageNavigator", "text", "leftMargin", 8), 8)
@@ -461,13 +511,33 @@ class Preview:
             wt = 600 if "Semibold" in str(fam) else 400
             if size < 12:   # a small line of text: "updated at" or a KPI's variation line
                 text = self.value(m, html.escape(m or ""))
-                align = "flex-end" if pos.get("y", 0) < 70 else "flex-start"
+                align = "center" if w <= 48 else "flex-end" if pos.get("y", 0) < 70 else "flex-start"
                 inner = (f'<div style="font:{wt} {size * PT:.1f}px {FONT};color:{vink};height:100%;display:flex;'
                          f'align-items:center;justify-content:{align};white-space:nowrap">{text}</div>')
             else:
                 text = self.value(m, bar(56, int(size * PT * 0.8)))
                 inner = title + (f'<div style="font:{wt} {size * PT:.1f}px {FONT};color:{vink};'
                                  f'padding:{CAL["card_value_padding"]}">{text}</div>')
+        elif vtype == "slicer" and lit(prop(objs, "data", "mode")) == "Basic" and str(lit(prop(objs, "general", "orientation"))) in ("1", "1.0", "1D"):
+            field = (roles.get("Values") or [""])[0]
+            names = self.labels(field, 8) or ["Mês", "Trimestre", "Ano"]
+            css.append("background:#F4F4F5;border-radius:10px")
+            tabs = "".join(
+                f'<div style="flex:1;display:flex;align-items:center;justify-content:center;border-radius:7px;'
+                f'font:600 {9 * PT:.1f}px {FONT};color:{ink if i == 0 else ink2};'
+                f'{"background:#FFFFFF;box-shadow:0 0 0 1px #E4E4E7" if i == 0 else ""}">{html.escape(n)}</div>'
+                for i, n in enumerate(names))
+            inner = f'<div style="display:flex;gap:4px;height:100%;padding:4px;box-sizing:border-box">{tabs}</div>'
+        elif vtype == "slicer" and lit(prop(objs, "data", "mode")) == "Between":
+            field = (roles.get("Values") or [""])[0]
+            lo, hi = (self.sample.get("ranges") or {}).get(field) or ["01/12/2024", "30/11/2025"]
+            cal = ('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#71717A" stroke-width="1.4">'
+                   '<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 7h12M5 1.5v3M11 1.5v3"/></svg>')
+            box = lambda v: (f'<div style="flex:1;display:flex;align-items:center;justify-content:space-between;'  # noqa: E731
+                             f'padding:0 10px;border-radius:8px;box-shadow:inset 0 0 0 1px #E4E4E7;background:#FFFFFF;'
+                             f'font:400 {9 * PT:.1f}px {FONT};color:{ink}">{v}{cal}</div>')
+            css.append("background:transparent")
+            inner = f'<div style="display:flex;gap:8px;height:100%">{box(lo)}{box(hi)}</div>'
         elif vtype == "slicer":
             hsize = num(self.style("slicer", "header", "textSize", 9), 9) * PT
             hink = self.style("slicer", "header", "fontColor", ink2)

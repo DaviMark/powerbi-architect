@@ -91,7 +91,10 @@ class TestLayoutEngine(unittest.TestCase):
             {"height": 248, "split": [2, 1], "visuals": [
                 {"type": "trend", "category": "dm_c[Mês]", "values": ["M"], "title": "Receita por mês", "alt": "b"},
                 {"type": "list", "item": "dm_x[Cliente]", "status": "Situação", "values": ["M"], "title": "Clientes",
-                 "sortBy": "M desc", "top": 5, "alt": "c"}]}])
+                 "sortBy": "M desc", "top": 5, "alt": "c"}]},
+            {"height": 228, "split": [1, 1], "visuals": [
+                {"type": "ring", "category": "dm_x[Faixa]", "values": ["M"], "title": "Por faixa", "alt": "d"},
+                {"type": "ring", "measure": "M", "target": "Meta", "title": "Contra a meta", "alt": "e"}]}])
         with tempfile.TemporaryDirectory() as d:
             report = Path(d) / "X.Report"
             b = pbir_layout.Builder(spec)
@@ -105,6 +108,9 @@ class TestLayoutEngine(unittest.TestCase):
                              "false")                                  # the visual draws its own label
             lst = vis[pbir_layout.ARCHITECT["list"][1]]
             self.assertEqual(lst["objects"]["list"][0]["properties"]["title"]["expr"]["Literal"]["Value"], "'Clientes'")
+            rings = [v["visual"] for _, v in visuals(report) if v["visual"]["visualType"] == pbir_layout.ARCHITECT["ring"][1]]
+            self.assertEqual(sorted(sorted(r["query"]["queryState"]) for r in rings),
+                             [["category", "value"], ["target", "value"]])     # slices, or progress to a target
             rj = json.loads((report / "definition" / "report.json").read_text(encoding="utf-8"))
             packs = {p["name"] for p in rj["resourcePackages"] if p["type"] == "CustomVisual"}
             self.assertEqual(packs, {g for _, g in pbir_layout.ARCHITECT.values()})
@@ -112,7 +118,7 @@ class TestLayoutEngine(unittest.TestCase):
                 self.assertTrue((report / "CustomVisuals" / guid / "resources" / f"{guid}.pbiviz.json").exists())
             back, notes = pbir_layout.extract(report)                       # --extract reads them back
             types = [v["type"] for r in back["pages"][0]["rows"] for v in r["visuals"]]
-            self.assertEqual(types, ["kpiCard", "trend", "list"])
+            self.assertEqual(types, ["kpiCard", "trend", "list", "ring", "ring"])
             self.assertEqual(back["pages"][0]["rows"][1]["visuals"][1]["top"], 5)
             self.assertIs(back["pages"][0]["rows"][0]["visuals"][0]["higherIsBetter"], False)
         titles = {t: audit_pbip.architect_title(v, t) for t, v in vis.items()}

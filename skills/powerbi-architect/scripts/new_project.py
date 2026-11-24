@@ -119,6 +119,8 @@ def calendar(date_ref: str) -> str:
     + column({"name": "Mês", "type": "string", "sortBy": "Mês Nº"}, True) + "\n"
     + column({"name": "Ano-Mês Nº", "type": "int64", "hidden": True}, True) + "\n"
     + column({"name": "Ano-Mês", "type": "string", "sortBy": "Ano-Mês Nº"}, True) + "\n"
+    + column({"name": "Trimestre Nº", "type": "int64", "hidden": True}, True) + "\n"
+    + column({"name": "Ano-Trimestre", "type": "string", "sortBy": "Trimestre Nº"}, True) + "\n"
     + "\thierarchy 'Ano > Mês'\n\n\t\tlevel Ano\n\t\t\tcolumn: Ano\n\n\t\tlevel Mês\n\t\t\tcolumn: Mês\n\n"
     + "\tpartition dm_calendario = calculated\n\t\tmode: import\n\t\tsource =\n"
     + f"\t\t\t\tVAR _primeira = COALESCE ( MIN ( {date_ref} ), DATE ( YEAR ( TODAY () ) - 2, 1, 1 ) )\n"
@@ -130,7 +132,29 @@ def calendar(date_ref: str) -> str:
     + "\t\t\t\t        \"Mês\", FORMAT ( [Date], \"mmm\" ),\n"
     + "\t\t\t\t        \"Ano-Mês Nº\", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),\n"
     + "\t\t\t\t        \"Ano-Mês\", FORMAT ( [Date], \"mmm/yy\" ),\n"
+    + "\t\t\t\t        \"Trimestre Nº\", YEAR ( [Date] ) * 10 + QUARTER ( [Date] ),\n"
+    + "\t\t\t\t        \"Ano-Trimestre\", \"T\" & QUARTER ( [Date] ) & \"/\" & FORMAT ( [Date], \"yy\" ),\n"
     + "\t\t\t\t        \"Data\", [Date]\n\t\t\t\t    )\n")
+
+
+# Field parameter behind the period tabs of the header: the time axis switches between month, quarter, year.
+GRANULARITY = (
+    "/// Parâmetro de campo das abas do cabeçalho: troca o eixo do tempo entre mês, trimestre e ano.\n"
+    "table _Granularidade\n\n"
+    "\tcolumn Granularidade\n\t\tdataType: string\n\t\tsummarizeBy: none\n\t\tsourceColumn: [Value1]\n"
+    "\t\tsortByColumn: 'Granularidade Ordem'\n\n"
+    "\t\trelatedColumnDetails\n\t\t\tgroupByColumn: 'Granularidade Campos'\n\n"
+    "\tcolumn 'Granularidade Campos'\n\t\tdataType: string\n\t\tisHidden\n\t\tsummarizeBy: none\n"
+    "\t\tsourceColumn: [Value2]\n\t\tsortByColumn: 'Granularidade Ordem'\n\n"
+    "\t\textendedProperty ParameterMetadata =\n\t\t\t\t{\n\t\t\t\t  \"version\": 3,\n\t\t\t\t  \"kind\": 2\n\t\t\t\t}\n\n"
+    "\tcolumn 'Granularidade Ordem'\n\t\tdataType: int64\n\t\tisHidden\n\t\tformatString: 0\n"
+    "\t\tsummarizeBy: none\n\t\tsourceColumn: [Value3]\n\n"
+    "\tpartition _Granularidade = calculated\n\t\tmode: import\n\t\tsource =\n"
+    "\t\t\t\t{\n"
+    "\t\t\t\t    ( \"Mês\", NAMEOF ( 'dm_calendario'[Ano-Mês] ), 0 ),\n"
+    "\t\t\t\t    ( \"Trimestre\", NAMEOF ( 'dm_calendario'[Ano-Trimestre] ), 1 ),\n"
+    "\t\t\t\t    ( \"Ano\", NAMEOF ( 'dm_calendario'[Ano] ), 2 )\n"
+    "\t\t\t\t}\n")
 
 DOC_TABLES = {
     "_Documentacao": (
@@ -222,6 +246,7 @@ def generate(kit: dict, out: Path, name: str, server: str, database: str, primar
     fact_date = next(f"{q(t['name'])}[{c['name']}]" for t in kit["tables"] for c in t["columns"]
                      if c.get("references") == "dm_calendario")
     write(d / "tables" / "dm_calendario.tmdl", calendar(fact_date))
+    write(d / "tables" / "_Granularidade.tmdl", GRANULARITY)
     measures = kit["measures"] + [UPDATED]
     write(d / "tables" / "_Medidas.tmdl",
           f"/// Medidas do relatório de {kit['app'].lower()} e data da última carga.\ntable _Medidas\n\n"
@@ -237,8 +262,10 @@ def generate(kit: dict, out: Path, name: str, server: str, database: str, primar
               f"/// {role['description']}\nrole {q(role['name'])}\n\tmodelPermission: read\n\n"
               + "".join(f"\ttablePermission {q(tb)} = {flt}\n" for tb, flt in role["filters"].items()))
 
-    spec = {"app": kit["app"], "measures": "_Medidas", "updated": UPDATED["name"],
-            "slicers": kit.get("slicers", []), "pages": kit["pages"] + [DOC_PAGE]}
+    doc_page = dict(DOC_PAGE, section="Referência")
+    spec = {"app": kit["app"], "subtitle": kit.get("subtitle", ""), "measures": "_Medidas", "updated": UPDATED["name"],
+            "source": "Fonte: data warehouse · carga diária", "slicers": kit.get("slicers", []),
+            "dateRange": "dm_calendario[Data]", "pages": kit["pages"] + [doc_page]}
     wjson(out / "layout.json", spec)
     theme_path = THEME
     if primary:
@@ -257,7 +284,10 @@ def generate(kit: dict, out: Path, name: str, server: str, database: str, primar
               "colors": {m["name"]: m["sampleColor"] for m in measures if m.get("sampleColor")},
               "fields": {f"{t['name']}[{c['name']}]": c["examples"] for t in kit["tables"] for c in t["columns"]
                          if c.get("examples")},
-              "series": kit.get("series", {})}
+              "series": kit.get("series", {}), "progress": kit.get("progress", {}),
+              "parameters": {"_Granularidade[Granularidade]": "dm_calendario[Ano-Mês]"},
+              "ranges": {"dm_calendario[Data]": ["01/12/2025", "30/11/2026"]}}
+    sample["fields"]["_Granularidade[Granularidade]"] = ["Mês", "Trimestre", "Ano"]
     sample["fields"].setdefault("dm_calendario[Ano-Mês]", ["dez/25", "jan/26", "fev/26", "mar/26", "abr/26", "mai/26",
                                                           "jun/26", "jul/26", "ago/26", "set/26", "out/26", "nov/26"])
     wjson(out / "preview-sample.json", sample)

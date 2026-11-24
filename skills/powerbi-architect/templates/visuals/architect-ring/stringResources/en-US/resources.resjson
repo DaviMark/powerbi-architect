@@ -1,0 +1,11 @@
+{
+  "Role_Tooltips": "Tooltips",
+  "Role_Category": "Slices (category)",
+  "Role_Value": "Value",
+  "Role_Target": "Target (goal mode)",
+  "Landing_Title": "Architect Ring",
+  "Landing_Hint": "Add a Value and either Slices (a category) or a Target.",
+  "Center_OfTarget": "of target",
+  "Legend_ToGo": "To go",
+  "Legend_Over": "Over target"
+}

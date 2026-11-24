@@ -11,7 +11,8 @@
     "Texto Atualizacao": "Atualizado em 21/11/2026 08:00",
     "Titulo Vencido": "Vencido: R$ 4,2 mi (22,6% do saldo)",
     "Meta % Vencido": "15,0%",
-    "Meta Dias Atraso": "30"
+    "Meta Dias Atraso": "30",
+    "Clientes Vencidos": "312"
   },
   "colors": {
     "Cor Var % Vencido": "#CE2C31",
@@ -69,6 +70,27 @@
       "Transportes Norte Sul",
       "Hotel Mirante",
       "Laticínios Campo Verde"
+    ],
+    "_Granularidade[Granularidade]": [
+      "Mês",
+      "Trimestre",
+      "Ano"
+    ],
+    "Situação": [
+      "Atrasado",
+      "Em risco",
+      "Em risco",
+      "A vencer",
+      "Atrasado",
+      "A vencer",
+      "Em risco",
+      "Em risco",
+      "A vencer",
+      "A vencer",
+      "Em risco",
+      "A vencer",
+      "Em risco",
+      "Em dia"
     ]
   },
   "series": {
@@ -77,21 +99,21 @@
       3.1,
       2.8,
       3.3,
-      3.4,
-      3.2,
       3.6,
-      3.8,
+      3.2,
+      3.4,
+      3.9,
       3.7,
+      3.5,
       4.0,
-      4.1,
       4.2
     ],
     "ft_titulos[Faixa Atraso]": [
-      1.5,
-      1.0,
+      1.6,
+      1.1,
       0.7,
-      0.6,
-      0.4
+      0.5,
+      0.3
     ],
     "dm_regional[Regional]": [
       1.6,
@@ -106,6 +128,86 @@
       0.9,
       0.5,
       0.2
+    ],
+    "Vencido Ano Anterior": [
+      2.4,
+      2.6,
+      2.5,
+      2.7,
+      2.9,
+      2.8,
+      3.0,
+      3.1,
+      3.2,
+      3.3,
+      3.5,
+      3.4
+    ],
+    "Atraso Médio (dias)": [
+      74,
+      48,
+      36,
+      22,
+      65,
+      18,
+      41,
+      57,
+      12,
+      29,
+      44,
+      16,
+      33,
+      8
+    ],
+    "dm_cliente[Cliente]": [
+      1.1,
+      0.94,
+      0.71,
+      0.52,
+      0.47,
+      0.39,
+      0.33,
+      0.28,
+      0.22,
+      0.18,
+      0.15,
+      0.12,
+      0.1,
+      0.08
+    ]
+  },
+  "parameters": {
+    "_Granularidade[Granularidade]": "dm_calendario[Ano-Mês]"
+  },
+  "ranges": {
+    "dm_calendario[Data]": [
+      "01/12/2024",
+      "30/11/2025"
+    ]
+  },
+  "progress": {
+    "dm_regional[Regional]": [
+      0.31,
+      0.24,
+      0.17,
+      0.12,
+      0.08
+    ],
+    "dm_cliente[Cliente]": [
+      0.62,
+      0.41,
+      0.28,
+      0.19,
+      0.55,
+      0.12,
+      0.33,
+      0.47,
+      0.09,
+      0.22,
+      0.38,
+      0.15,
+      0.27,
+      0.06
     ]
   }
 }

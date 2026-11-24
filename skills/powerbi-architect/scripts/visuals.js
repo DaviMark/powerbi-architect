@@ -208,6 +208,25 @@ function renderList(root, m, w, h, t, hook) {
     const rowH = twoLines ? 52 : 36;
     const avatars = m.avatars !== false;
     const titleH = m.title ? 40 : 0;
+    // Narrow cards: tighter cells and a shorter progress track, so every column stays in view.
+    const width = (c) => c.kind === "progress" ? 140 : c.kind === "status" ? 110 : 96;
+    const need = (avatars ? 220 : 160) + m.columns.reduce((s, c) => s + width(c), 0);
+    const pad = need > w ? 8 : 12;
+    const trackW = need > w ? 48 : 72;
+    // A phone (under 420 px): keep the columns that fit, the first number first, then status, then the rest.
+    const order = m.columns.map((c, i) => i).sort((a, b) => rank(m.columns[a], a, m.columns) - rank(m.columns[b], b, m.columns));
+    const keep = new Set();
+    // the header text is often the widest part of a column: uppercase 10 px with letter spacing, ~7 px a letter
+    const fit = (c) => Math.max(c.kind === "progress" ? 108 : c.kind === "status" ? 96 : 64, c.title.length * 7) + pad * 2;
+    let used = avatars ? 190 : 130;
+    order.forEach(i => {
+        const cw = fit(m.columns[i]);
+        if (!keep.size || used + cw <= w || w >= 420) {
+            keep.add(i);
+            used += cw;
+        }
+    });
+    const columns = m.columns.filter((_c, i) => keep.has(i));
     const frame = el("div", `box-sizing:border-box;width:${w}px;height:${h}px;display:flex;flex-direction:column;` +
         `font-family:${t.font};color:${t.ink}`);
     if (m.title) {
@@ -221,22 +240,22 @@ function renderList(root, m, w, h, t, hook) {
     const hr = el("tr", "");
     const th = (text, right) => el("th", `position:sticky;top:0;z-index:1;background:${t.surface};` +
         `text-align:${right ? "right" : "left"};font-size:10px;font-weight:600;letter-spacing:.05em;` +
-        `text-transform:uppercase;color:${t.muted};padding:8px 12px;line-height:13px;border-bottom:1px solid ${t.faint};white-space:nowrap`, text);
+        `text-transform:uppercase;color:${t.muted};padding:8px ${pad}px;line-height:13px;border-bottom:1px solid ${t.faint};white-space:nowrap`, text);
     hr.appendChild(th(m.itemTitle, false));
-    m.columns.forEach(c => hr.appendChild(th(c.title, c.kind === "number")));
+    columns.forEach(c => hr.appendChild(th(c.title, c.kind === "number")));
     head.appendChild(hr);
     table.appendChild(head);
     const body = el("tbody", "");
     m.rows.forEach((r, i) => {
         const tr = el("tr", `height:${rowH}px;border-bottom:1px solid ${t.faint}`);
-        const first = el("td", "padding:0 12px;white-space:nowrap");
+        const first = el("td", `padding:0 ${pad}px;white-space:nowrap`);
         const box = el("div", "display:flex;align-items:center;gap:10px;min-width:0");
         if (avatars) {
             const [bg, fg] = t.highContrast ? [t.surface, t.ink] : avatarColours(r.item);
             box.appendChild(el("span", `flex:none;width:28px;height:28px;border-radius:50%;display:inline-flex;` +
                 `align-items:center;justify-content:center;font-size:11px;font-weight:600;background:${bg};color:${fg}`, initials(r.item)));
         }
-        const names = el("div", "display:flex;flex-direction:column;min-width:0;line-height:16px");
+        const names = el("div", `display:flex;flex-direction:column;min-width:0;line-height:16px;max-width:${Math.max(96, w * 0.45)}px`);
         names.appendChild(el("span", "font-weight:600;overflow:hidden;text-overflow:ellipsis", r.item));
         if (r.sub) {
             names.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis`, r.sub));
@@ -244,7 +263,11 @@ function renderList(root, m, w, h, t, hook) {
         box.appendChild(names);
         first.appendChild(box);
         tr.appendChild(first);
-        r.cells.forEach(c => tr.appendChild(cell(c, t)));
+        r.cells.forEach((c, j) => {
+            if (keep.has(j)) {
+                tr.appendChild(cell(c, t, pad, trackW));
+            }
+        });
         body.appendChild(tr);
         if (hook) {
             hook(tr, i);
@@ -255,8 +278,13 @@ function renderList(root, m, w, h, t, hook) {
     frame.appendChild(wrap);
     root.appendChild(frame);
 }
-function cell(c, t) {
-    const td = el("td", `padding:0 12px;white-space:nowrap;text-align:${c.kind === "number" ? "right" : "left"};` +
+/** Which columns a narrow list keeps first: the first number, then the status, then the others in order. */
+function rank(c, i, all) {
+    const firstNumber = all.findIndex(x => x.kind === "number");
+    return i === firstNumber ? -2 : c.kind === "status" ? -1 : i;
+}
+function cell(c, t, pad, trackW) {
+    const td = el("td", `padding:0 ${pad}px;white-space:nowrap;text-align:${c.kind === "number" ? "right" : "left"};` +
         (c.kind === "number" ? "font-variant-numeric:tabular-nums" : ""));
     if (c.kind === "status") {
         const tone = t.tones[c.tone || toneOf(c.text)];
@@ -269,7 +297,7 @@ function cell(c, t) {
     }
     else if (c.kind === "progress") {
         const box = el("div", "display:flex;align-items:center;gap:8px");
-        const track = el("div", `width:72px;height:6px;border-radius:3px;background:${t.highContrast ? t.surface : "#F4F4F5"};` +
+        const track = el("div", `width:${trackW}px;height:6px;border-radius:3px;background:${t.highContrast ? t.surface : "#F4F4F5"};` +
             `overflow:hidden` + (t.highContrast ? `;border:1px solid ${t.ink}` : ""));
         track.appendChild(el("div", `width:${Math.max(0, Math.min(1, c.value)) * 100}%;height:100%;background:${t.accent}`));
         box.appendChild(track);
@@ -299,10 +327,10 @@ function renderTrend(root, m, w, h, t, hook) {
     const left = el("div", "display:flex;flex-direction:column;gap:2px;min-width:0");
     left.appendChild(el("div", "font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis", m.title));
     if (m.total) {
-        const line = el("div", "display:flex;align-items:baseline;gap:8px;margin-top:6px;white-space:nowrap");
+        const line = el("div", "display:flex;align-items:baseline;gap:8px;margin-top:6px;white-space:nowrap;min-width:0");
         line.appendChild(el("span", "font-size:22px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums", m.total));
         if (m.totalNote) {
-            line.appendChild(el("span", `font-size:11px;color:${t.muted}`, m.totalNote));
+            line.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0`, m.totalNote));
         }
         left.appendChild(line);
     }
@@ -318,7 +346,9 @@ function renderTrend(root, m, w, h, t, hook) {
     if (m.compare && m.compareName) {
         key(t.track, m.compareName);
     }
-    head.appendChild(legend);
+    if (w >= 420) { // narrow (a phone): the headline note already names the comparison
+        head.appendChild(legend);
+    }
     box.appendChild(head);
     const plotH = h - (m.total ? 70 : 40) - pad;
     if (plotH < 60 || m.values.length === 0) {
@@ -390,5 +420,114 @@ function renderTrend(root, m, w, h, t, hook) {
     box.appendChild(svg);
     root.appendChild(box);
 }
-window.PBIArchitect = { TOKENS, brandTokens, tint, renderKpi, renderList, renderTrend, toneOf };
+
+// ---- ring.ts
+const GAP = 0.012; // gap between slices, as a share of the circle
+/** Shades of the accent: the largest slice is the accent itself, the rest fade towards the context grey. */
+function ringColours(n, t) {
+    if (t.highContrast) {
+        return Array.from({ length: n }, (_v, i) => i === 0 ? t.accent : t.track);
+    }
+    const steps = [0, 0.38, 0.6, 0.76, 0.86, 0.92];
+    return Array.from({ length: n }, (_v, i) => tint(t.accent, steps[Math.min(i, steps.length - 1)]));
+}
+function arc(cx, cy, r, from, to) {
+    const a0 = (from - 0.25) * Math.PI * 2, a1 = (to - 0.25) * Math.PI * 2;
+    const large = to - from > 0.5 ? 1 : 0;
+    const p = (a) => `${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`;
+    return `M${p(a0)} A${r.toFixed(2)},${r.toFixed(2)} 0 ${large} 1 ${p(a1)}`;
+}
+/**
+ * Card: title on top; the ring with the number in its centre; a legend of the slices with value and share
+ * at the right (or under the ring when the card is narrow). `hook` binds events to each slice and row.
+ */
+function renderRing(root, m, w, h, t, hook) {
+    clear(root);
+    const pad = 16;
+    const card = el("div", `position:relative;box-sizing:border-box;width:${w}px;height:${h}px;padding:${pad}px;` +
+        `font-family:${t.font};color:${t.ink};overflow:hidden;display:flex;flex-direction:column;gap:12px`);
+    card.setAttribute("role", "figure");
+    card.setAttribute("aria-label", [m.title, m.center, m.centerNote].filter(Boolean).join(", "));
+    card.appendChild(el("div", "font-size:14px;font-weight:600;line-height:20px;white-space:nowrap;overflow:hidden;" +
+        "text-overflow:ellipsis", m.title));
+    const bodyH = h - pad * 2 - 32;
+    const side = w >= 300;
+    const legendRows = m.goal ? m.goal.legend : m.parts;
+    const legendH = legendRows.length * 28;
+    const narrow = w < 360; // a phone: a smaller ring, and the legend keeps the label and the value
+    const size = Math.max(64, Math.floor(side ? Math.min(bodyH, (w - pad * 2) * (narrow ? 0.34 : 0.4))
+        : Math.min(w - pad * 2, bodyH - legendH - 12)));
+    const body = el("div", `display:flex;${side ? "flex-direction:row" : "flex-direction:column"};align-items:center;` +
+        `gap:${side && !narrow ? 20 : 12}px;flex:1;min-height:0`);
+    const stroke = Math.max(8, Math.round(size * 0.11));
+    const r = (size - stroke) / 2;
+    const c = size / 2;
+    const holder = el("div", `position:relative;width:${size}px;height:${size}px;flex:none`);
+    const svg = sv("svg", { width: size, height: size, viewBox: `0 0 ${size} ${size}`, "aria-hidden": "true" });
+    svg.appendChild(sv("circle", { cx: c, cy: c, r: r.toFixed(2), fill: "none", stroke: t.highContrast ? t.track : t.faint,
+        "stroke-width": stroke }));
+    const colours = ringColours(m.parts.length, t);
+    if (m.goal) {
+        const p = Math.max(0, Math.min(m.goal.progress, 1));
+        const tone = m.goal.tone && m.goal.tone !== "neutral" && !t.highContrast ? t.tones[m.goal.tone].fg : t.accent;
+        if (p > 0) {
+            svg.appendChild(sv("path", { d: p >= 0.999 ? arc(c, c, r, 0, 0.9999) : arc(c, c, r, 0, p), fill: "none",
+                stroke: tone, "stroke-width": stroke, "stroke-linecap": "round" }));
+        }
+    }
+    else {
+        const total = m.parts.reduce((s, x) => s + Math.max(x.value, 0), 0) || 1;
+        let at = 0;
+        m.parts.forEach((part, i) => {
+            const share = Math.max(part.value, 0) / total;
+            const gap = m.parts.length > 1 ? GAP : 0;
+            if (share > gap) {
+                const seg = sv("path", { d: arc(c, c, r, at + gap / 2, at + share - gap / 2), fill: "none", stroke: colours[i],
+                    "stroke-width": stroke });
+                svg.appendChild(seg);
+                if (hook) {
+                    hook(seg, i);
+                }
+            }
+            at += share;
+        });
+    }
+    holder.appendChild(svg);
+    const mid = el("div", "position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;" +
+        "justify-content:center;text-align:center;pointer-events:none");
+    const big = size >= 140 ? 22 : size >= 104 ? 18 : 15;
+    mid.appendChild(el("div", `font-size:${big}px;font-weight:600;letter-spacing:-.01em;line-height:1.15;` +
+        `font-variant-numeric:tabular-nums;white-space:nowrap;max-width:${size - stroke * 2 - 8}px;overflow:hidden;` +
+        "text-overflow:ellipsis", m.center));
+    if (m.centerNote) {
+        mid.appendChild(el("div", `font-size:11px;color:${t.muted};line-height:14px;margin-top:2px;white-space:nowrap`, m.centerNote));
+    }
+    holder.appendChild(mid);
+    body.appendChild(holder);
+    const legend = el("div", `display:flex;flex-direction:column;gap:0;flex:1;min-width:0;${side ? "" : "width:100%"}`);
+    legend.setAttribute("role", "list");
+    legendRows.forEach((part, i) => {
+        const row = el("div", "display:flex;align-items:center;gap:8px;height:28px;font-size:12px;line-height:16px;" +
+            (i ? `border-top:1px solid ${t.faint}` : ""));
+        row.setAttribute("role", "listitem");
+        const dot = m.goal ? (i === 0 ? t.accent : i === 1 ? t.muted : t.faint) : colours[i];
+        row.appendChild(el("span", `width:8px;height:8px;border-radius:2px;flex:none;background:${dot}` +
+            (t.highContrast ? `;border:1px solid ${t.ink}` : "")));
+        row.appendChild(el("span", `flex:1;min-width:0;color:${t.muted};white-space:nowrap;overflow:hidden;` +
+            "text-overflow:ellipsis", part.label));
+        row.appendChild(el("span", "font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap", part.text));
+        if (part.share && !narrow) {
+            row.appendChild(el("span", `width:34px;text-align:right;color:${t.muted};font-variant-numeric:tabular-nums;` +
+                "white-space:nowrap", part.share));
+        }
+        if (hook && !m.goal) {
+            hook(row, i);
+        }
+        legend.appendChild(row);
+    });
+    body.appendChild(legend);
+    card.appendChild(body);
+    root.appendChild(card);
+}
+window.PBIArchitect = { TOKENS, brandTokens, tint, renderKpi, renderList, renderTrend, renderRing, ringColours, toneOf };
 })();

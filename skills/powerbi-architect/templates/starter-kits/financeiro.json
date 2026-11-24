@@ -86,7 +86,7 @@
             "Receita bruta",
             "Deduções",
             "Custos",
-            "Despesas com pessoal",
+            "Pessoal",
             "Despesas gerais"
           ]
         },
@@ -158,7 +158,8 @@
       "description": "Valor realizado com sinal: receitas positivas, despesas negativas.",
       "expr": "SUM ( ft_lancamentos[Valor Realizado] )",
       "format": "\\R\\$ #,0;-\\R\\$ #,0",
-      "folder": "Valores"
+      "folder": "Valores",
+      "sample": "R$ 9,7 mi"
     },
     {
       "name": "Orçado",
@@ -179,7 +180,8 @@
       "description": "Desvio sobre o valor orçado, em módulo.",
       "expr": "DIVIDE ( [Desvio], ABS ( [Orçado] ) )",
       "format": "+0.0%;-0.0%;0.0%",
-      "folder": "Indicadores"
+      "folder": "Indicadores",
+      "sample": "-3,2%"
     },
     {
       "name": "Receita Líquida",
@@ -209,7 +211,8 @@
       "description": "EBITDA do orçamento: soma com sinal de todas as linhas orçadas.",
       "expr": "[Orçado]",
       "format": "\\R\\$ #,0;-\\R\\$ #,0",
-      "folder": "DRE"
+      "folder": "DRE",
+      "sample": "R$ 10,4 mi"
     },
     {
       "name": "% Margem EBITDA",
@@ -299,37 +302,41 @@
           ]
         },
         {
-          "height": 248,
+          "height": 228,
           "split": [
-            2,
-            1
+            3,
+            2
           ],
           "visuals": [
             {
               "type": "trend",
-              "category": "dm_calendario[Ano-Mês]",
+              "category": "_Granularidade[Granularidade]",
               "values": [
                 "Receita Líquida"
               ],
-              "title": "Receita líquida por mês",
+              "title": "Receita líquida por período",
               "seriesName": "Receita Líquida",
-              "alt": "Receita líquida realizada por mês em colunas e orçada em linha",
+              "alt": "Receita líquida realizada por mês, trimestre ou ano em colunas e orçada em linha",
               "compare": "Receita Líquida Orçada"
             },
             {
-              "type": "clusteredBarChart",
-              "category": "dm_centro_custo[Diretoria]",
-              "values": [
-                "Despesas Operacionais"
-              ],
-              "title": "Despesas por diretoria",
-              "sort": "desc",
-              "alt": "Despesas operacionais por diretoria, da maior para a menor"
+              "type": "ring",
+              "measure": "EBITDA",
+              "target": "EBITDA Orçado",
+              "label": "Realizado",
+              "targetLabel": "Orçado",
+              "title": "EBITDA contra o orçado",
+              "centerNote": "do orçado",
+              "alt": "EBITDA realizado como parte do orçado, com realizado, orçado e o que falta"
             }
           ]
         },
         {
-          "height": 232,
+          "height": 252,
+          "split": [
+            3,
+            2
+          ],
           "visuals": [
             {
               "type": "waterfallChart",
@@ -345,10 +352,29 @@
                 "total": "#A1A1AA"
               },
               "alt": "Cascata da DRE da receita bruta ao EBITDA"
+            },
+            {
+              "type": "list",
+              "item": "dm_centro_custo[Diretoria]",
+              "values": [
+                "Despesas Operacionais",
+                "% Desvio"
+              ],
+              "sortBy": "Despesas Operacionais desc",
+              "avatars": false,
+              "title": "Despesas por diretoria",
+              "alt": "Diretorias pelas despesas operacionais, com o desvio contra o orçado"
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis",
+      "slicers": [],
+      "tabs": "_Granularidade[Granularidade]",
+      "action": {
+        "text": "Ver DRE",
+        "page": "DRE"
+      }
     },
     {
       "name": "DRE",
@@ -378,7 +404,8 @@
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis"
     },
     {
       "name": "Centros de Custo",
@@ -407,7 +434,10 @@
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis"
     }
-  ]
+  ],
+  "subtitle": "Controladoria",
+  "progress": {}
 }

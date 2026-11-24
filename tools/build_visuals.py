@@ -1,6 +1,6 @@
 """Build the skill's custom visuals. Run from the repository root (needs Node.js 18+):
 
-    python tools/build_visuals.py            # preview bundle + the three .pbiviz packages
+    python tools/build_visuals.py            # preview bundle + the four .pbiviz packages
     python tools/build_visuals.py --preview  # only the preview bundle (fast)
 
 1. Compiles the shared drawing core (templates/visuals/core/*.ts) into one plain script,
@@ -24,7 +24,7 @@ VISUALS = ROOT / "skills" / "powerbi-architect" / "templates" / "visuals"
 CORE = VISUALS / "core"
 BUNDLE = ROOT / "skills" / "powerbi-architect" / "scripts" / "visuals.js"
 WORK = ROOT / ".tmp" / "visuals"
-ORDER = ["dom", "kpi", "list", "trend"]
+ORDER = ["dom", "kpi", "list", "trend", "ring"]
 NPM = "npm.cmd" if sys.platform == "win32" else "npm"
 NPX = "npx.cmd" if sys.platform == "win32" else "npx"
 
@@ -60,7 +60,7 @@ def preview_bundle(tools: Path) -> None:
     body = "\n".join(parts)
     BUNDLE.write_text("/* Built by tools/build_visuals.py from templates/visuals/core: do not edit. */\n"
                       "(function () {\n\"use strict\";\n" + body +
-                      "window.PBIArchitect = { TOKENS, brandTokens, tint, renderKpi, renderList, renderTrend, toneOf };\n})();\n",
+                      "window.PBIArchitect = { TOKENS, brandTokens, tint, renderKpi, renderList, renderTrend, renderRing, ringColours, toneOf };\n})();\n",
                       encoding="utf-8", newline="\n")
     print(f"[ok] {BUNDLE.relative_to(ROOT)}")
 

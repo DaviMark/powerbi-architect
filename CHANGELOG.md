@@ -6,6 +6,21 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 
 ## [Não publicado]
 ### Adicionado
+- **Quarto visual da skill: `ring`.** Anel com o número no centro e legenda com valor e participação:
+  um todo dividido em fatias (faixas de atraso, categorias) ou o avanço contra uma meta (EBITDA contra o
+  orçado). Mesmo acabamento e a mesma identidade dos outros três.
+- **Cabeçalho completo.** Abas de período (Mês · Trimestre · Ano) sobre o parâmetro de campo
+  `_Granularidade`, que o exemplo e os kits já trazem no modelo; filtro de datas com duas caixas; botão
+  de ação que abre outra página (`"tabs"`, `"dateRange"`, `"action"` no spec).
+- **Menu lateral com seções e rodapé.** Marca com a inicial do app e subtítulo; páginas agrupadas por
+  `"section"`; contador por página (`"badge"`); um painel no pé com "Dados em dia", a data da carga e a
+  fonte (`"source"`). Cada item é um botão que abre a página.
+- Visão Geral do exemplo e dos quatro kits com 8 blocos: 4 KPIs, tendência com comparação, anel e duas
+  listas no lugar das barras nativas. Dados de amostra variados (situação coerente com o atraso, % por
+  regional e por cliente, ano anterior).
+- No celular, a lista mostra as colunas que cabem e a tendência esconde a legenda.
+- A auditoria mede o contraste do texto contra o fundo do próprio visual (botão preenchido, caixa de
+  texto com fundo).
 - **Três visuais customizados da skill** (`templates/visuals`), para o que os visuais nativos não
   desenham com acabamento de produto: `kpiCard` (rótulo, valor, pílula de variação verde ou vermelha,
   nota e minitendência), `trend` (colunas densas com o número do último período, variação, legenda e o
