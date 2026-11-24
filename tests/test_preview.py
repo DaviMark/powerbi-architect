@@ -120,9 +120,11 @@ class TestPreview(unittest.TestCase):
         short = critique(table, 200)                              # 14 sample clients in a 200 px table
         self.assertEqual(short.returncode, 1, short.stdout)
         self.assertIn("[rows]", short.stdout)
-        self.assertIn('"top": 5', short.stdout)
         self.assertNotIn("[clipped]", short.stdout)
-        fixed = critique({**table, "top": 5, "sortBy": "Valor Vencido desc"}, 200)
+        import re
+        fit = int(re.search(r'"top": (\d+)', short.stdout).group(1))   # depends on the fonts of the machine
+        self.assertTrue(1 <= fit < 14, short.stdout)
+        fixed = critique({**table, "top": fit, "sortBy": "Valor Vencido desc"}, 200)    # the suggested fix works
         self.assertEqual(fixed.returncode, 0, fixed.stdout)
         full = critique(table, "fill")                            # a full-height list scrolls in Power BI
         self.assertNotIn("[rows]", full.stdout)
