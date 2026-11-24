@@ -9,7 +9,9 @@ Starts from the skill's Twenty-inspired theme (templates/theme) and swaps the ac
 colour: focus series, table accent, links, sequential ramp, selected states. Every colour is checked
 against white: text colours must reach 4.5:1 and graphical colours 3:1; the brand colour is darkened
 step by step until it passes, and the report says by how much. Categorical colours after the first are
-the theme's, reordered so none sits next to a similar hue. Fonts outside Power BI's supported list are
+chosen from calm Radix tones (the scales Twenty uses) so that every pair stays distinguishable for
+people with protanopia, deuteranopia and tritanopia (simulated with Machado et al. 2009), never close
+to the good/bad status red and green. Fonts outside Power BI's supported list are
 refused with the reason (they would fall back to another font in the service).
 """
 from __future__ import annotations
@@ -72,6 +74,88 @@ def hue_of(h: str) -> float:
     return colorsys.rgb_to_hls(*hex_to_rgb(h))[0]
 
 
+# ---------------------------------------------------------------------- colour-vision deficiency
+# Machado, Oliveira & Fernandes (2009), severity 1.0, applied in linear RGB.
+CVD = {"protanopia": ((0.152286, 1.052583, -0.204868), (0.114503, 0.786281, 0.099216),
+                      (-0.003882, -0.048116, 1.051998)),
+       "deuteranopia": ((0.367322, 0.860646, -0.227968), (0.280085, 0.672501, 0.047413),
+                        (-0.011820, 0.042940, 0.968881)),
+       "tritanopia": ((1.255528, -0.076749, -0.178779), (-0.078411, 0.930809, 0.147602),
+                      (0.004733, 0.691367, 0.303900))}
+STATUS = ("#CE2C31", "#00824D")          # good/bad colours of the theme: never categorical
+# Steps 9–11 of the Radix scales (the colours Twenty is built on), without red and green.
+CANDIDATES = ["#0090FF", "#0588F0", "#0D74CE", "#3E63DD", "#3358D4", "#3A5BC7", "#5B5BD6", "#5151CD", "#5753C6",
+              "#6E56CF", "#654DC4", "#6550B9", "#8E4EC6", "#8347B9", "#8145B5", "#AB4ABA", "#A144AF", "#953EA3",
+              "#D6409F", "#CF3897", "#C2298A", "#E93D82", "#DF3478", "#CB1D63", "#F76B15", "#EF5F00", "#CC4E00",
+              "#AB6400", "#AD7F58", "#A07553", "#815E46", "#A18072", "#957468", "#7D5E54", "#978365", "#8C7A5E",
+              "#71624B", "#00A2C7", "#0797B9", "#107D98", "#12A594", "#0D9B8A", "#008573", "#2C9DC0", "#00749E"]
+
+
+def linear(h: str) -> tuple:
+    return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in hex_to_rgb(h))
+
+
+def lab(rgb_lin) -> tuple:
+    r, g, b = rgb_lin
+    x = 0.4124 * r + 0.3576 * g + 0.1805 * b
+    y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    z = 0.0193 * r + 0.1192 * g + 0.9505 * b
+
+    def f(t):
+        return t ** (1 / 3) if t > 0.008856 else 7.787 * t + 16 / 116
+    fx, fy, fz = f(x / 0.95047), f(y), f(z / 1.08883)
+    return 116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)
+
+
+def simulate(h: str, kind: str) -> tuple:
+    rgb = linear(h)
+    return tuple(max(0.0, min(1.0, sum(row[j] * rgb[j] for j in range(3)))) for row in CVD[kind])
+
+
+def distances(a: str, b: str) -> dict:
+    """CIE76 ΔE between two colours as seen with normal vision and with each colour-vision deficiency."""
+    def de(p, q):
+        return sum((x - y) ** 2 for x, y in zip(lab(p), lab(q))) ** 0.5
+    out = {"normal": de(linear(a), linear(b))}
+    for kind in CVD:
+        out[kind] = de(simulate(a, kind), simulate(b, kind))
+    return out
+
+
+def separation(a: str, b: str) -> float:
+    """How far apart two colours stay for everyone (tritanopia is rarer and compresses blues: weighted)."""
+    d = distances(a, b)
+    return min(d["normal"], d["protanopia"], d["deuteranopia"], d["tritanopia"] * 1.6)
+
+
+def worst_pair(palette: list) -> tuple:
+    """(ΔE, colour, colour, vision) of the two colours most alike for someone."""
+    worst = (999.0, "", "", "")
+    for i, a in enumerate(palette):
+        for b in palette[i + 1:]:
+            for kind, v in distances(a, b).items():
+                if v < worst[0]:
+                    worst = (v, a, b, kind)
+    return worst
+
+
+def cvd_palette(accent: str, n: int = 6) -> list:
+    """Accent first, then the calm candidate farthest from everything chosen, for every kind of vision."""
+    base_l = lab(linear(accent))[0]
+    pool = [c for c in CANDIDATES if contrast(c) >= 3 and all(separation(c, s) > 14 for s in STATUS)]
+
+    def chroma(c):
+        _, a, b = lab(linear(c))
+        return (a * a + b * b) ** 0.5
+    palette = [accent]
+    while len(palette) < n and pool:
+        best = max(pool, key=lambda c: min(separation(c, p) for p in palette)
+                   - 0.35 * abs(lab(linear(c))[0] - base_l) - 0.15 * max(0.0, chroma(c) - 55))
+        palette.append(best)
+        pool.remove(best)
+    return palette
+
+
 def build(primary: str, name: str, font: str) -> tuple[dict, list[str]]:
     notes = []
     theme = json.loads(BASE.read_text(encoding="utf-8"))
@@ -79,16 +163,10 @@ def build(primary: str, name: str, font: str) -> tuple[dict, list[str]]:
     if steps:
         notes.append(f"{primary.upper()} has {contrast(primary):.2f}:1 on white; darkened to {accent} "
                      f"({contrast(accent):.2f}:1) so it also works for text and selected states")
-    # Candidates: the theme's colours plus more of Twenty's tag colours (all ≥ 4.3:1 on white).
-    extra = ["#5753C6", "#CB1D63", "#2A7E3B", "#7C5E48"]   # never the good/bad status colours
-    others = theme["dataColors"][1:] + [theme["dataColors"][0]] + extra
-    others = sorted(others, key=lambda c: abs(((hue_of(c) - hue_of(accent) + 0.5) % 1) - 0.5), reverse=True)
-    palette = [accent]
-    for c in others:
-        if len(palette) == 6:
-            break
-        if all(abs(((hue_of(c) - hue_of(p) + 0.5) % 1) - 0.5) > 0.06 for p in palette):
-            palette.append(c)
+    palette = cvd_palette(accent)
+    d, a, b, kind = worst_pair(palette)
+    notes.append(f"6 categorical colours, distinguishable with protanopia, deuteranopia and tritanopia; the "
+                 f"closest pair is {a} / {b} (ΔE {d:.0f} with {kind})")
     for c in palette:
         if contrast(c) < 3:
             raise ValueError(f"palette colour {c} is below 3:1 on white")

@@ -148,10 +148,11 @@ Limits enforced by the audit (`PBI047`): text boxes ≤ 14 pt, KPI values ≤ 24
   selection. No gradients, glow, shadows, 3D.
 - Contrast ≥ 4.5:1 for text, ≥ 3:1 for graphical objects. Don't rely on color alone — add labels/icons.
 - No brand theme yet? Start from [templates/theme/powerbi-architect-acessivel.json](../templates/theme/powerbi-architect-acessivel.json):
-  Twenty-inspired neutrals, 6 categorical colors (all ≥ 4.3:1 on white), status colors, Segoe UI, the
-  type scale above, styled navigator, cards, tables and slicers, no gridlines/axis titles/shadows.
-  Register it as `customTheme` (see [pbir.md](pbir.md) › Theme registration) and replace colors with the
-  brand's, keeping the contrast.
+  Twenty-inspired neutrals, 6 categorical colors (≥ 3:1 on white, distinguishable with protanopia,
+  deuteranopia and tritanopia), status colors, Segoe UI, the type scale, styled visuals, no gridlines.
+  Register it as `customTheme` ([pbir.md](pbir.md) › Theme registration). For a brand, run
+  `make_theme.py`, never hand-pick categorical colours: it keeps contrast and colour-blind safety
+  (`PBI065` flags palettes that clash).
 
 ## 7. Visual craft
 The theme sets these defaults; only override per visual with a reason.
