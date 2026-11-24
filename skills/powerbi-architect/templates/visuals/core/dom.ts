@@ -138,6 +138,18 @@ export function brandTokens(brand: Partial<Pick<Tokens, "font" | "accent" | "ink
     return out;
 }
 
+/**
+ * Shrinks the font of a one-line text until it fits its box (measured, so it holds for any font the
+ * viewer's machine falls back to). Needs the node in the document; does nothing otherwise.
+ */
+export function shrinkToFit(node: HTMLElement, min: number): void {
+    let size = parseFloat(node.style.fontSize) || 0;
+    while (node.isConnected && size > min && node.scrollWidth > node.clientWidth + 0.5) {
+        size -= 1;
+        node.style.fontSize = `${size}px`;
+    }
+}
+
 /** a mixed with white: share 0 keeps a, 1 is white. */
 export function tint(hex: string, share: number): string {
     const h = hex.replace("#", "");

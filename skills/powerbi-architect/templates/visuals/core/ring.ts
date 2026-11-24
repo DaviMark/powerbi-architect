@@ -1,4 +1,4 @@
-import { Tokens, el, sv, clear, tint } from "./dom";
+import { Tokens, el, sv, clear, tint, shrinkToFit } from "./dom";
 
 /** One slice of the ring, or one line of the goal's legend. Texts arrive formatted. */
 export interface RingPart {
@@ -101,9 +101,10 @@ export function renderRing(root: HTMLElement, m: RingModel, w: number, h: number
     const mid = el("div", "position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;" +
         "justify-content:center;text-align:center;pointer-events:none");
     const big = size >= 140 ? 22 : size >= 104 ? 18 : 15;
-    mid.appendChild(el("div", `font-size:${big}px;font-weight:600;letter-spacing:-.01em;line-height:1.15;` +
+    const centerEl = el("div", `font-size:${big}px;font-weight:600;letter-spacing:-.01em;line-height:1.15;` +
         `font-variant-numeric:tabular-nums;white-space:nowrap;max-width:${size - stroke * 2 - 8}px;overflow:hidden;` +
-        "text-overflow:ellipsis", m.center));
+        "text-overflow:ellipsis", m.center);
+    mid.appendChild(centerEl);
     if (m.centerNote) {
         mid.appendChild(el("div", `font-size:11px;color:${t.muted};line-height:14px;margin-top:2px;white-space:nowrap`,
             m.centerNote));
@@ -135,4 +136,5 @@ export function renderRing(root: HTMLElement, m: RingModel, w: number, h: number
     body.appendChild(legend);
     card.appendChild(body);
     root.appendChild(card);
+    shrinkToFit(centerEl, 11);
 }

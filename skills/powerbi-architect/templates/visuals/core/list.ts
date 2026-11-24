@@ -1,4 +1,4 @@
-import { Tone, Tokens, el, clear, toneOf, initials, avatarColours } from "./dom";
+import { Tone, Tokens, el, clear, toneOf, initials, avatarColours, shrinkToFit } from "./dom";
 
 export type ListCell =
     | { kind: "text"; text: string }
@@ -30,6 +30,18 @@ export type RowHook = (row: HTMLElement, index: number) => void;
  * progress as a thin bar, numbers right-aligned. Sticky header; the body scrolls when rows do not fit.
  */
 export function renderList(root: HTMLElement, m: ListModel, w: number, h: number, t: Tokens, hook?: RowHook): void {
+    // Measured after drawing: when the table is wider than the card (a wider fallback font, long headers),
+    // draw it again tighter, then without the least important columns.
+    for (let level = 0; level <= m.columns.length + 4; level++) {
+        const wrap = drawList(root, m, w, h, t, hook, level);
+        if (!wrap.isConnected || wrap.scrollWidth <= w + 1) {
+            return;
+        }
+    }
+}
+
+function drawList(root: HTMLElement, m: ListModel, w: number, h: number, t: Tokens, hook: RowHook | undefined,
+    level: number): HTMLElement {
     clear(root);
     const twoLines = m.rows.some(r => r.sub);
     const rowH = twoLines ? 52 : 36;
@@ -38,8 +50,9 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
     // Narrow cards: tighter cells and a shorter progress track, so every column stays in view.
     const width = (c: ListColumn) => c.kind === "progress" ? 140 : c.kind === "status" ? 110 : 96;
     const need = (avatars ? 220 : 160) + m.columns.reduce((s, c) => s + width(c), 0);
-    const pad = need > w ? 8 : 12;
-    const trackW = need > w ? 48 : 72;
+    const tight = need > w || level > 0;
+    const pad = tight ? 8 : 12;
+    const trackW = tight ? 48 : 72;
     // A phone (under 420 px): keep the columns that fit, the first number first, then status, then the rest.
     const order = m.columns.map((c, i) => i).sort((a, b) => rank(m.columns[a], a, m.columns) - rank(m.columns[b], b, m.columns));
     const keep = new Set<number>();
@@ -53,11 +66,18 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
             used += cw;
         }
     });
+    order.slice().reverse().filter(i => keep.has(i)).slice(0, Math.max(0, level - 1))
+        .forEach(i => {                                    // past the first redraw: drop the least important
+            if (keep.size > 1) {
+                keep.delete(i);
+            }
+        });
     const columns = m.columns.filter((_c, i) => keep.has(i));
     const frame = el("div", `box-sizing:border-box;width:${w}px;height:${h}px;display:flex;flex-direction:column;` +
         `font-family:${t.font};color:${t.ink}`);
+    let titleEl: HTMLElement | undefined;
     if (m.title) {
-        frame.appendChild(el("div", `flex:none;height:${titleH}px;box-sizing:border-box;padding:14px 16px 0;font-size:13px;` +
+        titleEl = frame.appendChild(el("div", `flex:none;height:${titleH}px;box-sizing:border-box;padding:14px 16px 0;font-size:13px;` +
             "font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis", m.title));
     }
     const wrap = el("div", `box-sizing:border-box;width:${w}px;height:${h - titleH}px;overflow:auto;font-size:12px`);
@@ -85,7 +105,7 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
                 `align-items:center;justify-content:center;font-size:11px;font-weight:600;background:${bg};color:${fg}`,
                 initials(r.item)));
         }
-        const names = el("div", `display:flex;flex-direction:column;min-width:0;line-height:16px;max-width:${Math.max(96, w * 0.45)}px`);
+        const names = el("div", `display:flex;flex-direction:column;min-width:0;line-height:16px;max-width:${Math.max(80, (w >= 420 ? Math.max(96, w * 0.45) : w - 140) - level * 24)}px`);
         names.appendChild(el("span", "font-weight:600;overflow:hidden;text-overflow:ellipsis", r.item));
         if (r.sub) {
             names.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis`, r.sub));
@@ -107,6 +127,10 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
     wrap.appendChild(table);
     frame.appendChild(wrap);
     root.appendChild(frame);
+    if (titleEl) {
+        shrinkToFit(titleEl, 11);
+    }
+    return wrap;
 }
 
 /** Which columns a narrow list keeps first: the first number, then the status, then the others in order. */

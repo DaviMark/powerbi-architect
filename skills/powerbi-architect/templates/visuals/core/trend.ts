@@ -1,4 +1,4 @@
-import { Tokens, el, sv, clear, niceTicks, tint } from "./dom";
+import { Tokens, el, sv, clear, niceTicks, tint, shrinkToFit } from "./dom";
 
 export interface TrendModel {
     title: string;
@@ -27,6 +27,7 @@ export function renderTrend(root: HTMLElement, m: TrendModel, w: number, h: numb
     const box = el("div", `box-sizing:border-box;width:${w}px;height:${h}px;padding:${pad - 2}px ${pad}px ${pad - 4}px;` +
         `font-family:${t.font};color:${t.ink};display:flex;flex-direction:column`);
 
+    let note: HTMLElement | undefined;
     const head = el("div", "display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex:none");
     const left = el("div", "display:flex;flex-direction:column;gap:2px;min-width:0");
     left.appendChild(el("div", "font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis", m.title));
@@ -34,7 +35,8 @@ export function renderTrend(root: HTMLElement, m: TrendModel, w: number, h: numb
         const line = el("div", "display:flex;align-items:baseline;gap:8px;margin-top:6px;white-space:nowrap;min-width:0");
         line.appendChild(el("span", "font-size:22px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums", m.total));
         if (m.totalNote) {
-            line.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0`, m.totalNote));
+            note = el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0`, m.totalNote);
+            line.appendChild(note);
         }
         left.appendChild(line);
     }
@@ -58,6 +60,9 @@ export function renderTrend(root: HTMLElement, m: TrendModel, w: number, h: numb
     const plotH = h - (m.total ? 70 : 40) - pad;
     if (plotH < 60 || m.values.length === 0) {
         root.appendChild(box);
+        if (note) {
+            shrinkToFit(note, 8);
+        }
         return;
     }
     const plotW = w - pad * 2;
@@ -126,4 +131,7 @@ export function renderTrend(root: HTMLElement, m: TrendModel, w: number, h: numb
     }
     box.appendChild(svg as unknown as HTMLElement);
     root.appendChild(box);
+    if (note) {
+        shrinkToFit(note, 8);
+    }
 }

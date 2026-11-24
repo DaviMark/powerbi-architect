@@ -115,6 +115,17 @@ function brandTokens(brand) {
     });
     return out;
 }
+/**
+ * Shrinks the font of a one-line text until it fits its box (measured, so it holds for any font the
+ * viewer's machine falls back to). Needs the node in the document; does nothing otherwise.
+ */
+function shrinkToFit(node, min) {
+    let size = parseFloat(node.style.fontSize) || 0;
+    while (node.isConnected && size > min && node.scrollWidth > node.clientWidth + 0.5) {
+        size -= 1;
+        node.style.fontSize = `${size}px`;
+    }
+}
 /** a mixed with white: share 0 keeps a, 1 is white. */
 function tint(hex, share) {
     const h = hex.replace("#", "");
@@ -152,9 +163,10 @@ function renderKpi(root, m, w, h, t) {
     card.appendChild(el("div", `font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;` +
         `color:${t.muted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px;` +
         `max-width:${w - padX * 2}px`, m.label));
-    card.appendChild(el("div", `font-size:${valueSize}px;font-weight:600;letter-spacing:-.01em;line-height:1.1;` +
+    const valueEl = el("div", `font-size:${valueSize}px;font-weight:600;letter-spacing:-.01em;line-height:1.1;` +
         `font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
-        `max-width:${w - padX * 2 - (sw ? sw + 12 : 0)}px`, m.value));
+        `max-width:${w - padX * 2 - (sw ? sw + 12 : 0)}px`, m.value);
+    card.appendChild(valueEl);
     const foot = el("div", "display:flex;align-items:center;gap:6px;min-height:18px;white-space:nowrap;overflow:hidden");
     if (m.delta) {
         const tone = t.tones[m.tone || "neutral"];
@@ -195,6 +207,7 @@ function renderKpi(root, m, w, h, t) {
         card.appendChild(svg);
     }
     root.appendChild(card);
+    shrinkToFit(valueEl, 14);
 }
 
 // ---- list.ts
@@ -203,6 +216,16 @@ function renderKpi(root, m, w, h, t) {
  * progress as a thin bar, numbers right-aligned. Sticky header; the body scrolls when rows do not fit.
  */
 function renderList(root, m, w, h, t, hook) {
+    // Measured after drawing: when the table is wider than the card (a wider fallback font, long headers),
+    // draw it again tighter, then without the least important columns.
+    for (let level = 0; level <= m.columns.length + 4; level++) {
+        const wrap = drawList(root, m, w, h, t, hook, level);
+        if (!wrap.isConnected || wrap.scrollWidth <= w + 1) {
+            return;
+        }
+    }
+}
+function drawList(root, m, w, h, t, hook, level) {
     clear(root);
     const twoLines = m.rows.some(r => r.sub);
     const rowH = twoLines ? 52 : 36;
@@ -211,8 +234,9 @@ function renderList(root, m, w, h, t, hook) {
     // Narrow cards: tighter cells and a shorter progress track, so every column stays in view.
     const width = (c) => c.kind === "progress" ? 140 : c.kind === "status" ? 110 : 96;
     const need = (avatars ? 220 : 160) + m.columns.reduce((s, c) => s + width(c), 0);
-    const pad = need > w ? 8 : 12;
-    const trackW = need > w ? 48 : 72;
+    const tight = need > w || level > 0;
+    const pad = tight ? 8 : 12;
+    const trackW = tight ? 48 : 72;
     // A phone (under 420 px): keep the columns that fit, the first number first, then status, then the rest.
     const order = m.columns.map((c, i) => i).sort((a, b) => rank(m.columns[a], a, m.columns) - rank(m.columns[b], b, m.columns));
     const keep = new Set();
@@ -226,11 +250,18 @@ function renderList(root, m, w, h, t, hook) {
             used += cw;
         }
     });
+    order.slice().reverse().filter(i => keep.has(i)).slice(0, Math.max(0, level - 1))
+        .forEach(i => {
+        if (keep.size > 1) {
+            keep.delete(i);
+        }
+    });
     const columns = m.columns.filter((_c, i) => keep.has(i));
     const frame = el("div", `box-sizing:border-box;width:${w}px;height:${h}px;display:flex;flex-direction:column;` +
         `font-family:${t.font};color:${t.ink}`);
+    let titleEl;
     if (m.title) {
-        frame.appendChild(el("div", `flex:none;height:${titleH}px;box-sizing:border-box;padding:14px 16px 0;font-size:13px;` +
+        titleEl = frame.appendChild(el("div", `flex:none;height:${titleH}px;box-sizing:border-box;padding:14px 16px 0;font-size:13px;` +
             "font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis", m.title));
     }
     const wrap = el("div", `box-sizing:border-box;width:${w}px;height:${h - titleH}px;overflow:auto;font-size:12px`);
@@ -255,7 +286,7 @@ function renderList(root, m, w, h, t, hook) {
             box.appendChild(el("span", `flex:none;width:28px;height:28px;border-radius:50%;display:inline-flex;` +
                 `align-items:center;justify-content:center;font-size:11px;font-weight:600;background:${bg};color:${fg}`, initials(r.item)));
         }
-        const names = el("div", `display:flex;flex-direction:column;min-width:0;line-height:16px;max-width:${Math.max(96, w * 0.45)}px`);
+        const names = el("div", `display:flex;flex-direction:column;min-width:0;line-height:16px;max-width:${Math.max(80, (w >= 420 ? Math.max(96, w * 0.45) : w - 140) - level * 24)}px`);
         names.appendChild(el("span", "font-weight:600;overflow:hidden;text-overflow:ellipsis", r.item));
         if (r.sub) {
             names.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis`, r.sub));
@@ -277,6 +308,10 @@ function renderList(root, m, w, h, t, hook) {
     wrap.appendChild(table);
     frame.appendChild(wrap);
     root.appendChild(frame);
+    if (titleEl) {
+        shrinkToFit(titleEl, 11);
+    }
+    return wrap;
 }
 /** Which columns a narrow list keeps first: the first number, then the status, then the others in order. */
 function rank(c, i, all) {
@@ -323,6 +358,7 @@ function renderTrend(root, m, w, h, t, hook) {
     const pad = 16;
     const box = el("div", `box-sizing:border-box;width:${w}px;height:${h}px;padding:${pad - 2}px ${pad}px ${pad - 4}px;` +
         `font-family:${t.font};color:${t.ink};display:flex;flex-direction:column`);
+    let note;
     const head = el("div", "display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex:none");
     const left = el("div", "display:flex;flex-direction:column;gap:2px;min-width:0");
     left.appendChild(el("div", "font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis", m.title));
@@ -330,7 +366,8 @@ function renderTrend(root, m, w, h, t, hook) {
         const line = el("div", "display:flex;align-items:baseline;gap:8px;margin-top:6px;white-space:nowrap;min-width:0");
         line.appendChild(el("span", "font-size:22px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums", m.total));
         if (m.totalNote) {
-            line.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0`, m.totalNote));
+            note = el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0`, m.totalNote);
+            line.appendChild(note);
         }
         left.appendChild(line);
     }
@@ -353,6 +390,9 @@ function renderTrend(root, m, w, h, t, hook) {
     const plotH = h - (m.total ? 70 : 40) - pad;
     if (plotH < 60 || m.values.length === 0) {
         root.appendChild(box);
+        if (note) {
+            shrinkToFit(note, 8);
+        }
         return;
     }
     const plotW = w - pad * 2;
@@ -419,6 +459,9 @@ function renderTrend(root, m, w, h, t, hook) {
     }
     box.appendChild(svg);
     root.appendChild(box);
+    if (note) {
+        shrinkToFit(note, 8);
+    }
 }
 
 // ---- ring.ts
@@ -496,9 +539,10 @@ function renderRing(root, m, w, h, t, hook) {
     const mid = el("div", "position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;" +
         "justify-content:center;text-align:center;pointer-events:none");
     const big = size >= 140 ? 22 : size >= 104 ? 18 : 15;
-    mid.appendChild(el("div", `font-size:${big}px;font-weight:600;letter-spacing:-.01em;line-height:1.15;` +
+    const centerEl = el("div", `font-size:${big}px;font-weight:600;letter-spacing:-.01em;line-height:1.15;` +
         `font-variant-numeric:tabular-nums;white-space:nowrap;max-width:${size - stroke * 2 - 8}px;overflow:hidden;` +
-        "text-overflow:ellipsis", m.center));
+        "text-overflow:ellipsis", m.center);
+    mid.appendChild(centerEl);
     if (m.centerNote) {
         mid.appendChild(el("div", `font-size:11px;color:${t.muted};line-height:14px;margin-top:2px;white-space:nowrap`, m.centerNote));
     }
@@ -528,6 +572,7 @@ function renderRing(root, m, w, h, t, hook) {
     body.appendChild(legend);
     card.appendChild(body);
     root.appendChild(card);
+    shrinkToFit(centerEl, 11);
 }
 window.PBIArchitect = { TOKENS, brandTokens, tint, renderKpi, renderList, renderTrend, renderRing, ringColours, toneOf };
 })();
