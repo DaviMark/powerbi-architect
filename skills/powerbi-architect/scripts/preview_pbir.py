@@ -443,12 +443,17 @@ class Preview:
                     return [c] * n
         return [self.accent] * n
 
+    def inner_padding(self, vtype: str) -> float:
+        """Share of each category slot left empty around a bar (Power BI's categoryAxis innerPadding, %)."""
+        return min(max(num(self.style(vtype, "categoryAxis", "innerPadding", 20), 20), 0), 90) / 100
+
     def xy_plot(self, w: float, body_h: float, labels: list[str], layers: list[dict], measure: str | None,
-                zero: bool) -> str:
+                zero: bool, vtype: str = "") -> str:
         """Value axis with round ticks and light gridlines, category labels underneath, and the layers
         ({"kind": "col" | "line" | "target", "values": [...], "color": hex, "fills": [...]}) on one scale."""
         n = max(len(labels), max((len(x["values"]) for x in layers), default=1), 1)
         everything = [v for x in layers for v in x["values"]] or [0, 1]
+        grid = self.style(vtype, "valueAxis", "gridlineColor", "#EDEDF0")
         lo, hi = min(everything), max(everything)
         if zero or lo > 0 and lo < hi * 0.5:
             lo = min(lo, 0)
@@ -465,7 +470,7 @@ class Preview:
         for t, text in zip(ticks, tick_text):
             ty = top + y(t)
             out.append(f'<div style="position:absolute;left:{left:.0f}px;width:{pw:.0f}px;top:{ty:.1f}px;'
-                       f'border-top:1px {"solid #D6D6D6" if t == 0 else "solid #F0F0F0"}"></div>'
+                       f'border-top:1px solid {"#D2D2D7" if t == 0 else grid}"></div>'
                        f'<div style="{lab};right:{w - left + 6:.0f}px;top:{ty - 8:.1f}px">{html.escape(text)}</div>')
         step = max(1, -(-n * 52 // int(pw)))                 # thin the category labels until they fit
         slot = pw / n
@@ -483,7 +488,7 @@ class Preview:
             vals = layer["values"][:n]
             if layer["kind"] == "col":
                 fills = layer.get("fills") or [layer["color"]] * n
-                bw = slot * 0.56
+                bw = slot * (1 - self.inner_padding(vtype))
                 for i, v in enumerate(vals):
                     y0, y1 = y(max(v, 0) if lo < 0 else v), y(0 if lo <= 0 else lo)
                     svg.append(f'<rect x="{slot * i + (slot - bw) / 2:.1f}" y="{min(y0, y1):.1f}" width="{bw:.1f}" '
@@ -494,15 +499,8 @@ class Preview:
                     svg.append(f'<polyline points="{pts}" fill="none" stroke="#999999" stroke-width="1.5" '
                                f'stroke-dasharray="4 3"/>')
                 else:
-                    if layer.get("area"):
-                        svg.append(f'<polygon points="{slot * 0.5:.1f},{ph} {pts} {slot * (len(vals) - 0.5):.1f},{ph}" '
-                                   f'fill="{layer["color"]}" fill-opacity=".08"/>')
                     svg.append(f'<polyline points="{pts}" fill="none" stroke="{layer["color"]}" stroke-width="2" '
                                f'stroke-linejoin="round" stroke-linecap="round"/>')
-                    if vals:
-                        lx, ly = slot * (len(vals) - 0.5), y(vals[-1])
-                        svg.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="3.5" fill="#FFFFFF" '
-                                   f'stroke="{layer["color"]}" stroke-width="2"/>')
         out.append(f'<svg width="{pw:.0f}" height="{ph:.0f}" style="position:absolute;left:{left:.0f}px;'
                    f'top:{top}px;overflow:visible">{"".join(svg)}</svg>')
         return f'<div style="position:relative;height:{body_h:.0f}px">{"".join(out)}</div>'
@@ -564,7 +562,7 @@ class Preview:
                 layers.append({"kind": "line", "values": line_v, "color": self.ink2})
             if target_v:
                 layers.append({"kind": "target", "values": list(target_v)[:n]})
-            return self.xy_plot(w, body_h, labels, layers, m, zero=True)
+            return self.xy_plot(w, body_h, labels, layers, m, zero=True, vtype=vtype)
         n = (min(len(self.labels(cat, 10)) or 5, 10) if "bar" in kind or "column" in kind or kind == "waterfallchart"
              else 12)
         labels = self.labels(cat, n) or [""] * n
@@ -580,7 +578,7 @@ class Preview:
         lab = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2}"
         if "bar" in kind:
             slot = (body_h + 20) / max(len(labels), 1)      # bars share the plot height, as in Power BI
-            thick = min(max(slot * 0.62, 8), 28)
+            thick = min(max(slot * (1 - self.inner_padding(vtype)), 6), 24)
             fills = self.bar_colours(objs, len(labels), vals)
             name_w = min(max((max((len(x) for x in labels), default=4) * 6.6 + 8), 48), 140)
             rows = "".join(
@@ -616,11 +614,12 @@ class Preview:
             for l, v, a, b, k in steps:
                 fill = col_fills[len(cols)] if k == "column" else (sent.get(k) or {"total": "#666666"}.get(k, self.accent))
                 top = (hi - max(a, b)) * scale
-                cols.append(f'<div style="flex:1;margin:0 6px;position:relative;height:{plot + 18:.0f}px">'
+                inset = 50 * self.inner_padding(vtype)
+                cols.append(f'<div style="flex:1 1 0;min-width:0;position:relative;height:{plot + 18:.0f}px">'
                             f'<div style="position:absolute;left:0;right:0;top:{top - 16:.0f}px;{lab};'
                             f'text-align:center;white-space:nowrap">{self.num_text(v, m)}</div>'
-                            f'<div style="position:absolute;left:0;right:0;top:{top:.0f}px;height:{max(abs(b - a) * scale, 1):.0f}px;'
-                            f'background:{fill};border-radius:2px"></div>'
+                            f'<div style="position:absolute;left:{inset:.0f}%;right:{inset:.0f}%;top:{top:.0f}px;'
+                            f'height:{max(abs(b - a) * scale, 1):.0f}px;background:{fill};border-radius:2px"></div>'
                             f'<div style="position:absolute;left:0;right:0;bottom:0;{lab};text-align:center;white-space:nowrap;'
                             f'overflow:hidden;height:18px">{html.escape(l)}</div></div>')
             return (f'<div style="display:flex;align-items:flex-end;height:{body_h}px;padding:24px 12px 0;'
@@ -632,11 +631,11 @@ class Preview:
             series.append(self.series(extra, len(vals), [v * 0.7 for v in vals]))
         target_v = (self.sample.get("series", {}).get(target) or [max(vals) * 0.9] * len(vals))[:len(vals)] \
             if target else []
-        layers = [{"kind": "line", "values": sr, "color": palette[i % len(palette)], "area": len(series) == 1}
+        layers = [{"kind": "line", "values": sr, "color": palette[i % len(palette)]}
                   for i, sr in enumerate(series)]
         if target_v:
             layers.append({"kind": "target", "values": list(target_v)})
-        return self.xy_plot(w, body_h, labels, layers, m, zero=False)
+        return self.xy_plot(w, body_h, labels, layers, m, zero=False, vtype=vtype)
 
     # ------------------------------------------------------------------ pages
     def render(self, mobile: bool = False, overlays: list[Path] | None = None) -> str:
