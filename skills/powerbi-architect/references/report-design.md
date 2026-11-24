@@ -10,7 +10,7 @@
 Every report must look like a calm, precise product, never like a default Power BI page (default
 palette, axis titles, gridlines, right-side legends, DIN, oversized slicers, five font sizes). The
 reference is the interface of Twenty, the open-source CRM: neutral greys, one accent colour, a quiet
-sidebar, a thin top bar, white panels with hairline borders, small type and generous, consistent space.
+sidebar, a thin top bar, borderless white cards on a light grey canvas, thin bars, small type and generous, consistent space.
 Brand identity (logo, accent colour, fonts) goes on top of this structure, never instead of it.
 
 **App shell** (every page that has more than one sibling page; a single-page report can skip the
@@ -18,17 +18,15 @@ sidebar and keep the panel and top bar). Canvas 1280×720, positions in px:
 
 | Piece | Position (x, y, w, h) | Spec |
 |---|---|---|
-| Canvas | 0, 0, 1280, 720 | page background `#F1F1F1` (theme `page.background`) |
+| Canvas | 0, 0, 1280, 720 | page background `#F5F5F7` (theme `page.background`) |
 | Sidebar | 0 – 220 | no shape: sits on the grey canvas, 8 px inner padding |
 | App mark | 16, 20, 16, 16 | rounded square in the accent colour, or the 16 px logo |
-| App name | 40, 16, 172, 24 | text box, 10 pt Segoe UI Semibold, `#333333` |
-| Section label | 8, 52, 204, 24 | text box, 9 pt, `#757575` ("Páginas", "Apoio") |
-| Page navigator | 8, 76, 204, 32·n | vertical, 32 px items, radius 8, text 10 pt left-aligned with a 32 px margin; default `#666666` on transparent, hover `#EBEBEB`, selected `#E3E3E3` + `#333333` semibold. Only visible pages (drill-through and tooltip pages are hidden) |
+| App name | 40, 16, 172, 24 | text box, 10 pt Segoe UI Semibold, `#1D1D1F` |
+| Section label | 8, 52, 204, 24 | text box, 9 pt, `#6E6E73` ("Páginas", "Apoio") |
+| Page navigator | 8, 76, 204, 32·n | vertical, 32 px items, radius 8, text 10 pt left-aligned with a 32 px margin; default `#6E6E73` on transparent, hover `#ECECF0`, selected `#E5E5EA` + `#1D1D1F` semibold. Only visible pages (drill-through and tooltip pages are hidden) |
 | Page icons | 16, 84 + 32·i, 16, 16 | one 16 px Tabler icon per visible page, grey, centred on its navigator item ([templates/icons](../templates/icons/README.md)) |
-| Panel | 220, 12, 1048, 696 | shape with container background `#FFFFFF`, border 1 px `#EBEBEB`, radius 8 |
-| Breadcrumb | 232, 28, ≤ 520, 24 | text box: `<Report>  /  ` 12 pt `#757575` + page name 12 pt semibold `#333333`; on drill-through pages a 24 px back arrow at 232 and the breadcrumb at 264 (`<Report> / <Parent> / <Page>`) |
-| Top bar right | right edge 1256, y 20–28 | "Updated at" text (9 pt `#757575`, card without chrome) and ≤ 2 compact slicers (176×40) |
-| Hairline | 220, 68, 1048, 1 | shape fill `#EBEBEB` |
+| Breadcrumb | 232, 28, ≤ 520, 24 | text box: `<Report>  /  ` 12 pt `#6E6E73` + page name 12 pt semibold `#1D1D1F`; on drill-through pages a 24 px back arrow at 232 and the breadcrumb at 264 (`<Report> / <Parent> / <Page>`) |
+| Top bar right | right edge 1256, y 20–28 | "Updated at" text (9 pt `#6E6E73`, card without chrome) and ≤ 2 compact slicers (176×40) |
 | Content | 232, 80, 1024, 616 | everything else lives here, 16 px gutters |
 
 `scripts/pbir_layout.py` writes all of this from a layout spec. The theme in [templates/theme/](../templates/theme/powerbi-architect-acessivel.json) already styles the
@@ -37,13 +35,14 @@ navigator, cards, tables, slicers, text boxes and shapes this way; the example
 [templates/pbir-pages/](../templates/pbir-pages/README.md) implement the shell. Copy them, do not redraw it.
 
 **Components inside the content area:**
-- KPI card: white, hairline border, radius 8; label 9 pt `#666666` (container title); value 20 pt
-  semibold `#333333`; one 9 pt line at the bottom (12 px in, 20 px high): context ("R$ 14,4 mi ainda a
+- KPI card: white, no border, radius 8, on the grey canvas; label 9 pt `#6E6E73` (container title);
+  value 20 pt semibold `#1D1D1F`; one 9 pt line at the bottom (12 px in, 20 px high): context ("R$ 14,4 mi ainda a
   vencer", grey) or distance to target / previous period with ▲/▼ coloured by a measure that knows
   whether up is good ([dax.md](dax.md) › KPI lines). Height 88, 4 per row.
-- Chart card: title 10 pt semibold, sentence case, left; data labels instead of axes; no gridlines,
-  no axis titles, legend only with 2+ series (top-left, 9 pt).
-- Table: header 9 pt semibold `#666666`, values 9 pt `#333333`, horizontal hairlines `#F1F1F1` only,
+- Chart card: title 10 pt semibold, sentence case, left; bars and columns with 45 % inner padding
+  (thin, never slabs) and data labels instead of a value axis; trends keep a light value axis with
+  `#EDEDF0` gridlines; no axis titles, legend only with 2+ series (top-left, 9 pt).
+- Table: header 9 pt semibold `#6E6E73`, values 9 pt `#1D1D1F`, horizontal hairlines `#F5F5F7` only,
   numbers right-aligned, no zebra stripes, no vertical grid.
 - Colour: one accent for the focus series, greys for context, green/red only for good/bad.
 
