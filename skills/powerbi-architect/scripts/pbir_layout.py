@@ -55,7 +55,9 @@ Build the spec into the same folder to restyle it (pages are rewritten: commit f
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
+import zlib
 import math
 from fractions import Fraction
 import json
@@ -83,6 +85,157 @@ def write_lf(path: Path, text: str) -> None:
 
 class SpecError(ValueError):
     pass
+
+
+# ---------------------------------------------------------------------- your edits survive a rebuild
+# The engine remembers what it wrote last time in <project>/.powerbi-architect/<Name>.Report.layout-lock.json.
+# On the next build every file is merged three ways, like git: base = what the engine wrote last time,
+# theirs = what is on disk now (your edits in Desktop or by hand), ours = what the spec produces now.
+# Your change wins wherever both sides changed the same property. Visuals and pages you added are left
+# alone, visuals you deleted stay deleted, and files you never touched follow the spec.
+MISSING = object()
+LOCK_VERSION = 1
+
+
+def lock_path(report: Path) -> Path:
+    return report.parent / ".powerbi-architect" / f"{report.name}.layout-lock.json"
+
+
+def pack(text: str) -> str:
+    return base64.b64encode(zlib.compress(text.encode("utf-8"), 9)).decode("ascii")
+
+
+def unpack(blob: str) -> str:
+    return zlib.decompress(base64.b64decode(blob)).decode("utf-8")
+
+
+def merge3(base, ours, theirs, path: str, conflicts: list):
+    """Three-way merge of JSON values; on a real conflict the value on disk (the user's) wins."""
+    if ours == theirs or theirs == base:
+        return ours
+    if ours == base:
+        return theirs
+    if all(isinstance(v, dict) for v in (base, ours, theirs) if v is not MISSING) and \
+            isinstance(ours, dict) and isinstance(theirs, dict):
+        b = base if isinstance(base, dict) else {}
+        out = {}
+        for k in list(theirs) + [k for k in ours if k not in theirs]:
+            v = merge3(b.get(k, MISSING), ours.get(k, MISSING), theirs.get(k, MISSING), f"{path}.{k}", conflicts)
+            if v is not MISSING:
+                out[k] = v
+        return out
+    if path.endswith(".pageOrder") and isinstance(ours, list) and isinstance(theirs, list):
+        kept = [p for p in theirs if p in ours]            # your order, minus pages the spec removed
+        return kept + [p for p in ours if p not in kept]    # plus pages the spec added, at the end
+    conflicts.append(path.lstrip("."))
+    return theirs
+
+
+class MergeResult:
+    def __init__(self):
+        self.written, self.kept, self.merged, self.removed, self.deleted_by_you = [], [], [], [], []
+        self.conflicts: dict[str, list[str]] = {}
+        self.fresh = False
+
+    def lines(self, report: Path) -> list[str]:
+        out = []
+        for rel in self.merged:
+            extra = f" (your value kept for {', '.join(self.conflicts[rel][:4])})" if self.conflicts.get(rel) else ""
+            out.append(f"merged your edits and the spec in {describe(report, rel)}{extra}")
+        out += [f"kept your version of {describe(report, rel)}" for rel in self.kept]
+        out += [f"left deleted, as you did: {rel}" for rel in self.deleted_by_you]
+        return out
+
+
+def describe(report: Path, rel: str) -> str:
+    """'Página › tipo "título"' for a visual, or the relative path."""
+    try:
+        data = json.loads((report / rel).read_text(encoding="utf-8-sig"))
+        page = json.loads((report / rel).parents[2].joinpath("page.json").read_text(encoding="utf-8-sig"))
+        vis = data.get("visual") or {}
+        title = _lit(_prop(vis.get("visualContainerObjects") or {}, "title", "text")) or ""
+        return f"{page.get('displayName', '?')} › {vis.get('visualType', '?')}" + (f' "{title}"' if title else "")
+    except (OSError, ValueError, AttributeError, IndexError):
+        return rel
+
+
+def merge_write(report: Path, files: dict[str, str], scope: str, force: bool = False) -> MergeResult:
+    """Write `files` under `report`, merging with what is on disk instead of overwriting it.
+
+    scope is the path prefix these files own ("definition/pages/" for pages): base entries under it that
+    the spec no longer produces are removed when you have not changed them.
+    """
+    res = MergeResult()
+    lp = lock_path(report)
+    lock = json.loads(lp.read_text(encoding="utf-8")) if lp.exists() else {}
+    try:
+        base_all = json.loads(unpack(lock["files"])) if lock.get("version") == LOCK_VERSION else {}
+    except (KeyError, ValueError, TypeError, zlib.error):
+        base_all = {}                                     # unreadable lock: behave like a first build
+    base = {k: v for k, v in base_all.items() if k.startswith(scope)}
+    fresh = force or not any((report / k).exists() for k in base)
+    if fresh:
+        res.fresh = True
+        if scope.endswith("/") and (report / scope).exists():
+            shutil.rmtree(report / scope)                 # first build (or --force): the spec owns the folder
+        base = {}
+
+    def load(text):
+        try:
+            return json.loads(text)
+        except ValueError:
+            return text
+
+    for rel in sorted(set(files) | set(base)):
+        target = report / rel
+        new = files.get(rel)
+        old = base.get(rel)
+        disk = target.read_text(encoding="utf-8-sig") if target.exists() else None
+        if new is not None:
+            if disk is None:
+                if old is None:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    write_lf(target, new)
+                    res.written.append(rel)
+                else:
+                    res.deleted_by_you.append(rel)
+                continue
+            n, d = load(new), load(disk)
+            if n == d:
+                continue
+            o = load(old) if old is not None else MISSING
+            if d == o:
+                write_lf(target, new)
+                res.written.append(rel)
+                continue
+            if n == o:
+                res.kept.append(rel)
+                continue
+            conflicts: list[str] = []
+            merged = merge3(o, n, d, "", conflicts)
+            if isinstance(merged, (dict, list)):
+                write_lf(target, json.dumps(merged, indent=2, ensure_ascii=False) + "\n")
+                res.merged.append(rel)
+                res.conflicts[rel] = conflicts
+            else:
+                res.kept.append(rel)
+        elif disk is not None:
+            if load(disk) == load(old):
+                target.unlink()
+                res.removed.append(rel)
+                for parent in target.parents:
+                    if parent == report or any(parent.iterdir()):
+                        break
+                    parent.rmdir()
+            else:
+                res.kept.append(rel)
+    kept_files = {**{k: v for k, v in base_all.items() if not k.startswith(scope)}, **files}
+    lock = {"about": "Written by pbir_layout.py: what it generated last time, so your manual edits survive the "
+                     "next build. Commit it with the report; do not edit it.",
+            "version": LOCK_VERSION, "files": pack(json.dumps(kept_files, sort_keys=True, ensure_ascii=False))}
+    lp.parent.mkdir(parents=True, exist_ok=True)
+    lp.write_text(json.dumps(lock, indent=1) + "\n", encoding="utf-8")
+    return res
 
 
 def hid(*parts: str) -> str:
@@ -385,12 +538,11 @@ class Builder:
         return out
 
     # ------------------------------------------------------------------ pages
-    def build(self, report: Path, write: bool = True) -> list[str]:
-        pages_dir = report / "definition" / "pages"
+    def render(self) -> dict[str, str]:
+        """Every file the spec produces under the report folder: {relative path: JSON text}."""
+        files: dict[str, str] = {}
         visible = [p for p in self.spec["pages"] if p.get("kind", "page") == "page"]
-        written = []
-        if write and pages_dir.exists():
-            shutil.rmtree(pages_dir)
+        dump = lambda obj: json.dumps(obj, indent=2, ensure_ascii=False) + "\n"  # noqa: E731
         for page in self.spec["pages"]:
             kind = page.get("kind", "page")
             pid = self.page_ids[page["name"]]
@@ -426,28 +578,27 @@ class Builder:
             keys = [k for k, *_ in placed]
             if len(keys) != len(set(keys)):
                 raise SpecError(f"page '{page['name']}': two visuals share a key; set 'key' on one of them")
-            if write:
-                (pages_dir / pid).mkdir(parents=True, exist_ok=True)
-                write_lf(pages_dir / pid / "page.json", json.dumps(pdata, indent=2, ensure_ascii=False) + "\n")
-                for i, (key, pos, visual) in enumerate(placed):
-                    vid = hid("visual", page["name"], key)
-                    vdir = pages_dir / pid / "visuals" / vid
-                    vdir.mkdir(parents=True, exist_ok=True)
-                    write_lf(vdir / "visual.json",
-                             json.dumps(self.container(vid, pos, i * 1000, visual), indent=2, ensure_ascii=False) + "\n")
-                    if key in mobile:
-                        x, y, w, h = mobile[key]
-                        write_lf(vdir / "mobile.json", json.dumps({
-                            "$schema": f"{SCHEMA}/visualContainerMobileState/1.0.0/schema.json",
-                            "position": {"x": x, "y": y, "z": i * 1000, "width": w, "height": h, "tabOrder": i * 1000}},
-                            indent=2) + "\n")
-            written.append(pid)
+            base = f"definition/pages/{pid}"
+            files[f"{base}/page.json"] = dump(pdata)
+            for i, (key, pos, visual) in enumerate(placed):
+                vid = hid("visual", page["name"], key)
+                files[f"{base}/visuals/{vid}/visual.json"] = dump(self.container(vid, pos, i * 1000, visual))
+                if key in mobile:
+                    x, y, w, h = mobile[key]
+                    files[f"{base}/visuals/{vid}/mobile.json"] = dump({
+                        "$schema": f"{SCHEMA}/visualContainerMobileState/1.0.0/schema.json",
+                        "position": {"x": x, "y": y, "z": i * 1000, "width": w, "height": h, "tabOrder": i * 1000}})
+        order = [self.page_ids[p["name"]] for p in self.spec["pages"]]
+        files["definition/pages/pages.json"] = dump({"$schema": f"{SCHEMA}/pagesMetadata/1.0.0/schema.json",
+                                                     "pageOrder": order, "activePageName": order[0]})
+        return files
+
+    def build(self, report: Path, write: bool = True, force: bool = False) -> list[str]:
+        """Write the pages. Files you changed by hand since the last build are kept (see merge_write)."""
+        files = self.render()
         if write:
-            order = [self.page_ids[p["name"]] for p in self.spec["pages"]]
-            write_lf(pages_dir / "pages.json", json.dumps({
-                "$schema": f"{SCHEMA}/pagesMetadata/1.0.0/schema.json", "pageOrder": order,
-                "activePageName": order[0]}, indent=2) + "\n")
-        return written
+            self.merge = merge_write(report, files, "definition/pages/", force=force)
+        return [self.page_ids[p["name"]] for p in self.spec["pages"]]
 
     def register_resources(self, report: Path, theme: Path | None):
         res = report / "StaticResources" / "RegisteredResources"
@@ -460,7 +611,8 @@ class Builder:
                          "useEnhancedTooltips": True}}
         items = []
         if theme:
-            shutil.copyfile(theme, res / theme.name)
+            merge_write(report, {f"StaticResources/RegisteredResources/{theme.name}":
+                                 theme.read_text(encoding="utf-8")}, f"StaticResources/RegisteredResources/{theme.name}")
             rj["themeCollection"] = {"customTheme": {"name": theme.name, "reportVersionAtImport": "5.59",
                                                      "type": "RegisteredResources"}}
             items.append({"name": theme.name, "path": theme.name, "type": "CustomTheme"})
@@ -828,6 +980,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, help="with --extract: file for the spec (default: stdout)")
     ap.add_argument("--theme", type=Path, help="theme JSON to register as the custom theme")
     ap.add_argument("--check", action="store_true", help="validate the spec without writing")
+    ap.add_argument("--force", action="store_true",
+                    help="rewrite every page from the spec, discarding edits made by hand since the last build")
     args = ap.parse_args(argv)
     for stream in (sys.stdin, sys.stdout, sys.stderr):   # Windows consoles default to a legacy code page
         if hasattr(stream, "reconfigure"):
@@ -855,13 +1009,24 @@ def main(argv: list[str] | None = None) -> int:
     try:
         spec = json.loads(args.spec.read_text(encoding="utf-8"))
         b = Builder(spec)
-        pages = b.build(args.report, write=not args.check)
+        had_pages = (args.report / "definition" / "pages").exists()
+        pages = b.build(args.report, write=not args.check, force=args.force)
         if not args.check:
             b.register_resources(args.report, args.theme)
     except (SpecError, KeyError, json.JSONDecodeError) as e:
         print(f"pbir_layout.py: error: {e}", file=sys.stderr)
         return 2
-    print(f"[ok] {len(pages)} page(s) {'checked' if args.check else 'written'}")
+    if args.check:
+        print(f"[ok] {len(pages)} page(s) checked")
+        return 0
+    m = b.merge
+    for line in m.lines(args.report):
+        print(f"- {line}")
+    if m.fresh and had_pages and not args.force:
+        print("- no layout lock yet: pages were rewritten from the spec. From now on, edits made by hand "
+              "(in Desktop or in the files) are kept on every rebuild")
+    print(f"[ok] {len(pages)} page(s): {len(m.written)} file(s) written, {len(m.removed)} removed, "
+          f"{len(m.kept) + len(m.merged)} with your edits kept · lock: {lock_path(args.report)}")
     return 0
 
 

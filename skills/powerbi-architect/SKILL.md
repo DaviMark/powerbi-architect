@@ -151,6 +151,10 @@ add back one thing.
   deeper. [references/tmdl.md](references/tmdl.md).
 - **PBIR:** keep the `$schema` versions present (never newer than the user's Desktop); 20-char hex names =
   folder names; exact `Entity`/`Property`; `pages.json` in sync. JSON per visual: [references/pbir.md](references/pbir.md).
+- **The user's edits win.** Rebuilding with `pbir_layout.py` merges three ways against
+  `.powerbi-architect/<Name>.Report.layout-lock.json` (commit it): visuals the user moved, retitled, added or
+  deleted by hand stay that way, and the output lists what was kept. Never pass `--force` unless the user
+  asks to discard their edits; when a request contradicts one of them, ask.
 - **The `.pbip` must open after every edit.** Run `pbw validar` or `python scripts/audit_pbip.py <folder>`
   (`--help`: rules, `--json`, `--sarif`, suppression). Regenerate pages with `pbir_layout.py` rather than
   hand-editing visual JSON.
