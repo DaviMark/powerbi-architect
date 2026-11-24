@@ -6,6 +6,26 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 
 ## [Não publicado]
 ### Adicionado
+- **Suas edições no Desktop nunca se perdem.** O `pbir_layout.py` gera as páginas de novo com um merge em
+  três vias, como o git: visual movido, renomeado, criado ou apagado à mão fica como o usuário deixou, e
+  o resto segue a especificação. O motor guarda o que gerou em
+  `.powerbi-architect/<Nome>.Report.layout-lock.json`, e `--force` reescreve tudo.
+- **A IA percebe sozinha o que foi mudado à mão.** O `scripts/pbip_changes.py` compara o projeto com o
+  estado depois da última edição da IA e descreve as mudanças em termos de negócio. Ligado aos hooks
+  `SessionStart` e `UserPromptSubmit` do Claude Code, ele avisa a IA antes de cada pedido e mantém o
+  diário em `.powerbi-architect/alteracoes.md`.
+- Gráficos com meta tracejada (`target`), barras e colunas com cor por medida (`colorMeasure`), linhas
+  de altura automática (`"auto"`, com `items`) ou que ocupam o resto da página (`"fill"`). No gráfico
+  de colunas com linha, a meta fica no eixo das colunas.
+- Auditoria de diretor de arte, com as regras `PBI059` a `PBI064`: título que não cabe, tabela
+  apertada, título dinâmico sobre outro assunto, tempo no eixo vertical, cartões estreitos e gráfico
+  pequeno demais.
+- Paleta segura para daltonismo: o `make_theme.py` simula protanopia, deuteranopia e tritanopia e
+  escolhe tons Radix que continuam distinguíveis. A regra `PBI065` aponta temas cujas cores se
+  confundem.
+- Referência `chart-craft.md`, com a receita de acabamento de cada visual, formatos de número, técnicas
+  de DAX e a revisão de três segundos.
+- Galeria de componentes em `docs/galeria`, gerada por `tools/generate_gallery.py`.
 - Padrão visual inspirado no Twenty, o CRM open source: estrutura de página com sidebar de 220 px e
   navegação de páginas, painel branco com cantos de 8 px e barra do topo de 56 px (caminho da página, data
   da carga e filtros compactos), com a posição de cada peça em `references/report-design.md`.
@@ -69,6 +89,7 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   `Atraso Médio (dias)`.
 - Linhas de texto sem moldura (variação do KPI, data da carga) não contam como visuais separados.
 ### Corrigido
+- A paleta padrão tinha dois laranjas iguais para quem tem protanopia (#D14E00 e #AD6200); trocada.
 - O calendário dos kits e do exemplo não cobria os meses mais antigos das tabelas fato; agora vai da
   primeira à última data da fato, em anos completos.
 - Os scripts voltam a rodar no Python 3.9 (`write_text` com `newline=` só existe a partir do 3.10).

@@ -17,10 +17,10 @@ abra uma com o formulário **Ideia / melhoria**. Itens marcados com `good first 
 - **Conferir no Desktop os visuais modernos e o layout de celular.** O cartão novo, o slicer em botões,
   o botão com ícone e o tamanho da tela de celular foram montados a partir dos schemas, sem o Desktop.
 
-- **O que a avaliação E13 mostrou** (`evals/results/2026-11-22-design-e13`): mostrar a meta nos gráficos
-  de tendência (segunda série cinza ou linha de referência), destacar pela cor as barras abaixo da meta,
-  calcular a altura dos cartões de barras pelo número de categorias e conferir se o título dinâmico
-  combina com o visual.
+- **Conferir no Desktop a meta tracejada, a cor por medida e o eixo único do combinado.** Os três foram
+  montados a partir dos schemas e das propriedades de formatação do Power BI, sem abrir o Desktop.
+- **Absorver no `layout.json` as edições feitas à mão**, para que a especificação volte a descrever o
+  relatório inteiro (hoje elas ficam preservadas nos arquivos, mas não na especificação).
 
 ## Depois
 
