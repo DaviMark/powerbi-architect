@@ -155,7 +155,8 @@ Limits enforced by the audit (`PBI047`): text boxes ≤ 14 pt, KPI values ≤ 24
   (`PBI065` flags palettes that clash).
 
 ## 7. Visual craft
-The theme sets these defaults; only override per visual with a reason.
+The theme sets these defaults; only override per visual with a reason. Recipe per visual, number
+formats, DAX techniques and the three-second review: [chart-craft.md](chart-craft.md).
 - **Bars**: start at zero; sort by value (except time/ordinal); data labels on, value axis off;
   horizontal bars for long category names.
 - **Lines**: time on X; ≤ 4 series; 2 px stroke, no markers (theme); label the last point; title from a

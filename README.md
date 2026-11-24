@@ -257,6 +257,7 @@ skills/powerbi-architect/
 │   ├── semantic-features.md        calculation groups, field parameters, visual calculations, funções DAX
 │   ├── fabric-and-cicd.md          Direct Lake, Git do Fabric, deployment pipelines, CI
 │   ├── copywriting.md              títulos, nomes de medida, números e textos das páginas
+│   ├── chart-craft.md              receita de acabamento de cada visual, formatos de número, revisão de 3 segundos
 │   ├── performance.md · security.md · quality-checklist.md
 ├── templates/
 │   ├── starter-kits/               ← kits de vendas, financeiro, RH e estoque
