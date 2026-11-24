@@ -39,7 +39,7 @@ Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, wat
 (options: "columns", "highlight": {"column": <measure>, "colorMeasure": <measure>}), slicer ("field"), and
   matrix    {"rows": [fields], "columns": [fields], "values": [measures], "highlight": {...}}
   combo     {"category": field, "values": [column measures], "lineValues": [line measures]}
-  scatter   {"details": field, "x": measure, "y": measure, "size": measure}
+  scatter   {"details": field, "x": measure, "y": measure, "size": measure, "labels": true (≤ 12 points)}
   kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
 Chart craft: "target": m on lineChart and combo adds the target as a thin grey dashed line;
 combo puts the line on the columns' axis when it has a target ("sameAxis": true/false to choose);
@@ -493,8 +493,10 @@ class Builder:
                      "X": {"projections": [self.proj(spec["x"])]}, "Y": {"projections": [self.proj(spec["y"])]}}
             if spec.get("size"):
                 roles["Size"] = {"projections": [self.proj(spec["size"])]}
+            scatter_objects = {"categoryLabels": [{"properties": {"show": lit("true"), "fontSize": lit("9D")}}]} \
+                if spec.get("labels") else None
             return [(key, pos, self.data_visual("scatterChart", roles, alt, title=spec.get("title"),
-                                                title_measure=spec.get("titleMeasure"),
+                                                title_measure=spec.get("titleMeasure"), objects=scatter_objects,
                                                 tooltip_page=spec.get("tooltipPage")))]
         if t == "kpiTrend":
             roles = {"Indicator": {"projections": [self.proj(spec["measure"])]},
@@ -591,6 +593,14 @@ class Builder:
                                                     "fontFamily": lit("'Segoe UI'")}}]})))
         return items + bar[::-1]
 
+    @staticmethod
+    def too_wide_for_phone(visual: dict) -> bool:
+        """Tables with more than 3 columns do not fit 304 px: the phone shows the summary, not the sheet."""
+        if visual.get("visualType") not in ("tableEx", "pivotTable"):
+            return False
+        qs = (visual.get("query") or {}).get("queryState") or {}
+        return sum(len(r.get("projections", [])) for k, r in qs.items() if k in ("Values", "Rows")) > 3
+
     def mobile(self, placed):
         """Stack the content visuals for the phone layout: slicers, KPIs, then the rest, full width."""
         out, y = {}, PHONE_MARGIN
@@ -600,7 +610,8 @@ class Builder:
                 and p[0] != "atualizado"]
         others = [p for p in placed if p not in slicers and p not in kpis and p[0] != "atualizado"
                   and not p[0].endswith("-var") and p[2].get("visualType") not in ("shape", "textbox", "image",
-                                                                                     "pageNavigator")]
+                                                                                     "pageNavigator")
+                  and not self.too_wide_for_phone(p[2])]
         for key, *_ in slicers:
             out[key] = (PHONE_MARGIN, y, inner, 40)
             y += 40 + PHONE_MARGIN

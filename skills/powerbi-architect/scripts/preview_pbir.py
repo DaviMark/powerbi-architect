@@ -14,7 +14,8 @@ waterfalls, lines, column-and-line combos, scatter plots, tables, matrices and s
 JSON file so labels, number lengths and legends look real:
 
     {"measures": {"Valor Vencido": "R$ 4,2 mi", "Texto Var % Vencido": "▲ 2,3 p.p. acima da meta"},
-     "colors":   {"Cor Var % Vencido": "#CE2C31"},
+     "colors":   {"Cor Var % Vencido": "#CE2C31",          # one colour, a list (one per bar) or
+                  "Cor Meta": {"total": "#CE2C31", "byCategory": ["#3E63DD", "#CE2C31"]}},  # both
      "fields":   {"dm_regional[Regional]": ["Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]},
      "series":   {"dm_regional[Regional]": [4.2, 3.1, 2.4, 1.2, 0.8]}}   # by category field (or measure)
 
@@ -112,6 +113,8 @@ class Preview:
             m = measure_name(c)
             if m:
                 c = self.sample.get("colors", {}).get(m, default)
+                if isinstance(c, dict):                          # {"total": card colour, "byCategory": [...]}
+                    return c.get("total", default)
                 return c[0] if isinstance(c, list) and c else c    # a list is one colour per bar
             return lit(c, default)
         return default
@@ -295,8 +298,16 @@ class Preview:
             inner = (title + f'<table style="width:calc(100% - 8px);margin:{CAL["table_margin"]};border-collapse:collapse;'
                      f'font:400 {size:.1f}px {FONT}"><tr>{head}</tr>{body}</table>')
         elif vtype:
+            try:
+                srt = vis["query"]["sortDefinition"]["sort"][0]
+                self._sort_desc = srt.get("direction") == "Descending" and "Measure" in srt.get("field", {})
+            except (KeyError, IndexError, TypeError):
+                self._sort_desc = False
             inner = title + self.chart(vtype, roles, objs, w, h)
-        return f'<div class="v" style="{";".join(css)}">{inner}</div>'
+        chromeless = str(title_show).lower() == "false" and str(bg_show).lower() == "false"
+        tags = (f'data-t="{html.escape(vtype)}" data-name="{html.escape(str(v.get("name", "")))}" '
+                f'data-title="{html.escape(str(title_text or ""))}"' + (' data-chromeless="1"' if chromeless else ""))
+        return f'<div class="v" {tags} style="{";".join(css)}">{inner}</div>'
 
     def target_of(self, objs: dict) -> str | None:
         """Measure drawn as a dashed target line (lineStyles with lineStyle 'dashed' on one series)."""
@@ -312,6 +323,8 @@ class Preview:
             if (item.get("selector") or {}).get("data"):
                 m = measure_name(((item.get("properties") or {}).get("fill") or {}).get("solid", {}).get("color"))
                 c = self.sample.get("colors", {}).get(m) if m else None
+                if isinstance(c, dict):
+                    c = c.get("byCategory") or c.get("total")
                 if isinstance(c, list):
                     return (c * n)[:n]
                 if isinstance(c, str):
@@ -330,9 +343,13 @@ class Preview:
             x0, y0 = min(xs) * 0.9, min(ys) * 0.9           # axes fit the data, like Power BI
             xs, ys = [x - x0 for x in xs], [y - y0 for y in ys]
             xp, yp = max(xs) or 1, max(ys) or 1
+            show_names = str(lit(prop(objs, "categoryLabels", "show"))).lower() == "true"
+            lab_css = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2};white-space:nowrap"
             dots = "".join(f'<div title="{html.escape(n)}" style="position:absolute;left:{4 + 90 * x / xp:.1f}%;'
                            f'top:{88 - 80 * y / yp:.1f}%;width:8px;height:8px;margin:-4px;border-radius:50%;'
-                           f'background:{self.accent};opacity:.8"></div>' for n, x, y in zip(names, xs, ys))
+                           f'background:{self.accent};opacity:.8">'
+                           + (f'<span style="position:absolute;left:12px;top:-5px;{lab_css}">{html.escape(n)}</span>'
+                              if show_names else "") + '</div>' for n, x, y in zip(names, xs, ys))
             return (f'<div style="position:relative;height:{body_h - 16}px;margin:8px 12px;'
                     f'border-bottom:1px solid #EBEBEB;border-left:1px solid #EBEBEB">{dots}</div>')
         if kind in ("piechart", "donutchart"):
@@ -383,6 +400,9 @@ class Preview:
         # A time series belongs to the measure; a ranking belongs to the category it ranks.
         first, second = (by_measure, by_category) if kind == "linechart" else (by_category, by_measure)
         vals = (first or second or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
+        if getattr(self, "_sort_desc", False) and kind != "linechart":     # Power BI applies the visual's sort
+            pairs = sorted(zip(labels, vals), key=lambda lv: -lv[1])
+            labels, vals = [lv[0] for lv in pairs], [lv[1] for lv in pairs]
         peak = max(vals) or 1
         lab = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2}"
         if "bar" in kind:
@@ -508,9 +528,117 @@ class Preview:
             kind = {"Tooltip": " · tooltip", "Drillthrough": " · drill-through"}.get(
                 p.get("pageBinding", {}).get("type", ""), "")
             out.append((f'{p.get("displayName", pid)}{kind}', width, height,
-                        f'<div class="page" style="width:{width}px;height:{height}px;background:{bg}">'
+                        f'<div class="page" data-page="{html.escape(p.get("displayName", pid))}" '
+                        f'style="width:{width}px;height:{height}px;background:{bg}">'
                         f'{"".join(items)}</div>'))
         return out
+
+
+# ---------------------------------------------------------------------- pixel critic
+# Runs inside the rendered page and measures what a designer checks with a loupe. The result is written
+# into the DOM, which the headless browser dumps back to Python.
+CRITIC_JS = r"""
+(function () {
+  const out = [];
+  const SHELL = new Set(["shape", "textbox", "image", "pageNavigator", "actionButton", "slicer"]);
+  const add = (page, v, kind, msg) => out.push({page: page, visual: v ? v.dataset.name : "", type: v ? v.dataset.t : "",
+                                               title: v ? v.dataset.title : "", kind: kind, message: msg});
+  document.querySelectorAll(".page").forEach(pg => {
+    const page = pg.dataset.page, P = pg.getBoundingClientRect();
+    const all = [...pg.querySelectorAll(".v[data-t]")];
+    const data = all.filter(v => !SHELL.has(v.dataset.t) && !v.dataset.chromeless && P.width > 400);
+    all.forEach(v => {
+      const r = v.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
+      const spilled = [];
+      v.querySelectorAll("*").forEach(el => {
+        const text = (el.childElementCount === 0 ? el.textContent : "").trim();
+        if (!text) return;
+        const cs = getComputedStyle(el), rg = document.createRange();
+        rg.selectNodeContents(el);
+        const e = rg.getBoundingClientRect();                  // the glyphs, not the padded box
+        if (el.scrollWidth > el.clientWidth + 1 && cs.overflow !== "visible")
+          add(page, v, "truncated", "'" + text.slice(0, 60) + "' is cut (" + el.scrollWidth + " px of text in " + el.clientWidth + " px)");
+        else if (e.right > r.right + 0.5 || e.bottom > r.bottom + 0.5 || e.left < r.left - 0.5 || e.top < r.top - 0.5)
+          spilled.push(text.slice(0, 40));
+        else if (!v.dataset.chromeless && !SHELL.has(v.dataset.t) && e.width > 0 &&
+                 (e.left - r.left < 6 || r.right - e.right < 4))
+          add(page, v, "tight", "'" + text.slice(0, 40) + "' touches the edge (" +
+              Math.round(Math.min(e.left - r.left, r.right - e.right)) + " px) — keep ≥ 8 px of padding");
+      });
+      if (spilled.length) add(page, v, "clipped", spilled.length + " text(s) spill out of the visual, e.g. '" +
+                                spilled[0] + "'");
+      v.querySelectorAll("table").forEach(t => {
+        if (t.scrollWidth > v.clientWidth + 1) add(page, v, "overflow", "the table is " + t.scrollWidth + " px wide in a " +
+                                                   v.clientWidth + " px visual");
+        const empty = r.bottom - t.getBoundingClientRect().bottom;
+        if (r.height < 400 && empty > 120 && empty > r.height * 0.45)   // full-height lists scroll with real data
+          add(page, v, "empty", Math.round(empty) + " px empty under the rows — size the card to its rows (\"height\": \"auto\" with \"items\")");
+      });
+    });
+    for (let i = 0; i < data.length; i++) for (let j = i + 1; j < data.length; j++) {
+      const a = data[i].getBoundingClientRect(), b = data[j].getBoundingClientRect();
+      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (w > 2 && h > 2) add(page, data[i], "overlap", "overlaps " + (data[j].dataset.title || data[j].dataset.t) + " by " +
+                              Math.round(w) + "×" + Math.round(h) + " px");
+    }
+    const rows = [];
+    data.slice().sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).forEach(v => {
+      const r = v.getBoundingClientRect(), row = rows.find(x => Math.abs(x.top - r.top) <= 2);
+      row ? row.items.push(v) : rows.push({top: r.top, items: [v]});
+    });
+    const gaps = [];
+    rows.forEach(row => {
+      row.items.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+      for (let k = 1; k < row.items.length; k++) {
+        const g = row.items[k].getBoundingClientRect().left - row.items[k - 1].getBoundingClientRect().right;
+        if (g > -1) gaps.push([g, row.items[k]]);
+      }
+    });
+    for (let k = 1; k < rows.length; k++) {
+      const above = Math.max(...rows[k - 1].items.map(v => v.getBoundingClientRect().bottom));
+      const g = rows[k].top - above;
+      if (g > -1) gaps.push([g, rows[k].items[0]]);
+    }
+    gaps.forEach(([g, v]) => {
+      if (g < 8) add(page, v, "cramped", "only " + Math.round(g) + " px from its neighbour — use the 16 px gutter");
+      else if (g > 32) add(page, v, "loose", Math.round(g) + " px from its neighbour — use the 16 px gutter");
+    });
+    const sizes = [...new Set(gaps.map(x => Math.round(x[0])).filter(g => g >= 8 && g <= 32))];
+    if (sizes.length > 1) add(page, null, "uneven", "gutters of " + sizes.sort((a, b) => a - b).join(", ") + " px on one page — use one");
+    const charts = rows.filter(x => x.items.length > 1 && x.items[0].getBoundingClientRect().height > 120);
+    for (let k = 1; k < charts.length; k++) {
+      const edges = x => x.items.slice(0, -1).map(v => Math.round(v.getBoundingClientRect().right)).join(",");
+      if (edges(charts[k]) !== edges(charts[k - 1]))
+        add(page, charts[k].items[0], "grid", "this row splits at x " + edges(charts[k]) + " and the one above at x " +
+            edges(charts[k - 1]) + " — rows of charts read best on the same column grid");
+    }
+  });
+  const box = document.createElement("script");
+  box.type = "application/json"; box.id = "critique-result"; box.textContent = JSON.stringify(out);
+  document.body.appendChild(box);
+})();
+"""
+
+
+def critique(preview: "Preview", mobile: bool = False) -> list[dict] | None:
+    """Render every page in a headless browser and measure it; None when no browser is available."""
+    import re
+    import subprocess
+    import tempfile
+    browser = find_browser()
+    if not browser:
+        return None
+    body = "".join(b for _t, _w, _h, b in preview.pages(mobile))
+    with tempfile.TemporaryDirectory() as tmp:
+        f = Path(tmp) / "critique.html"
+        f.write_text(Preview.document(body, margin=0) + f"<script>{CRITIC_JS}</script>", encoding="utf-8")
+        r = subprocess.run([browser, "--headless=new", "--disable-gpu", "--no-first-run", "--no-sandbox",
+                            f"--user-data-dir={Path(tmp) / 'profile'}", "--window-size=1400,900",
+                            "--virtual-time-budget=3000", "--dump-dom", f.resolve().as_uri()],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180, check=False)
+    m = re.search(r'<script type="application/json" id="critique-result">(.*?)</script>', r.stdout, re.S)
+    return json.loads(html.unescape(m.group(1))) if m else None
 
 
 BROWSERS = ["msedge", "microsoft-edge", "google-chrome", "chrome", "chromium", "chromium-browser",
@@ -579,6 +707,9 @@ def main() -> int:
     ap.add_argument("--overlay", type=Path, nargs="+", metavar="PNG",
                     help="Power BI Desktop screenshots, one per page in page order (or one folder of page-N.png), "
                          "drawn over the preview to calibrate it")
+    ap.add_argument("--critique", action="store_true",
+                    help="measure the rendered pages (cut or spilled text, padding, overlaps, gutters, column grid, "
+                         "empty space); exit 1 when something needs fixing (needs Edge, Chrome or Chromium)")
     ap.add_argument("--calibration", type=Path, metavar="JSON",
                     help="override the render constants in CALIBRATION (paddings, reserved heights)")
     args = ap.parse_args()
@@ -606,6 +737,20 @@ def main() -> int:
         n = screenshot(Preview(args.report, sample), args.mobile, args.png)
         if n:
             print(f"[ok] {n} PNG(s) in {args.png}")
+    if args.critique:
+        found = critique(Preview(args.report, sample), args.mobile)
+        if found is None:
+            print("! --critique needs Microsoft Edge, Google Chrome or Chromium (set PBIR_PREVIEW_BROWSER)")
+            return 2
+        seen = set()
+        for c in found:
+            line = (f"{c['page']} › {c['type'] or 'page'}" + (f' "{c["title"]}"' if c["title"] else "")
+                    + f": [{c['kind']}] {c['message']}")
+            if line not in seen:
+                seen.add(line)
+                print(f"- {line}")
+        print(f"[{'ok' if not seen else 'fix'}] critique: {len(seen)} finding(s)")
+        return 1 if seen else 0
     return 0
 
 
