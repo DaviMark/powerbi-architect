@@ -418,6 +418,7 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI062": ("SUGGESTION", "7", "Time on the vertical axis of a bar chart", ()),
     "PBI063": ("SUGGESTION", "6", "KPI cards too narrow or too many in one row", ()),
     "PBI064": ("SUGGESTION", "6", "Chart too small to read", ()),
+    "PBI065": ("SUGGESTION", "a11y", "Theme colours that look alike to people with colour-vision deficiency", ()),
 }
 CHART_TYPES = {"lineChart", "areaChart", "clusteredBarChart", "clusteredColumnChart", "barChart", "columnChart",
                "lineClusteredColumnComboChart", "lineStackedColumnComboChart", "scatterChart", "waterfallChart",
@@ -685,6 +686,34 @@ def design_review(visual: dict, w: float, h: float, title: str, page_w: float,
     return found
 
 
+def theme_colour_clashes(rep: Path) -> list[tuple[Path, str]]:
+    """The custom theme's first 6 data colours that a person with colour-vision deficiency would confuse."""
+    try:
+        sys_path = str(Path(__file__).resolve().parent)
+        if sys_path not in _sys.path:
+            _sys.path.insert(0, sys_path)
+        import make_theme
+        rj = _json.loads((rep / "definition" / "report.json").read_text(encoding="utf-8-sig"))
+        name = ((rj.get("themeCollection") or {}).get("customTheme") or {}).get("name")
+        f = rep / "StaticResources" / "RegisteredResources" / name if name else None
+        colours = _json.loads(f.read_text(encoding="utf-8-sig")).get("dataColors", [])[:6] if f and f.exists() else []
+    except (OSError, ValueError, ImportError):
+        return []
+    out = []
+    for i, a in enumerate(colours):
+        for b in colours[i + 1:]:
+            try:
+                d = make_theme.distances(a, b)
+            except ValueError:
+                continue
+            kind = min(("protanopia", "deuteranopia"), key=lambda k: d[k])
+            if d[kind] < 8 or d["tritanopia"] < 5:
+                kind = kind if d[kind] < 8 else "tritanopia"
+                out.append((f, f"data colours {a} and {b} look alike with {kind} (ΔE {d[kind]:.1f}); about 1 in "
+                               "12 men sees them as the same — `make_theme.py` picks a palette that stays apart"))
+    return out
+
+
 def audit(root: Path, config: dict | None = None) -> list:
     config = config or {"disable": set(), "ignore": []}
     out: list[dict] = []
@@ -851,6 +880,8 @@ def audit(root: Path, config: dict | None = None) -> list:
             except ValueError:
                 add("PBI004", rel(rj), "invalid JSON")
         report_families: set[str] = set()
+        for theme_file, pair in theme_colour_clashes(rep):
+            add("PBI065", rel(theme_file), pair)
         for pj in sorted(rep.glob("definition/pages/*/page.json")):
             try:
                 pdata = _json.loads(pj.read_text(encoding="utf-8-sig"))

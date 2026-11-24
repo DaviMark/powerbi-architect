@@ -70,6 +70,7 @@ Os códigos `PBI044` e `PBI045` estão reservados para as regras propostas nas i
 | PBI062 | Sugestão | 7 | Tempo no eixo vertical de um gráfico de barras | O tempo se lê da esquerda para a direita: use colunas ou linha. | — |
 | PBI063 | Sugestão | 6 | Cartões de KPI estreitos demais ou muitos na mesma linha | No máximo 5 cartões por linha, cada um com pelo menos 176 px, para caberem o valor e a linha de contexto. | — |
 | PBI064 | Sugestão | 6 | Gráfico pequeno demais para ler | Pelo menos 200 × 140 px; menor que isso, prefira um cartão. Páginas de tooltip são exceção. | — |
+| PBI065 | Sugestão | a11y | Cores do tema que se confundem para quem tem daltonismo | Duas das 6 primeiras cores de categoria ficam parecidas demais com protanopia, deuteranopia ou tritanopia simuladas (cerca de 1 em cada 12 homens). Gere o tema com `make_theme.py`, que escolhe uma paleta que continua distinguível. | — |
 
 ## Placar de harmonia
 
