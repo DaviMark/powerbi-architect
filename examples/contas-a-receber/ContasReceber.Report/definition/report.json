@@ -51,6 +51,70 @@
           "type": "Image"
         }
       ]
+    },
+    {
+      "name": "architectKpi65B0C3629EF349A48053C4786DFC05A7",
+      "type": "CustomVisual",
+      "items": [
+        {
+          "name": "package.json",
+          "path": "package.json",
+          "type": "CustomVisualMetadata"
+        },
+        {
+          "name": "architectKpi65B0C3629EF349A48053C4786DFC05A7.pbiviz.json",
+          "path": "resources/architectKpi65B0C3629EF349A48053C4786DFC05A7.pbiviz.json",
+          "type": "CustomVisualJavascript"
+        }
+      ]
+    },
+    {
+      "name": "architectList5F4923141E4D499CB7BD0BB11305C6FF",
+      "type": "CustomVisual",
+      "items": [
+        {
+          "name": "package.json",
+          "path": "package.json",
+          "type": "CustomVisualMetadata"
+        },
+        {
+          "name": "architectList5F4923141E4D499CB7BD0BB11305C6FF.pbiviz.json",
+          "path": "resources/architectList5F4923141E4D499CB7BD0BB11305C6FF.pbiviz.json",
+          "type": "CustomVisualJavascript"
+        }
+      ]
+    },
+    {
+      "name": "architectRing689D7C06BDE24EB68F1D5159F5A63988",
+      "type": "CustomVisual",
+      "items": [
+        {
+          "name": "package.json",
+          "path": "package.json",
+          "type": "CustomVisualMetadata"
+        },
+        {
+          "name": "architectRing689D7C06BDE24EB68F1D5159F5A63988.pbiviz.json",
+          "path": "resources/architectRing689D7C06BDE24EB68F1D5159F5A63988.pbiviz.json",
+          "type": "CustomVisualJavascript"
+        }
+      ]
+    },
+    {
+      "name": "architectTrend04065D478A6B472B94D080E2C64E3531",
+      "type": "CustomVisual",
+      "items": [
+        {
+          "name": "package.json",
+          "path": "package.json",
+          "type": "CustomVisualMetadata"
+        },
+        {
+          "name": "architectTrend04065D478A6B472B94D080E2C64E3531.pbiviz.json",
+          "path": "resources/architectTrend04065D478A6B472B94D080E2C64E3531.pbiviz.json",
+          "type": "CustomVisualJavascript"
+        }
+      ]
     }
   ]
 }

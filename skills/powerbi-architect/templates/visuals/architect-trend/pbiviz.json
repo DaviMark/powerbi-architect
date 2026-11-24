@@ -1,0 +1,26 @@
+{
+  "visual": {
+    "name": "architectTrend",
+    "displayName": "Architect Trend",
+    "guid": "architectTrend04065D478A6B472B94D080E2C64E3531",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Dense columns over time with a headline, legend and the current period in focus (powerbi-architect).",
+    "supportUrl": "https://github.com/DaviMark/powerbi-architect",
+    "gitHubUrl": "https://github.com/DaviMark/powerbi-architect"
+  },
+  "apiVersion": "5.11.1",
+  "author": {
+    "name": "powerbi-architect",
+    "email": "maintainers@example.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": null,
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": [],
+  "version": "1.0.0.0"
+}

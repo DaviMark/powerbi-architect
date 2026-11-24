@@ -28,6 +28,11 @@ table _Medidas
 		formatString: #,0
 		displayFolder: Indicadores
 
+	/// Valor vencido no mesmo período do ano anterior, para comparar na tendência.
+	measure 'Vencido Ano Anterior' = CALCULATE ( [Valor Vencido], SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )
+		formatString: \R\$ #,0
+		displayFolder: Valores
+
 	/// Saldo em aberto das parcelas que ainda não venceram.
 	measure 'Valor a Vencer' = [Valor Aberto] - [Valor Vencido]
 		formatString: \R\$ #,0
@@ -53,7 +58,7 @@ table _Medidas
 		displayFolder: Textos
 
 	/// Linha de contexto do KPI de vencido: quantos clientes estão em atraso.
-	measure 'Texto Clientes Vencidos' = FORMAT ( [Clientes Vencidos], "#,0" ) & " clientes com parcela vencida"
+	measure 'Texto Clientes Vencidos' = FORMAT ( [Clientes Vencidos], "#,0" ) & " clientes em atraso"
 		displayFolder: Textos
 
 	/// Distância do % vencido para a meta, em pontos percentuais, com seta.
@@ -76,10 +81,6 @@ table _Medidas
 	measure 'Cor % Vencido' = IF ( [% Vencido] > [Meta % Vencido], "#CE2C31", "#333333" )
 		displayFolder: Cores
 
-	/// Cor do atraso médio em tabelas: vermelho acima de 60 dias, âmbar acima de 30.
-	measure 'Cor Atraso' = SWITCH ( TRUE (), [Atraso Médio (dias)] > 60, "#CE2C31", [Atraso Médio (dias)] > 30, "#AD6200", "#333333" )
-		displayFolder: Cores
-
 	/// Data e hora da última carga, para a barra do topo.
 	measure 'Texto Atualizacao' = "Atualizado em " & FORMAT ( MAX ( '_Medidas'[Data Carga] ), "dd/mm/yyyy hh:nn" )
 		displayFolder: Títulos
@@ -87,6 +88,10 @@ table _Medidas
 	/// Título dinâmico da página Visão Geral: valor vencido e participação no saldo.
 	measure 'Titulo Vencido' = "Vencido: " & FORMAT ( [Valor Vencido], "R$ #,0" ) & " (" & FORMAT ( [% Vencido], "0.0%" ) & " do saldo)"
 		displayFolder: Títulos
+
+	/// Situação do cliente para listas de cobrança: Atrasado acima de 60 dias, Em risco acima de 30, Em dia sem parcela vencida.
+	measure Situação = SWITCH ( TRUE (), ISBLANK ( [Valor Aberto] ), BLANK (), [Atraso Médio (dias)] > 60, "Atrasado", [Atraso Médio (dias)] > 30, "Em risco", [Valor Vencido] > 0, "A vencer", "Em dia" )
+		displayFolder: Textos
 
 	column 'Data Carga'
 		dataType: dateTime

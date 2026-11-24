@@ -1,118 +1,348 @@
 {
   "app": "Contas a receber",
+  "subtitle": "Financeiro · Cobrança",
   "measures": "_Medidas",
   "updated": "Texto Atualizacao",
-  "slicers": ["dm_cliente[Segmento]"],
+  "source": "Fonte: ERP · carga diária às 06:00",
+  "slicers": [],
+  "dateRange": "dm_calendario[Data]",
   "pages": [
     {
       "name": "Visão Geral",
       "icon": "layout-dashboard",
       "rows": [
-        {"height": 88, "visuals": [
-          {"type": "kpi", "measure": "Valor Aberto", "label": "Saldo em aberto", "variation": "Texto A Vencer"},
-          {"type": "kpi", "measure": "Valor Vencido", "label": "Vencido", "variation": "Texto Clientes Vencidos"},
-          {"type": "kpi", "measure": "% Vencido", "label": "% do saldo vencido",
-           "variation": "Texto Var % Vencido", "variationColor": "Cor Var % Vencido"},
-          {"type": "kpi", "measure": "Atraso Médio (dias)", "label": "Dias de atraso, média ponderada",
-           "variation": "Texto Var Dias Atraso", "variationColor": "Cor Var Dias Atraso"}
-        ]},
-        {"height": 248, "split": [2, 1], "visuals": [
-          {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["Valor Vencido"],
-           "titleMeasure": "Titulo Vencido", "sort": "category",
-           "alt": "Valor vencido por mês de vencimento, últimos 24 meses"},
-          {"type": "clusteredColumnChart", "category": "ft_titulos[Faixa Atraso]", "values": ["Valor Vencido"],
-           "title": "Vencido por faixa de atraso", "sort": "category",
-           "alt": "Valor vencido por faixa de atraso, em reais"}
-        ]},
-        {"height": 248, "visuals": [
-          {"type": "clusteredBarChart", "category": "dm_regional[Regional]", "values": ["Valor Vencido"],
-           "title": "Vencido por regional", "sort": "desc", "tooltipPage": "Tooltip regional",
-           "alt": "Valor vencido por regional, do maior para o menor"}
-        ]}
-      ]
+        {
+          "height": 104,
+          "visuals": [
+            {
+              "type": "kpiCard",
+              "measure": "Valor Aberto",
+              "label": "Saldo em aberto",
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Saldo em aberto no último mês, com a variação e a tendência"
+            },
+            {
+              "type": "kpiCard",
+              "measure": "Valor Vencido",
+              "label": "Vencido",
+              "trend": "dm_calendario[Ano-Mês]",
+              "higherIsBetter": false,
+              "noteMeasure": "Texto Clientes Vencidos",
+              "alt": "Valor vencido no último mês, com a variação e a tendência"
+            },
+            {
+              "type": "kpiCard",
+              "measure": "% Vencido",
+              "label": "% do saldo vencido",
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Meta % Vencido",
+              "higherIsBetter": false,
+              "alt": "Percentual do saldo vencido contra a meta de 15%"
+            },
+            {
+              "type": "kpiCard",
+              "measure": "Atraso Médio (dias)",
+              "label": "Dias de atraso",
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Meta Dias Atraso",
+              "higherIsBetter": false,
+              "alt": "Atraso médio ponderado em dias contra a meta de 30"
+            }
+          ]
+        },
+        {
+          "height": 228,
+          "split": [
+            3,
+            2
+          ],
+          "visuals": [
+            {
+              "type": "trend",
+              "category": "_Granularidade[Granularidade]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "compare": "Vencido Ano Anterior",
+              "seriesName": "Vencido",
+              "compareName": "Ano anterior",
+              "title": "Vencido por período de vencimento",
+              "alt": "Valor vencido por mês, trimestre ou ano, contra o mesmo período do ano anterior; o último em destaque"
+            },
+            {
+              "type": "ring",
+              "category": "ft_titulos[Faixa Atraso]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "title": "Vencido por faixa de atraso",
+              "centerNote": "vencido",
+              "alt": "Valor vencido dividido pelas faixas de atraso, com o total no centro"
+            }
+          ]
+        },
+        {
+          "height": 252,
+          "split": [
+            3,
+            2
+          ],
+          "visuals": [
+            {
+              "type": "list",
+              "item": "dm_cliente[Cliente]",
+              "detail": "dm_cliente[Segmento]",
+              "status": "Situação",
+              "values": [
+                "Valor Vencido",
+                "Atraso Médio (dias)"
+              ],
+              "progress": "% Vencido",
+              "sortBy": "Valor Vencido desc",
+              "top": 3,
+              "title": "Os 3 clientes com mais valor vencido",
+              "alt": "Os três clientes com maior valor vencido, com situação, atraso e parcela vencida"
+            },
+            {
+              "type": "list",
+              "item": "dm_regional[Regional]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "progress": "% Vencido",
+              "sortBy": "Valor Vencido desc",
+              "avatars": false,
+              "tooltipPage": "Tooltip regional",
+              "title": "Vencido por regional",
+              "alt": "Regionais pelo valor vencido, com a parcela vencida do saldo"
+            }
+          ]
+        }
+      ],
+      "section": "Painéis",
+      "tabs": "_Granularidade[Granularidade]",
+      "action": {
+        "text": "Ver clientes",
+        "page": "Clientes"
+      }
     },
     {
       "name": "Diagnóstico",
       "icon": "chart-bar",
       "rows": [
-        {"height": 264, "split": [2, 1], "visuals": [
-          {"type": "waterfallChart", "category": "ft_titulos[Faixa Atraso]", "values": ["Valor Vencido"],
-           "title": "Como as faixas compõem o vencido", "sort": "category",
-           "sentiment": {"increase": "#E5484D", "decrease": "#2E9E6B", "total": "#8E8E93"},
-           "alt": "Cascata do valor vencido por faixa de atraso, até o total"},
-          {"type": "clusteredBarChart", "category": "dm_cliente[Segmento]", "values": ["Valor Vencido"],
-           "title": "Vencido por segmento", "sort": "desc",
-           "alt": "Valor vencido por segmento de cliente, do maior para o menor"}
-        ]},
-        {"height": 336, "visuals": [
-          {"type": "tableEx", "title": "Regionais acima da meta de vencido",
-           "columns": ["dm_regional[Regional]", "Valor Aberto", "Valor Vencido", "% Vencido", "Atraso Médio (dias)"],
-           "sortBy": "% Vencido desc", "highlight": {"column": "% Vencido", "colorMeasure": "Cor % Vencido"},
-           "alt": "Tabela de regionais com saldo, vencido, percentual vencido e atraso médio"}
-        ]}
+        {
+          "height": 264,
+          "split": [
+            2,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "waterfallChart",
+              "category": "ft_titulos[Faixa Atraso]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "title": "Como as faixas compõem o vencido",
+              "sort": "category",
+              "sentiment": {
+                "increase": "#E5484D",
+                "decrease": "#18181B",
+                "total": "#A1A1AA"
+              },
+              "alt": "Cascata do valor vencido por faixa de atraso, até o total"
+            },
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_cliente[Segmento]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "title": "Vencido por segmento",
+              "sort": "desc",
+              "alt": "Valor vencido por segmento de cliente, do maior para o menor"
+            }
+          ]
+        },
+        {
+          "height": 336,
+          "visuals": [
+            {
+              "type": "tableEx",
+              "title": "Regionais acima da meta de vencido",
+              "columns": [
+                "dm_regional[Regional]",
+                "Valor Aberto",
+                "Valor Vencido",
+                "% Vencido",
+                "Atraso Médio (dias)"
+              ],
+              "sortBy": "% Vencido desc",
+              "highlight": {
+                "column": "% Vencido",
+                "colorMeasure": "Cor % Vencido"
+              },
+              "alt": "Tabela de regionais com saldo, vencido, percentual vencido e atraso médio"
+            }
+          ]
+        }
+      ],
+      "section": "Painéis",
+      "slicers": [
+        "dm_cliente[Segmento]"
       ]
     },
     {
       "name": "Clientes",
       "icon": "list-details",
       "rows": [
-        {"height": 616, "visuals": [
-          {"type": "tableEx", "title": "Clientes que concentram o valor vencido",
-           "columns": ["dm_cliente[Cliente]", "dm_cliente[Segmento]", "Valor Vencido", "% Vencido",
-                       "Atraso Médio (dias)"],
-           "sortBy": "Valor Vencido desc", "highlight": {"column": "Atraso Médio (dias)", "colorMeasure": "Cor Atraso"},
-           "alt": "Tabela de clientes ordenada pelo valor vencido; clique com o botão direito para ver o detalhe"}
-        ]}
+        {
+          "height": 616,
+          "visuals": [
+            {
+              "type": "list",
+              "item": "dm_cliente[Cliente]",
+              "detail": "dm_cliente[Segmento]",
+              "status": "Situação",
+              "values": [
+                "Valor Vencido",
+                "Atraso Médio (dias)"
+              ],
+              "progress": "% Vencido",
+              "sortBy": "Valor Vencido desc",
+              "title": "Clientes que concentram o valor vencido",
+              "alt": "Clientes ordenados pelo valor vencido, com situação; clique com o botão direito para ver o detalhe"
+            }
+          ]
+        }
+      ],
+      "section": "Painéis",
+      "badge": "Clientes Vencidos",
+      "slicers": [
+        "dm_cliente[Segmento]"
       ]
     },
     {
       "name": "Documentação",
       "icon": "file-description",
-      "slicers": [],
       "rows": [
-        {"height": 616, "split": [3, 2], "visuals": [
-          {"type": "tableEx", "key": "medidas", "title": "Medidas",
-           "columns": ["_Documentacao[Pasta]", "_Documentacao[Medida]", "_Documentacao[Descrição]",
-                       "_Documentacao[Expressão DAX]"],
-           "alt": "Catálogo de medidas com pasta, descrição e expressão DAX"},
-          {"type": "tableEx", "key": "cargas", "title": "Cargas",
-           "columns": ["_Cargas[Tabela]", "_Cargas[Descrição]", "_Cargas[Armazenamento]", "_Cargas[Última Carga]"],
-           "alt": "Tabelas carregadas e data da última carga"}
-        ]}
-      ]
+        {
+          "height": 616,
+          "split": [
+            3,
+            2
+          ],
+          "visuals": [
+            {
+              "type": "tableEx",
+              "key": "medidas",
+              "title": "Medidas",
+              "columns": [
+                "_Documentacao[Pasta]",
+                "_Documentacao[Medida]",
+                "_Documentacao[Descrição]",
+                "_Documentacao[Expressão DAX]"
+              ],
+              "alt": "Catálogo de medidas com pasta, descrição e expressão DAX"
+            },
+            {
+              "type": "tableEx",
+              "key": "cargas",
+              "title": "Cargas",
+              "columns": [
+                "_Cargas[Tabela]",
+                "_Cargas[Descrição]",
+                "_Cargas[Armazenamento]",
+                "_Cargas[Última Carga]"
+              ],
+              "alt": "Tabelas carregadas e data da última carga"
+            }
+          ]
+        }
+      ],
+      "section": "Referência"
     },
     {
       "name": "Detalhe do cliente",
       "kind": "drillthrough",
       "drillField": "dm_cliente[Cliente]",
       "parent": "Clientes",
-      "slicers": [],
       "rows": [
-        {"height": 88, "visuals": [
-          {"type": "kpi", "measure": "Valor Aberto", "label": "Saldo em aberto", "variation": "Texto A Vencer"},
-          {"type": "kpi", "measure": "Valor Vencido", "label": "Vencido"},
-          {"type": "kpi", "measure": "% Vencido", "label": "% do saldo vencido",
-           "variation": "Texto Var % Vencido", "variationColor": "Cor Var % Vencido"},
-          {"type": "kpi", "measure": "Atraso Médio (dias)", "label": "Dias de atraso, média ponderada",
-           "variation": "Texto Var Dias Atraso", "variationColor": "Cor Var Dias Atraso"}
-        ]},
-        {"height": 512, "split": [1, 1], "visuals": [
-          {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["Valor Vencido"],
-           "title": "Vencido do cliente por mês de vencimento", "sort": "category",
-           "alt": "Valor vencido do cliente por mês de vencimento"},
-          {"type": "clusteredColumnChart", "category": "ft_titulos[Faixa Atraso]", "values": ["Valor Vencido"],
-           "title": "Vencido do cliente por faixa de atraso", "sort": "category",
-           "alt": "Valor vencido do cliente por faixa de atraso"}
-        ]}
+        {
+          "height": 88,
+          "visuals": [
+            {
+              "type": "kpi",
+              "measure": "Valor Aberto",
+              "label": "Saldo em aberto",
+              "variation": "Texto A Vencer"
+            },
+            {
+              "type": "kpi",
+              "measure": "Valor Vencido",
+              "label": "Vencido"
+            },
+            {
+              "type": "kpi",
+              "measure": "% Vencido",
+              "label": "% do saldo vencido",
+              "variation": "Texto Var % Vencido",
+              "variationColor": "Cor Var % Vencido"
+            },
+            {
+              "type": "kpi",
+              "measure": "Atraso Médio (dias)",
+              "label": "Dias de atraso, média ponderada",
+              "variation": "Texto Var Dias Atraso",
+              "variationColor": "Cor Var Dias Atraso"
+            }
+          ]
+        },
+        {
+          "height": 512,
+          "split": [
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "lineChart",
+              "category": "dm_calendario[Ano-Mês]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "titleMeasure": "Titulo Vencido",
+              "sort": "category",
+              "alt": "Valor vencido do cliente por mês de vencimento"
+            },
+            {
+              "type": "clusteredColumnChart",
+              "category": "ft_titulos[Faixa Atraso]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "title": "Vencido do cliente por faixa de atraso",
+              "sort": "category",
+              "alt": "Valor vencido do cliente por faixa de atraso"
+            }
+          ]
+        }
       ]
     },
     {
       "name": "Tooltip regional",
       "kind": "tooltip",
       "visuals": [
-        {"type": "clusteredColumnChart", "category": "ft_titulos[Faixa Atraso]", "values": ["Valor Vencido"],
-         "title": "Vencido por faixa nesta regional", "sort": "category",
-         "alt": "Valor vencido por faixa de atraso na regional apontada"}
+        {
+          "type": "clusteredColumnChart",
+          "category": "ft_titulos[Faixa Atraso]",
+          "values": [
+            "Valor Vencido"
+          ],
+          "title": "Vencido por faixa nesta regional",
+          "sort": "category",
+          "alt": "Valor vencido por faixa de atraso na regional apontada"
+        }
       ]
     }
   ]

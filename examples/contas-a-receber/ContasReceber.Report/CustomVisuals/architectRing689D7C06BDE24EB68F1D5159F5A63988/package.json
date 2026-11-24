@@ -1,0 +1,17 @@
+{
+		"version": "1.0.0.0",
+		"author": {"name":"powerbi-architect","email":"maintainers@example.com"},
+		"resources": [
+			{
+				"resourceId": "rId0",
+				"sourceType": 5,
+				"file": "resources/architectRing689D7C06BDE24EB68F1D5159F5A63988.pbiviz.json"
+			}
+		],
+		"visual": {"name":"architectRing","displayName":"Architect Ring","guid":"architectRing689D7C06BDE24EB68F1D5159F5A63988","visualClassName":"Visual","version":"1.0.0.0","description":"A ring with the number in its centre: a whole split into slices, or progress towards a target (powerbi-architect).","supportUrl":"https://github.com/DaviMark/powerbi-architect","gitHubUrl":"https://github.com/DaviMark/powerbi-architect"},
+		"metadata": {
+			"pbivizjson": {
+				"resourceId": "rId0"
+			}
+		}
+	}

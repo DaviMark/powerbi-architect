@@ -37,6 +37,15 @@ class TestMakeTheme(unittest.TestCase):
         self.assertNotIn("#CE2C31", theme["dataColors"])     # status colours stay out of the palette
         self.assertNotIn("#00824D", theme["dataColors"])
 
+    def test_brand_reaches_the_skills_visuals(self):
+        theme, _ = make_theme.build("#C2410C", "Marca", "Segoe UI")
+        styles = [v for k, v in theme["visualStyles"].items() if k.startswith("architect")]
+        self.assertEqual(len(styles), 4)
+        for style in styles:
+            brand = style["*"]["brand"][0]
+            self.assertEqual(brand["accent"]["solid"]["color"], theme["dataColors"][0])
+            self.assertEqual(brand["fontFamily"], "Segoe UI")
+
     def test_unsupported_font_is_refused(self):
         with self.assertRaises(ValueError):
             make_theme.build("#0F766E", "Brand", "Inter")

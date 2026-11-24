@@ -277,34 +277,6 @@
       "folder": "Metas"
     },
     {
-      "name": "Texto Var Receita",
-      "description": "Linha do KPI de receita: variação contra o ano anterior, com seta.",
-      "expr": "IF ( ISBLANK ( [Receita AA] ), BLANK (), IF ( [Var % Receita AA] >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( [Var % Receita AA] ), \"0.0%\" ) & \" vs ano anterior\" )",
-      "folder": "Textos",
-      "sample": "▲ 8,2% vs ano anterior"
-    },
-    {
-      "name": "Cor Var Receita",
-      "description": "Cor da linha do KPI de receita: verde quando cresce, vermelho quando cai.",
-      "expr": "IF ( [Var % Receita AA] >= 0, \"#00824D\", \"#CE2C31\" )",
-      "folder": "Cores",
-      "sampleColor": "#00824D"
-    },
-    {
-      "name": "Texto Var Margem",
-      "description": "Linha do KPI de margem: distância para a meta, em pontos percentuais.",
-      "expr": "VAR _d = [% Margem] - [Meta % Margem] RETURN IF ( ISBLANK ( [% Margem] ), BLANK (), IF ( _d >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & IF ( _d >= 0, \"acima\", \"abaixo\" ) & \" da meta de \" & FORMAT ( [Meta % Margem], \"0%\" ) )",
-      "folder": "Textos",
-      "sample": "▲ 1,4 p.p. acima da meta de 30%"
-    },
-    {
-      "name": "Cor Var Margem",
-      "description": "Cor da linha do KPI de margem: verde na meta ou acima, vermelho abaixo.",
-      "expr": "IF ( [% Margem] >= [Meta % Margem], \"#00824D\", \"#CE2C31\" )",
-      "folder": "Cores",
-      "sampleColor": "#00824D"
-    },
-    {
       "name": "Texto Clientes",
       "description": "Linha do KPI de pedidos: quantos clientes compraram.",
       "expr": "FORMAT ( [Clientes Ativos], \"#,0\" ) & \" clientes compraram\"",
@@ -328,13 +300,6 @@
         "#CE2C31",
         "#CE2C31"
       ]
-    },
-    {
-      "name": "Titulo Receita",
-      "description": "Título do gráfico de receita mensal, com o total do período.",
-      "expr": "\"Receita por mês: \" & FORMAT ( [Receita], \"R$ #,0\" ) & \" no período\"",
-      "folder": "Títulos",
-      "sample": "Receita por mês: R$ 12.804.311 no período"
     }
   ],
   "series": {
@@ -357,6 +322,14 @@
       31.2,
       28.4,
       24.9
+    ],
+    "dm_cliente[Cliente]": [
+      1.9,
+      1.4,
+      1.1,
+      0.8,
+      0.6,
+      0.5
     ]
   },
   "pages": [
@@ -365,82 +338,114 @@
       "icon": "layout-dashboard",
       "rows": [
         {
-          "height": 88,
+          "height": 104,
           "visuals": [
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Receita",
               "label": "Receita líquida",
-              "variation": "Texto Var Receita",
-              "variationColor": "Cor Var Receita"
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Receita líquida no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "% Margem",
               "label": "Margem",
-              "variation": "Texto Var Margem",
-              "variationColor": "Cor Var Margem"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Meta % Margem",
+              "alt": "Margem no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Pedidos",
               "label": "Pedidos faturados",
-              "variation": "Texto Clientes"
+              "trend": "dm_calendario[Ano-Mês]",
+              "noteMeasure": "Texto Clientes",
+              "alt": "Pedidos faturados no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Ticket Médio",
-              "label": "Ticket médio por pedido"
+              "label": "Ticket médio por pedido",
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Ticket médio por pedido no último mês, com a variação e a tendência"
             }
           ]
         },
         {
-          "height": 248,
+          "height": 228,
           "split": [
-            2,
-            1
+            3,
+            2
           ],
           "visuals": [
             {
-              "type": "combo",
-              "category": "dm_calendario[Ano-Mês]",
+              "type": "trend",
+              "category": "_Granularidade[Granularidade]",
               "values": [
                 "Receita"
               ],
-              "lineValues": [
-                "Receita AA"
-              ],
-              "titleMeasure": "Titulo Receita",
-              "alt": "Receita por mês em colunas e a do ano anterior em linha"
+              "title": "Receita por período",
+              "seriesName": "Receita",
+              "alt": "Receita por mês, trimestre ou ano em colunas e a do ano anterior em linha",
+              "compare": "Receita AA"
             },
             {
-              "type": "clusteredBarChart",
+              "type": "ring",
               "category": "dm_produto[Categoria]",
               "values": [
                 "Receita"
               ],
-              "title": "Receita por categoria",
               "sort": "desc",
-              "alt": "Receita por categoria de produto, da maior para a menor"
+              "title": "Receita por categoria",
+              "centerNote": "receita",
+              "alt": "Receita dividida pelas categorias de produto, com o total no centro"
             }
           ]
         },
         {
-          "height": 248,
+          "height": 252,
+          "split": [
+            3,
+            2
+          ],
           "visuals": [
             {
-              "type": "clusteredBarChart",
-              "category": "dm_regional[Regional]",
+              "type": "list",
+              "item": "dm_cliente[Cliente]",
+              "detail": "dm_cliente[Segmento]",
+              "values": [
+                "Receita",
+                "Pedidos"
+              ],
+              "progress": "% Margem",
+              "sortBy": "Receita desc",
+              "top": 3,
+              "title": "Os 3 clientes que mais compraram",
+              "alt": "Os três clientes com maior receita, com pedidos e margem"
+            },
+            {
+              "type": "list",
+              "item": "dm_regional[Regional]",
               "values": [
                 "Receita"
               ],
+              "progress": "% Margem",
+              "sortBy": "Receita desc",
+              "avatars": false,
               "title": "Receita por regional",
-              "sort": "desc",
-              "alt": "Receita por regional, da maior para a menor"
+              "alt": "Regionais pela receita, com a margem de cada uma"
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis",
+      "slicers": [],
+      "tabs": "_Granularidade[Granularidade]",
+      "action": {
+        "text": "Ver produtos",
+        "page": "Produtos"
+      }
     },
     {
       "name": "Margem",
@@ -493,7 +498,8 @@
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis"
     },
     {
       "name": "Produtos",
@@ -522,7 +528,26 @@
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis"
     }
-  ]
+  ],
+  "subtitle": "Comercial · Vendas",
+  "progress": {
+    "dm_regional[Regional]": [
+      0.36,
+      0.31,
+      0.27,
+      0.22,
+      0.18
+    ],
+    "dm_cliente[Cliente]": [
+      0.34,
+      0.29,
+      0.38,
+      0.24,
+      0.31,
+      0.27
+    ]
+  }
 }

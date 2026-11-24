@@ -1,0 +1,8 @@
+{
+  "Role_Tooltips": "Tooltips",
+  "Role_Period": "Period",
+  "Role_Value": "Value",
+  "Role_Compare": "Comparison (last year, plan)",
+  "Landing_Title": "Architect Trend",
+  "Landing_Hint": "Add a Period and a Value; optionally a Comparison."
+}

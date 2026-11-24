@@ -50,7 +50,7 @@ Talk to the user in **their language**. Write documentation in the project langu
    folder**; base measures first, the rest reuse them. See [references/dax.md](references/dax.md).
 6. **One page, one question.** The title states the conclusion; KPIs → trend → breakdown → detail;
    ≤ 8 visuals. See [references/report-design.md](references/report-design.md).
-7. **Native visuals first.** A `.pbiviz` only when §4 says so, with an ADR. See
+7. **Native or the skill's visuals.** Any other `.pbiviz` only when §4 says so, with an ADR. See
    [references/custom-visuals.md](references/custom-visuals.md).
 8. **Self-documenting.** Every report has a *Documentation* page (metrics + loads) and every project a
    living README. See [references/documentation.md](references/documentation.md).
@@ -116,17 +116,17 @@ parameters, visual calculations, DAX functions: [references/semantic-features.md
 
 Start from the decision the person must make and work back to the pixels. Remove until it breaks.
 
-- **Never the default Microsoft look.** Every report is a calm product in the style of Twenty (the
-  open-source CRM): `#F5F5F7` canvas, quiet 220 px sidebar, borderless white cards (radius 8),
-  56 px top bar (breadcrumb · updated at · ≤ 2 compact slicers), one accent, thin bars.
-  Exact positions: [references/report-design.md](references/report-design.md) §0.
+- **Never the default Microsoft look:** `#F4F4F5` canvas, white sidebar and cards (hairline, radius
+  12), page name as heading, thin bars shaded by value. Positions: [report-design.md](references/report-design.md) §0.
 - 1280×720, **4 px grid**, 16 px gutters, aligned edges. **Type:** one family (Segoe UI + Semibold when
   there is no brand font); sizes 9 · 10 · 12 · 20, never above 14 in text boxes or 24 anywhere.
 - **Small filters:** dropdown slicers 176×40 in the top bar, at most 2 per page.
-- KPI cards: label · value · one context or variation line coloured by a measure that knows the good
-  direction ([references/dax.md](references/dax.md)).
-- One accent for focus, greys for context, green/red only for good/bad, ≤ 6 categories; data labels over
-  axes; sort by value; no 3D, gradients, shadows or pies > 3 slices.
+- **The skill's visuals** (`templates/visuals`, packed into the report): `kpiCard` (variation pill,
+  trend), `trend` (dense columns), `list` (avatars, chips, progress), `ring` (slices or goal). The
+  identity comes from the theme (`make_theme.py --primary --font`); no custom visuals allowed → `kpi`,
+  `lineChart`, `tableEx`.
+- Ink and greys; colour only for focus and good/bad; ≤ 6 categories; labels over axes; sort by value;
+  no 3D, shadows or pies > 3 slices.
 - **A measure with a target (`Meta …`) never appears without it:** `"target"` draws a dashed line on
   trends and paints bars below it red. Bar rows: `"height": "auto"` + `"items": n`. One `titleMeasure` per visual.
   **Every visual is finished by its recipe in [references/chart-craft.md](references/chart-craft.md).**
@@ -135,7 +135,7 @@ Start from the decision the person must make and work back to the pixels. Remove
   helpful empty states: [references/copywriting.md](references/copywriting.md).
 
 **Build loop (always):**
-1. **Theme.** Brand colour → `python scripts/make_theme.py --primary "#RRGGBB" --name "<Brand>"`; else `templates/theme/powerbi-architect-acessivel.json`.
+1. **Theme.** Brand → `python scripts/make_theme.py --primary "#RRGGBB" --font "<font>" --name "<Brand>"`; else `templates/theme/powerbi-architect-acessivel.json`.
 2. **Layout spec, not coordinates.** Describe pages as rows of visuals and run
    `python scripts/pbir_layout.py layout.json <Name>.Report --theme <theme.json>`: shell, icons, KPIs,
    charts, matrix, combo, scatter, KPI trend, tables, drill-through, tooltip and phone layouts on the grid.

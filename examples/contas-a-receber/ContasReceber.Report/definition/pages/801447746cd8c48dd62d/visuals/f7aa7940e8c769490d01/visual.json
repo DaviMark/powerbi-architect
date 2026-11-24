@@ -3,11 +3,11 @@
   "name": "f7aa7940e8c769490d01",
   "position": {
     "x": 232,
-    "y": 28,
-    "z": 8000,
+    "y": 8,
+    "z": 28000,
     "width": 520,
     "height": 24,
-    "tabOrder": 8000
+    "tabOrder": 28000
   },
   "visual": {
     "visualType": "textbox",
@@ -19,19 +19,11 @@
               {
                 "textRuns": [
                   {
-                    "value": "Contas a receber  /  ",
+                    "value": "Contas a receber",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "12pt",
-                      "color": "#6E6E73"
-                    }
-                  },
-                  {
-                    "value": "Diagnóstico",
-                    "textStyle": {
-                      "fontFamily": "Segoe UI Semibold",
-                      "fontSize": "12pt",
-                      "color": "#1D1D1F"
+                      "fontSize": "9pt",
+                      "color": "#71717A"
                     }
                   }
                 ]

@@ -1,0 +1,10 @@
+{
+  "Role_Tooltips": "Dicas de ferramenta",
+  "Role_Period": "Período",
+  "Role_Value": "Valor",
+  "Role_Reference": "Referência (meta ou plano)",
+  "Landing_Title": "Architect KPI",
+  "Landing_Hint": "Adicione um Valor; opcional: um Período para a tendência e uma Referência (meta).",
+  "Note_Reference": "meta",
+  "Role_Note": "Nota (medida de texto)"
+}

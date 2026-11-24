@@ -2,12 +2,12 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
   "name": "42a2e127a19fa1ccd562",
   "position": {
-    "x": 40,
-    "y": 16,
-    "z": 2000,
-    "width": 172,
+    "x": 56,
+    "y": 12,
+    "z": 3000,
+    "width": 160,
     "height": 24,
-    "tabOrder": 2000
+    "tabOrder": 3000
   },
   "visual": {
     "visualType": "textbox",
@@ -23,7 +23,7 @@
                     "textStyle": {
                       "fontFamily": "Segoe UI Semibold",
                       "fontSize": "10pt",
-                      "color": "#333333"
+                      "color": "#18181B"
                     }
                   }
                 ]

@@ -4,10 +4,10 @@
   "position": {
     "x": 232,
     "y": 184,
-    "z": 18000,
+    "z": 39000,
     "width": 504,
     "height": 512,
-    "tabOrder": 18000
+    "tabOrder": 39000
   },
   "visual": {
     "visualType": "lineChart",
@@ -95,8 +95,13 @@
             },
             "text": {
               "expr": {
-                "Literal": {
-                  "Value": "'Vencido do cliente por mês de vencimento'"
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Titulo Vencido"
                 }
               }
             }

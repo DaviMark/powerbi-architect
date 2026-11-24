@@ -84,6 +84,29 @@ WOBBLE = [1.0, 0.93, 0.88, 0.97, 0.9, 1.04, 0.95, 0.86, 1.02, 0.91, 0.99, 0.94, 
 TREND = [0.95, 0.965, 0.955, 0.975, 0.985, 0.97, 0.99, 1.005, 0.995, 1.015, 1.0, 1.02]   # months: a gentle climb
 
 
+VISUALS_JS = Path(__file__).resolve().parent / "visuals.js"
+# Renders the skill's custom visuals with the same drawing code Power BI runs (templates/visuals/core).
+ARCHITECT_RUN = """
+(function () {
+  var P = window.PBIArchitect; if (!P) return;
+  document.querySelectorAll('[data-pa]').forEach(function (el) {
+    var m = JSON.parse(el.getAttribute('data-model')), t = P.brandTokens(m.brand || {});
+    var w = el.clientWidth, h = el.clientHeight, kind = el.getAttribute('data-pa');
+    if (kind === 'kpi') P.renderKpi(el, m, w, h, t);
+    if (kind === 'list') { P.renderList(el, m, w, h, t);
+      if (el.dataset.scroll) el.querySelectorAll('table').forEach(function (x) { x.dataset.scroll = '1'; }); }
+    if (kind === 'trend') {
+      m.tick = function (v) { var d = Number.isInteger(v) ? 0 : 1;
+        return m.tickPrefix + v.toLocaleString('pt-BR', {minimumFractionDigits: d, maximumFractionDigits: d}) + m.tickSuffix; };
+      P.renderTrend(el, m, w, h, t);
+    }
+    if (kind === 'ring') P.renderRing(el, m, w, h, t);
+  });
+})();
+"""
+STATUSES = ["Atrasado", "Em risco", "A vencer", "Em dia", "Em dia", "Atrasado", "Em risco", "Em dia"]
+
+
 def parse_like(like: str | None):
     """(prefix, value, decimals, suffix) of a formatted sample value such as 'R$ 3,1 mi' or '91,4%'."""
     m = NUMBER.match(like or "")
@@ -125,6 +148,12 @@ def nice_ticks(lo: float, hi: float, n: int = 4) -> list[float]:
         ticks.append(round(t, 10))
     return ticks
 
+
+
+def mix(a: str, b: str, t: float) -> str:
+    """Colour between a (t = 0) and b (t = 1)."""
+    ca, cb = (tuple(int(x.lstrip("#")[k:k + 2], 16) for k in (0, 2, 4)) for x in (a, b))
+    return "#" + "".join(f"{round(p + (q - p) * t):02X}" for p, q in zip(ca, cb))
 
 class Preview:
     def __init__(self, report: Path, sample: dict | None):
@@ -173,6 +202,10 @@ class Preview:
         if measure and measure in self.sample.get("measures", {}):
             return html.escape(self.sample["measures"][measure])
         return placeholder
+
+    def axis(self, field: str | None) -> str | None:
+        """A field parameter's column stands for its first field (the tab selected by default)."""
+        return (self.sample.get("parameters") or {}).get(field or "", field)
 
     def labels(self, field: str | None, n: int) -> list[str]:
         vals = self.sample.get("fields", {}).get(field or "", [])
@@ -238,6 +271,147 @@ class Preview:
         qs = (vis.get("query") or {}).get("queryState") or {}
         return {r: [self.field_of(p) for p in v.get("projections", [])] for r, v in qs.items()}
 
+    def display_name(self, vis: dict, role: str) -> str | None:
+        qs = (vis.get("query") or {}).get("queryState") or {}
+        projs = (qs.get(role) or {}).get("projections") or [{}]
+        return projs[0].get("displayName")
+
+    def architect_model(self, kind: str, vtype: str, vis: dict, roles: dict, objs: dict, w: float, h: float) -> dict:
+        """The data a custom visual of the skill gets, made from the sample (see templates/visuals/core)."""
+        style = ((self.theme.get("visualStyles") or {}).get(vtype) or {}).get("*", {}).get("brand") or [{}]
+        b = style[0]
+        brand = {"accent": self.color(b.get("accent")), "ink": self.color(b.get("text")),
+                 "muted": self.color(b.get("secondary")), "track": self.color(b.get("context")),
+                 "font": b.get("fontFamily") if b.get("fontFamily") and b.get("fontFamily") != "Segoe UI" else None}
+        brand = {k: v for k, v in brand.items() if v}
+        first = lambda r: (roles.get(r) or [None])[0]  # noqa: E731
+        props = lambda o: (objs.get(o) or [{}])[0].get("properties", {})  # noqa: E731
+        if kind == "kpi":
+            m = first("value")
+            text = self.sample.get("measures", {}).get(m or "") or "—"
+            p = parse_like(text)
+            pts = None
+            delta, tone, note = None, "neutral", None
+            if p:
+                cur = p[1]
+                shape = [TREND[i] * (0.9 + 0.1 * WOBBLE[(i * 5 + len(m or "")) % len(WOBBLE)]) for i in range(12)]
+                pts = [cur * x / shape[-1] for x in shape] if first("period") else None
+                ref = first("reference")
+                rp = parse_like(self.sample.get("measures", {}).get(ref or "")) if ref else None
+                base = rp[1] if rp else (pts[-2] if pts else None)
+                if base:
+                    percent = "%" in p[3]
+                    diff = (cur - base) if percent else (cur - base) / abs(base) * 100
+                    shown = f"{abs(diff):.1f}".replace(".", ",")
+                    flat = abs(diff) < 0.05
+                    delta = f"{'=' if flat else '▲' if diff > 0 else '▼'} {shown}{' p.p.' if percent else '%'}"
+                    higher = str(lit(props("kpi").get("higherIsBetter"), "true")).lower() != "false"
+                    tone = "neutral" if flat else "good" if (diff > 0) == higher else "bad"
+                    months = self.labels(first("period"), 24)
+                    note = (f"meta {self.sample['measures'][ref]}" if rp
+                            else f"vs {months[-2]}" if len(months) > 1 else "vs período anterior")
+            custom_note = lit(props("kpi").get("note")) or self.sample.get("measures", {}).get(first("note") or "")
+            return {"label": self.display_name(vis, "value") or m, "value": text, "delta": delta, "tone": tone,
+                    "note": custom_note or note, "points": pts, "spark": lit(props("kpi").get("spark"), "auto"),
+                    "brand": brand}
+        if kind == "trend":
+            m, cat, cmp_ = first("value"), self.axis(first("period")), first("compare")
+            labels = self.labels(cat, 12) or ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+            n = len(labels)
+            like = self.like(m)
+            vals = (self.sample.get("series", {}).get(cat or "") or
+                    self.series(m, n, [5, 6, 5.5, 7, 6.5, 8, 7.5, 8.5, 8, 9, 8.8, 10]))
+            vals = (vals + vals[-1:] * n)[:n]
+            comp = None
+            if cmp_:
+                comp = self.sample.get("series", {}).get(cmp_) or [v * (0.84 + 0.04 * WOBBLE[i % len(WOBBLE)])
+                                                                    for i, v in enumerate(vals)]
+            pl = parse_like(like) or ("", 0, 1, "")
+            last = n - 1
+            base = comp[last] if comp else vals[last - 1] if n > 1 else 0
+            note = None
+            if base:
+                diff = (vals[last] - base) / abs(base) * 100
+                against = self.display_name(vis, "compare") or cmp_ if comp else labels[last - 1]
+                note = f"{labels[last]} · {'▲' if diff > 0 else '▼'} {abs(diff):.1f}% vs {against}".replace(".", ",")
+            header = props("header")
+            show = str(lit(header.get("showHeadline"), "true")).lower() != "false"
+            return {"title": lit(header.get("title")) or self.display_name(vis, "value") or m,
+                    "total": fmt(vals[last], like) if show else None, "totalNote": note if show else None,
+                    "labels": labels, "values": vals, "valueTexts": [fmt(v, like) for v in vals],
+                    "seriesName": self.display_name(vis, "value") or m, "compare": comp,
+                    "compareName": (self.display_name(vis, "compare") or cmp_) if comp else None,
+                    "highlight": lit(props("focus").get("highlight"), "last"),
+                    "tickPrefix": pl[0], "tickSuffix": pl[3], "brand": brand}
+        if kind == "ring":
+            header, ring = props("header"), props("ring")
+            title = lit(header.get("title")) or self.display_name(vis, "value") or first("value")
+            note = lit(header.get("centerNote")) or None
+            m = first("value")
+            like = self.like(m)
+            cat = first("category")
+            if cat:
+                labels = self.labels(cat, 6) or ["A", "B", "C"]
+                vals = (self.sample.get("series", {}).get(cat) or self.synth(m, len(labels)) or [3, 2, 1])[:len(labels)]
+                total = sum(max(v, 0) for v in vals) or 1
+                parts = [{"label": lb, "value": v, "text": fmt(v, like), "share": f"{v / total * 100:.0f}%"}
+                         for lb, v in zip(labels, vals)]
+                center = (parts[0]["share"] if lit(ring.get("center"), "total") == "first"
+                          else self.sample.get("measures", {}).get(m) or fmt(total, like))
+                return {"title": title, "center": center, "centerNote": note, "parts": parts, "brand": brand}
+            tgt = first("target")
+            pv, pt = parse_like(self.like(m)), parse_like(self.like(tgt))
+            v, t = (pv[1] if pv else 82.0), (pt[1] if pt else 100.0)
+            higher = str(lit(ring.get("higherIsBetter"), "true")).lower() != "false"
+            gap = t - v
+            prog = v / t if t else 0
+            return {"title": title, "center": f"{prog * 100:.0f}%", "centerNote": note or "da meta", "parts": [],
+                    "goal": {"progress": prog, "tone": "good" if (prog >= 1) == higher else "neutral",
+                             "legend": [{"label": self.display_name(vis, "value") or m, "value": v,
+                                         "text": self.sample.get("measures", {}).get(m) or fmt(v, like)},
+                                        {"label": self.display_name(vis, "target") or tgt, "value": t,
+                                         "text": self.sample.get("measures", {}).get(tgt) or fmt(t, like)},
+                                        {"label": "Falta" if (gap > 0) == higher else "Acima da meta",
+                                         "value": abs(gap), "text": fmt(abs(gap), like)}]},
+                    "brand": brand}
+        item = first("item")
+        two = bool(first("detail"))
+        n = max(1, min(int((h - 30) // (52 if two else 36)) + 1, 12))
+        names = (self.labels(item, n) or [f"Item {i + 1}" for i in range(n)])[:n]
+        details = self.labels(first("detail"), 50)
+        statuses = self.labels(first("status"), 50) or STATUSES
+        columns, cells = [], [[] for _ in names]
+        if first("status"):
+            columns.append({"title": self.display_name(vis, "status") or first("status").split("[")[-1].rstrip("]"),
+                            "kind": "status"})
+            for i, row in enumerate(cells):
+                row.append({"kind": "status", "text": statuses[i % len(statuses)]})
+        for j, f in enumerate(roles.get("values") or []):
+            is_col = "[" in f and not f.startswith("[")
+            columns.append({"title": f.split("[")[-1].rstrip("]"), "kind": "text" if is_col else "number"})
+            if is_col:
+                vals = self.labels(f, 50) or ["—"]
+                texts = [vals[(i * 3 + j) % len(vals)] for i in range(len(names))]
+            else:
+                raw = (self.sample.get("series", {}).get(item or "") if j == 0 else None) or                     self.sample.get("series", {}).get(f) or self.synth(f, len(names), offset=j * 3) or []
+                raw = sorted(raw, reverse=True) if j == 0 else raw
+                texts = [self.num_text(x, f) for x in raw[:len(names)]] + ["—"] * len(names)
+            for i, row in enumerate(cells):
+                row.append({"kind": "text" if is_col else "number", "text": html.unescape(texts[i])})
+        if first("progress"):
+            columns.append({"title": first("progress").split("[")[-1].rstrip("]"), "kind": "progress"})
+            prog = ((self.sample.get("progress") or {}).get(item or "")
+                    or self.synth(first("progress"), len(names), offset=5) or [])
+            for i, row in enumerate(cells):
+                pct = prog[i] if i < len(prog) else [42, 58, 77, 93, 35, 66, 81, 50][i % 8]
+                v = pct / 100 if pct > 1 else pct
+                row.append({"kind": "progress", "value": v, "text": f"{v * 100:.0f}%"})
+        return {"title": lit(props("list").get("title")) or None,
+                "itemTitle": self.display_name(vis, "item") or (item or "").split("[")[-1].rstrip("]"),
+                "columns": columns, "avatars": str(lit(props("list").get("avatars"), "true")).lower() != "false",
+                "rows": [{"item": nm, "sub": details[(i * 7) % len(details)] if details and two else None, "cells": c}
+                         for i, (nm, c) in enumerate(zip(names, cells))], "brand": brand}
+
     def render_visual(self, v: dict, pos: dict, page_names: list[str], current: str) -> str:
         vis = v.get("visual", {}) or {}
         vtype = vis.get("visualType", "")
@@ -275,7 +449,16 @@ class Preview:
         bar = lambda width, height=8: (f'<span style="display:inline-block;width:{width}%;height:{height}px;'  # noqa: E731
                                        f'background:#EBEBEB;border-radius:2px"></span>')
 
-        if vtype == "textbox":
+        kind = next((k for k, prefix in (("kpi", "architectKpi"), ("list", "architectList"), ("trend", "architectTrend"),
+                                          ("ring", "architectRing")) if vtype.startswith(prefix)), None)
+        if kind:
+            model = self.architect_model(kind, vtype, vis, roles, objs, w, h)
+            if kind == "list" and self.top_n(v):            # Power BI's Top N filter keeps only these rows
+                model["rows"] = model["rows"][:self.top_n(v)]
+            scroll = ' data-scroll="1"' if kind == "list" and h >= 400 else ""
+            inner = title + (f'<div data-pa="{kind}"{scroll} data-model="{html.escape(json.dumps(model, ensure_ascii=False))}" '
+                             f'style="width:100%;height:{h - (28 if title else 0)}px"></div>')
+        elif vtype == "textbox":
             for para in prop(objs, "general", "paragraphs", []) or []:
                 runs = []
                 for r in para.get("textRuns", []):
@@ -284,7 +467,8 @@ class Preview:
                     wt = 600 if "Semibold" in st.get("fontFamily", "") or st.get("fontWeight") == "bold" else 400
                     runs.append(f'<span style="font:{wt} {size * PT:.1f}px {FONT};color:{st.get("color", ink)};'
                                 f'white-space:pre">{html.escape(r.get("value", ""))}</span>')
-                inner += f'<div style="padding:2px 4px">{"".join(runs)}</div>'
+                align = {"center": "center", "right": "right"}.get(para.get("horizontalTextAlignment"), "left")
+                inner += f'<div style="padding:2px 4px;text-align:{align}">{"".join(runs)}</div>'
         elif vtype == "shape":
             fill = self.color(prop(objs, "fill", "fillColor"), "#FFFFFF")
             if "background" not in vco:
@@ -295,6 +479,17 @@ class Preview:
             uri = self.image_uri(objs)
             if uri:
                 inner = f'<img src="{uri}" style="width:100%;height:100%;object-fit:contain">'
+        elif vtype == "actionButton":
+            text_on = str(lit(prop(objs, "text", "show"), "false")).lower() == "true"
+            fill_on = str(lit(prop(objs, "fill", "show"), "false")).lower() == "true"
+            if fill_on:
+                css.append(f"background:{self.color(prop(objs, 'fill', 'fillColor'), ink)};border-radius:8px")
+            if text_on:
+                fc = self.color(prop(objs, "text", "fontColor"), "#FFFFFF")
+                size = num(lit(prop(objs, "text", "fontSize"), 9), 9) * PT
+                inner = (f'<div style="height:100%;display:flex;align-items:center;justify-content:center;'
+                         f'font:600 {size:.1f}px {FONT};color:{fc};white-space:nowrap">'
+                         f'{html.escape(str(lit(prop(objs, "text", "text"), "")))}</div>')
         elif vtype == "pageNavigator":
             size = num(self.style("pageNavigator", "text", "fontSize", 10), 10) * PT
             margin = num(self.style("pageNavigator", "text", "leftMargin", 8), 8)
@@ -316,13 +511,33 @@ class Preview:
             wt = 600 if "Semibold" in str(fam) else 400
             if size < 12:   # a small line of text: "updated at" or a KPI's variation line
                 text = self.value(m, html.escape(m or ""))
-                align = "flex-end" if pos.get("y", 0) < 70 else "flex-start"
+                align = "center" if w <= 48 else "flex-end" if pos.get("y", 0) < 70 else "flex-start"
                 inner = (f'<div style="font:{wt} {size * PT:.1f}px {FONT};color:{vink};height:100%;display:flex;'
                          f'align-items:center;justify-content:{align};white-space:nowrap">{text}</div>')
             else:
                 text = self.value(m, bar(56, int(size * PT * 0.8)))
                 inner = title + (f'<div style="font:{wt} {size * PT:.1f}px {FONT};color:{vink};'
                                  f'padding:{CAL["card_value_padding"]}">{text}</div>')
+        elif vtype == "slicer" and lit(prop(objs, "data", "mode")) == "Basic" and str(lit(prop(objs, "general", "orientation"))) in ("1", "1.0", "1D"):
+            field = (roles.get("Values") or [""])[0]
+            names = self.labels(field, 8) or ["Mês", "Trimestre", "Ano"]
+            css.append("background:#F4F4F5;border-radius:10px")
+            tabs = "".join(
+                f'<div style="flex:1;display:flex;align-items:center;justify-content:center;border-radius:7px;'
+                f'font:600 {9 * PT:.1f}px {FONT};color:{ink if i == 0 else ink2};'
+                f'{"background:#FFFFFF;box-shadow:0 0 0 1px #E4E4E7" if i == 0 else ""}">{html.escape(n)}</div>'
+                for i, n in enumerate(names))
+            inner = f'<div style="display:flex;gap:4px;height:100%;padding:4px;box-sizing:border-box">{tabs}</div>'
+        elif vtype == "slicer" and lit(prop(objs, "data", "mode")) == "Between":
+            field = (roles.get("Values") or [""])[0]
+            lo, hi = (self.sample.get("ranges") or {}).get(field) or ["01/12/2024", "30/11/2025"]
+            cal = ('<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#71717A" stroke-width="1.4">'
+                   '<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 7h12M5 1.5v3M11 1.5v3"/></svg>')
+            box = lambda v: (f'<div style="flex:1;display:flex;align-items:center;justify-content:space-between;'  # noqa: E731
+                             f'padding:0 10px;border-radius:8px;box-shadow:inset 0 0 0 1px #E4E4E7;background:#FFFFFF;'
+                             f'font:400 {9 * PT:.1f}px {FONT};color:{ink}">{v}{cal}</div>')
+            css.append("background:transparent")
+            inner = f'<div style="display:flex;gap:8px;height:100%">{box(lo)}{box(hi)}</div>'
         elif vtype == "slicer":
             hsize = num(self.style("slicer", "header", "textSize", 9), 9) * PT
             hink = self.style("slicer", "header", "fontColor", ink2)
@@ -373,7 +588,8 @@ class Preview:
                     meas = c if not c.startswith("[") else (roles.get("Values") or [None])[0]
                     raw = self.sample.get("series", {}).get(meas or "") or self.synth(meas, n_rows, offset=j * 3)
                     filled[j] = [self.num_text(x, meas) for x in raw[:n_rows]]
-            head = "".join(f'<th style="text-align:{"left" if i == 0 else "right"};font-weight:600;color:{ink2};'
+            is_text = lambda i: i == 0 or ("[" in cols[i] and not cols[i].startswith("["))  # noqa: E731
+            head = "".join(f'<th style="text-align:{"left" if is_text(i) else "right"};font-weight:600;color:{ink2};'
                            f'padding:{CAL["table_cell_padding"]}">{html.escape(c.split("[")[-1].rstrip("]"))}</th>' for i, c in enumerate(cols))
             body = ""
             for r in range(n_rows):
@@ -387,7 +603,7 @@ class Preview:
                     else:
                         content = bar(40 + (r * 17 + j * 29) % 45)
                     style_ink = hl.get(name, ink)
-                    cells.append(f'<td style="padding:{CAL["table_cell_padding"]};color:{style_ink};text-align:{"left" if j == 0 else "right"};'
+                    cells.append(f'<td style="padding:{CAL["table_cell_padding"]};color:{style_ink};text-align:{"left" if is_text(j) else "right"};'
                                  f'border-top:1px solid #F1F1F1">{content}</td>')
                 body += "<tr>" + "".join(cells) + "</tr>"
             # A full-height list scrolls in Power BI; a short table must fit its rows (the critic counts them).
@@ -421,6 +637,15 @@ class Preview:
             if (item.get("selector") or {}).get("data"):
                 c = ((item.get("properties") or {}).get("fill") or {}).get("solid", {}).get("color") or {}
                 cond = ((c.get("expr") or {}).get("Conditional") or {}) if isinstance(c, dict) else {}
+                rule = ((c.get("expr") or {}).get("FillRule") or {}) if isinstance(c, dict) else {}
+                grad = (rule.get("FillRule") or {}).get("linearGradient2") or {}
+                if grad and vals:
+                    def stop(k, default):
+                        v = (((grad.get(k) or {}).get("color") or {}).get("Literal") or {}).get("Value")
+                        return v.strip("'") if isinstance(v, str) else default
+                    lo_c, hi_c = stop("min", "#D4D4D8"), stop("max", self.accent)
+                    lo, hi = min(vals), max(vals)
+                    return [mix(lo_c, hi_c, (v - lo) / (hi - lo) if hi > lo else 1) for v in vals][:n]
                 if cond and vals:
                     case = (cond.get("Cases") or [{}])[0]
                     cmp_ = (case.get("Condition") or {}).get("Comparison") or {}
@@ -510,6 +735,25 @@ class Preview:
         m = (roles.get("Y") or [None])[0]
         kind = vtype.lower()
         body_h = h - CAL["chart_reserved_height"]
+        hidden = lambda o: str(lit(prop(objs, o, "show"))).lower() == "false"  # noqa: E731
+        if kind == "linechart" and hidden("categoryAxis") and hidden("valueAxis"):
+            # A trend inside a KPI card: one thin line on its own scale, no axes, no labels.
+            labels = self.labels(cat, 12) or [""] * 12
+            # The sample's own series when it has one; otherwise a gentle monthly climb with some noise
+            # (unrounded: rounding a total shared by 12 months to the KPI's decimals draws steps).
+            vals = self.sample.get("series", {}).get(m or "") or [
+                TREND[i % len(TREND)] * (0.9 + 0.1 * WOBBLE[(i * 5 + len(m or "")) % len(WOBBLE)])
+                for i in range(len(labels))]
+            vals = vals[:len(labels)]
+            lo, hi = min(vals), max(vals)
+            span = (hi - lo) or 1
+            stroke = self.color(prop(objs, "dataPoint", "fill"), self.ink2)
+            pts = " ".join(f"{2 + i * (w - 4) / max(len(vals) - 1, 1):.1f},{h - 3 - (h - 6) * (v - lo) / span:.1f}"
+                           for i, v in enumerate(vals))
+            last = pts.split()[-1].split(",")
+            return (f'<svg width="{w}" height="{h}" style="display:block"><polyline points="{pts}" fill="none" '
+                    f'stroke="{stroke}" stroke-width="1.5" stroke-linejoin="round"/>'
+                    f'<circle cx="{last[0]}" cy="{last[1]}" r="2.5" fill="{self.ink}"/></svg>')
         if kind == "scatterchart":
             names = self.labels(cat, 12) or [""] * 12
             xs = self.series((roles.get("X") or [None])[0], len(names), [2, 3.5, 5, 6, 7.5, 3, 8, 4.5, 6.5, 9, 2.5, 5.5])
@@ -660,11 +904,14 @@ class Preview:
 
     @staticmethod
     def document(body: str, margin: int = 24) -> str:
+        runner = ""
+        if "data-pa=" in body and VISUALS_JS.exists():
+            runner = ("<script>" + VISUALS_JS.read_text(encoding="utf-8") + "</script><script>" + ARCHITECT_RUN + "</script>")
         return ("<!doctype html><meta charset='utf-8'><title>PBIR preview</title><style>"
                 f"body{{margin:{margin}px;background:#DADADA;font-family:{FONT}}}"
                 f"h2{{font:600 14px {FONT};color:#333;margin:24px 0 8px}}"
                 ".page{position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.15)}"
-                ".v{position:absolute;box-sizing:border-box;overflow:hidden}</style>" + body)
+                ".v{position:absolute;box-sizing:border-box;overflow:hidden}</style>" + body + runner)
 
     def pages(self, mobile: bool = False) -> list[tuple[str, int, int, str]]:
         """(title, width, height, html) for every page."""

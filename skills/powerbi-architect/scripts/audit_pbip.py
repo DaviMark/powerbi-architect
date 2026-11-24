@@ -419,7 +419,7 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI063": ("SUGGESTION", "6", "KPI cards too narrow or too many in one row", ()),
     "PBI064": ("SUGGESTION", "6", "Chart too small to read", ()),
     "PBI065": ("SUGGESTION", "a11y", "Theme colours that look alike to people with colour-vision deficiency", ()),
-    "PBI066": ("SUGGESTION", "6", "Corners rounder than 8 px (the generic 'AI dashboard' look)", ()),
+    "PBI066": ("SUGGESTION", "6", "Corners rounder than 12 px (the generic 'AI dashboard' look)", ()),
     "PBI067": ("SUGGESTION", "6", "Shadow or glow on a visual", ()),
     "PBI068": ("SUGGESTION", "6", "Uneven, cramped or loose gutters between visuals", ()),
     "PBI069": ("SUGGESTION", "1", "Two visuals that show the same thing", ()),
@@ -579,6 +579,28 @@ def font_usage(visual: dict) -> tuple[list[float], set[str]]:
     return sizes, families
 
 
+def architect_title(visual: dict, vtype: str) -> str | None:
+    """The title a custom visual of the skill (templates/visuals) draws itself, or None for other visuals:
+    the KPI's label (the value's display name), the trend's header, the list's title ("" when it has none)."""
+    def first_name(role: str) -> str:
+        p = ((((visual.get("query") or {}).get("queryState") or {}).get(role) or {}).get("projections") or [{}])[0]
+        f = p.get("field") or {}
+        return p.get("displayName") or next((v.get("Property", "") for v in f.values() if isinstance(v, dict)), "")
+
+    def prop_text(obj: str, name: str) -> str:
+        v = (((visual.get("objects") or {}).get(obj) or [{}])[0].get("properties", {}).get(name) or {})
+        return str(v.get("expr", {}).get("Literal", {}).get("Value", "")).strip("'")
+    if vtype.startswith("architectKpi"):
+        return first_name("value")
+    if vtype.startswith("architectTrend"):
+        return prop_text("header", "title") or first_name("value")
+    if vtype.startswith("architectList"):
+        return prop_text("list", "title")
+    if vtype.startswith("architectRing"):
+        return prop_text("header", "title") or first_name("value")
+    return None
+
+
 def chromeless(container: dict) -> bool:
     """A data visual with no title, background or border annotates another element (a KPI's variation
     line, the "updated at" text): it does not count as a separate visual on the page."""
@@ -618,6 +640,25 @@ def _luminance(h: str) -> float:
 
 def contrast_on_white(h: str) -> float:
     return 1.05 / (_luminance(h) + 0.05)
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def own_background(visual: dict) -> str | None:
+    """The colour text sits on when the visual paints its own: a filled button, a text box with a background."""
+    def shown_colour(obj: dict | None, key: str) -> str | None:
+        props = ((obj or [{}])[0] or {}).get("properties", {})
+        if str(num_literal(props.get("show"), raw=True)).lower() != "true":
+            return None
+        return _hex(props.get(key))
+    if visual.get("visualType") == "actionButton":
+        fill = shown_colour((visual.get("objects") or {}).get("fill"), "fillColor")
+        if fill:
+            return fill
+    return shown_colour((visual.get("visualContainerObjects") or {}).get("background"), "color")
 
 
 def colour_usage(visual: dict) -> tuple[set[str], set[str]]:
@@ -1019,7 +1060,8 @@ def audit(root: Path, config: dict | None = None) -> list:
                 code = strip_dax(m.expression)
                 is_text = ("FORMAT" in m.expression.upper() or m.expression.lstrip().startswith('"')
                            or re.search(r'"#[0-9A-Fa-f]{6}"', m.expression) is not None
-                           or re.search(r'"\s*&|&\s*"', m.expression) is not None)
+                           or re.search(r'"\s*&|&\s*"', m.expression) is not None
+                           or re.search(r'\b(?:SWITCH|IF)\s*\(.*,\s*"[^"]*"\s*[,)]', m.expression, re.S) is not None)
                 if not m.description:
                     add("PBI005", path, f"measure [{m.name}] missing description", m.line, m_ign)
                 if not (m.format_string or is_text):
@@ -1124,19 +1166,21 @@ def audit(root: Path, config: dict | None = None) -> list:
                     add("PBI048", where_v, f"{vtype or 'visual'} on page '{display}': {', '.join(off)} not a "
                                            "multiple of 4 px — align it to the grid")
                 radius = num_literal(((vco_or(v).get("border") or [{}])[0].get("properties") or {}).get("radius"))
-                if radius is not None and radius > 8:
+                if radius is not None and radius > 12:
                     add("PBI066", where_v, f"{vtype or 'visual'} on page '{display}': corner radius {radius:g} px — "
-                                           "keep 0–8 px; very round cards read as a template, not a product")
+                                           "keep 0–12 px; very round cards read as a template, not a product")
                 shadow = ((vco_or(v).get("dropShadow") or [{}])[0].get("properties") or {}).get("show")
                 if str(num_literal(shadow, raw=True)).lower() == "true":
                     add("PBI067", where_v, f"{vtype or 'visual'} on page '{display}' has a shadow — use the "
                                            "hairline border; depth adds noise, not meaning")
                 text_cols, fill_cols = colour_usage(v)
                 page_fills |= {c for c in fill_cols if not is_neutral(c)}
-                low = sorted(c for c in text_cols if contrast_on_white(c) < 4.5)
+                ground = own_background(v) or "#FFFFFF"
+                low = sorted(c for c in text_cols if contrast(c, ground) < 4.5)
                 if low:
+                    on = "white" if ground == "#FFFFFF" else ground
                     add("PBI054", where_v, f"{vtype} on page '{display}': text colour {', '.join(low)} has "
-                                           f"{contrast_on_white(low[0]):.1f}:1 on white (minimum 4.5:1)")
+                                           f"{contrast(low[0], ground):.1f}:1 on {on} (minimum 4.5:1)")
                 vco_ = v.get("visualContainerObjects", {}) or {}
                 for axis in ("valueAxis", "categoryAxis"):
                     shown = (((v.get("objects", {}) or {}).get(axis) or [{}])[0].get("properties", {})
@@ -1174,6 +1218,9 @@ def audit(root: Path, config: dict | None = None) -> list:
                 title_text = tprops.get("text", {})
                 literal = str(title_text.get("expr", {}).get("Literal", {}).get("Value", "")).strip("'") \
                     if isinstance(title_text, dict) else ""
+                own = architect_title(v, vtype)
+                if own is not None:            # the skill's custom visuals draw their own title or label
+                    title_show, literal = "true", own
                 has_title = title_show != "false" and bool(literal or "Measure" in str(title_text))
                 if not has_title:
                     add("PBI056", where_v, f"{vtype} on page '{display}' has no title — say what it shows, "

@@ -224,36 +224,15 @@
     {
       "name": "Texto Admissões",
       "description": "Linha do KPI de headcount: admissões e desligamentos no período.",
-      "expr": "FORMAT ( [Admissões], \"#,0\" ) & \" admissões, \" & FORMAT ( [Desligamentos], \"#,0\" ) & \" desligamentos\"",
+      "expr": "FORMAT ( [Admissões], \"#,0\" ) & \" entradas, \" & FORMAT ( [Desligamentos], \"#,0\" ) & \" saídas\"",
       "folder": "Textos",
-      "sample": "214 admissões, 187 desligamentos"
-    },
-    {
-      "name": "Texto Var Turnover",
-      "description": "Linha do KPI de turnover: distância para o teto, em pontos percentuais.",
-      "expr": "VAR _d = [Turnover Mensal] - [Meta Turnover] RETURN IF ( ISBLANK ( [Turnover Mensal] ), BLANK (), IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & IF ( _d > 0, \"acima\", \"abaixo\" ) & \" do teto de \" & FORMAT ( [Meta Turnover], \"0.0%\" ) )",
-      "folder": "Textos",
-      "sample": "▲ 0,3 p.p. acima do teto de 1,5%"
-    },
-    {
-      "name": "Cor Var Turnover",
-      "description": "Cor da linha do KPI de turnover: vermelho acima do teto.",
-      "expr": "IF ( [Turnover Mensal] > [Meta Turnover], \"#CE2C31\", \"#00824D\" )",
-      "folder": "Cores",
-      "sampleColor": "#CE2C31"
+      "sample": "214 entradas, 187 saídas"
     },
     {
       "name": "Cor Turnover",
       "description": "Cor do turnover em tabelas: vermelho acima do teto.",
       "expr": "IF ( [Turnover Mensal] > [Meta Turnover], \"#CE2C31\", \"#333333\" )",
       "folder": "Cores"
-    },
-    {
-      "name": "Titulo Headcount",
-      "description": "Título do gráfico de quadro mensal, com o quadro atual.",
-      "expr": "\"Quadro ao fim de cada mês: \" & FORMAT ( [Headcount], \"#,0\" ) & \" pessoas hoje\"",
-      "folder": "Títulos",
-      "sample": "Quadro ao fim de cada mês: 2.318 pessoas hoje"
     }
   ],
   "series": {
@@ -290,6 +269,11 @@
       2294,
       2305,
       2318
+    ],
+    "dm_area[Diretoria]": [
+      1046,
+      812,
+      460
     ]
   },
   "pages": [
@@ -298,80 +282,114 @@
       "icon": "layout-dashboard",
       "rows": [
         {
-          "height": 88,
+          "height": 104,
           "visuals": [
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Headcount",
               "label": "Pessoas no quadro",
-              "variation": "Texto Admissões"
+              "trend": "dm_calendario[Ano-Mês]",
+              "noteMeasure": "Texto Admissões",
+              "alt": "Pessoas no quadro no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Turnover Mensal",
               "label": "Turnover mensal médio",
-              "variation": "Texto Var Turnover",
-              "variationColor": "Cor Var Turnover"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Meta Turnover",
+              "higherIsBetter": false,
+              "alt": "Turnover mensal médio no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "% Voluntário",
-              "label": "Desligamentos a pedido"
+              "label": "Desligamentos a pedido",
+              "trend": "dm_calendario[Ano-Mês]",
+              "higherIsBetter": false,
+              "alt": "Desligamentos a pedido no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Salário Médio",
-              "label": "Salário base médio"
+              "label": "Salário base médio",
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Salário base médio no último mês, com a variação e a tendência"
             }
           ]
         },
         {
-          "height": 248,
+          "height": 228,
           "split": [
-            2,
-            1
+            3,
+            2
           ],
           "visuals": [
             {
-              "type": "lineChart",
-              "category": "dm_calendario[Ano-Mês]",
+              "type": "trend",
+              "category": "_Granularidade[Granularidade]",
               "values": [
                 "Headcount"
               ],
-              "titleMeasure": "Titulo Headcount",
-              "sort": "category",
+              "title": "Pessoas no quadro por período",
+              "seriesName": "Headcount",
               "alt": "Quantidade de pessoas no quadro ao fim de cada mês"
             },
             {
-              "type": "clusteredBarChart",
-              "category": "dm_cargo[Nível]",
+              "type": "ring",
+              "category": "dm_area[Diretoria]",
               "values": [
-                "Turnover Mensal"
+                "Headcount"
               ],
-              "title": "Turnover por nível",
-              "sort": "category",
-              "alt": "Turnover mensal médio por nível de cargo"
+              "sort": "desc",
+              "title": "Pessoas por diretoria",
+              "centerNote": "pessoas",
+              "alt": "Pessoas no quadro divididas pelas diretorias, com o total no centro"
             }
           ]
         },
         {
-          "height": 248,
+          "height": 252,
+          "split": [
+            3,
+            2
+          ],
           "visuals": [
             {
-              "type": "combo",
-              "category": "dm_calendario[Ano-Mês]",
+              "type": "list",
+              "item": "dm_area[Área]",
+              "detail": "dm_area[Diretoria]",
               "values": [
-                "Admissões"
+                "Turnover Mensal"
               ],
-              "lineValues": [
-                "Desligamentos"
+              "progress": "% Voluntário",
+              "sortBy": "Turnover Mensal desc",
+              "top": 3,
+              "title": "As 3 áreas com mais turnover",
+              "alt": "As três áreas com maior turnover mensal, com a parte voluntária"
+            },
+            {
+              "type": "list",
+              "item": "dm_cargo[Nível]",
+              "values": [
+                "Turnover Mensal"
               ],
-              "title": "Admissões em colunas, desligamentos na linha",
-              "alt": "Admissões por mês em colunas e desligamentos em linha"
+              "progress": "% Voluntário",
+              "sortBy": "Turnover Mensal desc",
+              "avatars": false,
+              "title": "Turnover por nível",
+              "alt": "Níveis de cargo pelo turnover mensal, com a parte voluntária"
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis",
+      "slicers": [],
+      "tabs": "_Granularidade[Granularidade]",
+      "action": {
+        "text": "Ver turnover",
+        "page": "Turnover"
+      }
     },
     {
       "name": "Turnover",
@@ -424,7 +442,8 @@
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis"
     },
     {
       "name": "Áreas",
@@ -454,7 +473,24 @@
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis"
     }
-  ]
+  ],
+  "subtitle": "Recursos humanos",
+  "progress": {
+    "dm_cargo[Nível]": [
+      0.71,
+      0.58,
+      0.46,
+      0.33
+    ],
+    "dm_area[Área]": [
+      0.74,
+      0.52,
+      0.61,
+      0.38,
+      0.45
+    ]
+  }
 }

@@ -8,6 +8,7 @@ tools/validate_schemas.py.
 import hashlib
 import json
 import shutil
+import sys
 from pathlib import Path
 
 ROOT = Path("examples/contas-a-receber")
@@ -168,6 +169,8 @@ write(D / "tables" / "dm_calendario.tmdl",
       + col("Mês", "string", sort_by="Mês Nº", inferred=True) + "\n"
       + col("Ano-Mês Nº", "int64", hidden=True, inferred=True) + "\n"
       + col("Ano-Mês", "string", sort_by="Ano-Mês Nº", inferred=True) + "\n"
+      + col("Trimestre Nº", "int64", hidden=True, inferred=True) + "\n"
+      + col("Ano-Trimestre", "string", sort_by="Trimestre Nº", inferred=True) + "\n"
       + "\thierarchy 'Ano > Mês'\n\n\t\tlevel Ano\n\t\t\tcolumn: Ano\n\n\t\tlevel Mês\n\t\t\tcolumn: Mês\n\n"
       + "\tpartition dm_calendario = calculated\n\t\tmode: import\n\t\tsource =\n"
       + "\t\t\t\tVAR _fim = DATE ( YEAR ( TODAY () ), 12, 31 )\n"
@@ -180,8 +183,14 @@ write(D / "tables" / "dm_calendario.tmdl",
       + "\t\t\t\t        \"Mês\", FORMAT ( [Date], \"mmm\" ),\n"
       + "\t\t\t\t        \"Ano-Mês Nº\", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),\n"
       + "\t\t\t\t        \"Ano-Mês\", FORMAT ( [Date], \"mmm/yy\" ),\n"
+      + "\t\t\t\t        \"Trimestre Nº\", YEAR ( [Date] ) * 10 + QUARTER ( [Date] ),\n"
+      + "\t\t\t\t        \"Ano-Trimestre\", \"T\" & QUARTER ( [Date] ) & \"/\" & FORMAT ( [Date], \"yy\" ),\n"
       + "\t\t\t\t        \"Data\", [Date]\n"
       + "\t\t\t\t    )\n")
+
+sys.path.insert(0, str(Path("skills/powerbi-architect/scripts").resolve()))
+from new_project import GRANULARITY  # noqa: E402  (the field parameter behind the header's period tabs)
+write(D / "tables" / "_Granularidade.tmdl", GRANULARITY)
 
 MEASURES = [
     ("Valor Aberto", "Saldo em aberto das parcelas, vencidas ou a vencer.",
@@ -194,6 +203,8 @@ MEASURES = [
      "DIVIDE (\n\t\t\tSUMX (\n\t\t\t\tFILTER ( ft_titulos, ft_titulos[Dias Atraso] > 0 ),\n"
      "\t\t\t\tft_titulos[Dias Atraso] * ft_titulos[Valor Aberto]\n\t\t\t),\n\t\t\t[Valor Vencido]\n\t\t)",
      "#,0", "Indicadores"),
+    ("Vencido Ano Anterior", "Valor vencido no mesmo período do ano anterior, para comparar na tendência.",
+     "CALCULATE ( [Valor Vencido], SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )", r"\R\$ #,0", "Valores"),
     ("Valor a Vencer", "Saldo em aberto das parcelas que ainda não venceram.",
      "[Valor Aberto] - [Valor Vencido]", r"\R\$ #,0", "Valores"),
     ("Clientes Vencidos", "Quantidade de clientes com pelo menos uma parcela vencida.",
@@ -203,7 +214,7 @@ MEASURES = [
     ("Texto A Vencer", "Linha de contexto do KPI de saldo: quanto ainda não venceu.",
      "FORMAT ( [Valor a Vencer], \"R$ #,0\" ) & \" ainda a vencer\"", None, "Textos"),
     ("Texto Clientes Vencidos", "Linha de contexto do KPI de vencido: quantos clientes estão em atraso.",
-     "FORMAT ( [Clientes Vencidos], \"#,0\" ) & \" clientes com parcela vencida\"", None, "Textos"),
+     "FORMAT ( [Clientes Vencidos], \"#,0\" ) & \" clientes em atraso\"", None, "Textos"),
     ("Texto Var % Vencido", "Distância do % vencido para a meta, em pontos percentuais, com seta.",
      "VAR _d = [% Vencido] - [Meta % Vencido] RETURN IF ( ISBLANK ( [% Vencido] ), BLANK (), "
      "IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & "
@@ -220,14 +231,15 @@ MEASURES = [
      "IF ( [Atraso Médio (dias)] > [Meta Dias Atraso], \"#CE2C31\", \"#00824D\" )", None, "Cores"),
     ("Cor % Vencido", "Cor do % vencido em tabelas: vermelho quando passa da meta.",
      "IF ( [% Vencido] > [Meta % Vencido], \"#CE2C31\", \"#333333\" )", None, "Cores"),
-    ("Cor Atraso", "Cor do atraso médio em tabelas: vermelho acima de 60 dias, âmbar acima de 30.",
-     "SWITCH ( TRUE (), [Atraso Médio (dias)] > 60, \"#CE2C31\", [Atraso Médio (dias)] > 30, \"#AD6200\", \"#333333\" )",
-     None, "Cores"),
     ("Texto Atualizacao", "Data e hora da última carga, para a barra do topo.",
      "\"Atualizado em \" & FORMAT ( MAX ( '_Medidas'[Data Carga] ), \"dd/mm/yyyy hh:nn\" )", None, "Títulos"),
     ("Titulo Vencido", "Título dinâmico da página Visão Geral: valor vencido e participação no saldo.",
      "\"Vencido: \" & FORMAT ( [Valor Vencido], \"R$ #,0\" ) & \" (\" & FORMAT ( [% Vencido], \"0.0%\" ) & \" do saldo)\"",
      None, "Títulos"),
+    ("Situação", "Situação do cliente para listas de cobrança: Atrasado acima de 60 dias, Em risco acima de 30, "
+     "Em dia sem parcela vencida.",
+     "SWITCH ( TRUE (), ISBLANK ( [Valor Aberto] ), BLANK (), [Atraso Médio (dias)] > 60, \"Atrasado\", "
+     "[Atraso Médio (dias)] > 30, \"Em risco\", [Valor Vencido] > 0, \"A vencer\", \"Em dia\" )", None, "Textos"),
 ]
 
 

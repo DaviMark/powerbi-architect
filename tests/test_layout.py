@@ -70,6 +70,76 @@ class TestLayoutEngine(unittest.TestCase):
             chart = [v for r in back["pages"][0]["rows"] for v in r["visuals"] if v["type"] == "clusteredBarChart"][0]
             self.assertEqual(chart.get("target"), "Meta % No Prazo")
 
+    def test_rankings_are_shaded_by_value_and_months_are_not(self):
+        spec = self.spec(rows=[{"height": 248, "split": [1, 1], "visuals": [
+            {"type": "clusteredBarChart", "category": "dm_x[Regional]", "values": ["M"], "title": "a", "alt": "a"},
+            {"type": "clusteredColumnChart", "category": "dm_calendario[Ano-Mês]", "values": ["M"], "title": "b",
+             "alt": "b"}]}])
+        files = self.build(spec)
+        charts = {v["visual"]["visualType"]: v["visual"] for v in files.values()
+                  if (v.get("visual") or {}).get("visualType", "").startswith("clustered")}
+        fill = charts["clusteredBarChart"]["objects"]["dataPoint"][0]["properties"]["fill"]["solid"]["color"]["expr"]
+        grad = fill["FillRule"]["FillRule"]["linearGradient2"]
+        self.assertEqual(fill["FillRule"]["Input"]["Measure"]["Property"], "M")
+        self.assertNotEqual(grad["min"]["color"]["Literal"]["Value"], grad["max"]["color"]["Literal"]["Value"])
+        self.assertNotIn("dataPoint", charts["clusteredColumnChart"].get("objects") or {})
+
+    def test_the_skills_visuals_are_placed_and_packed_into_the_report(self):
+        spec = self.spec(rows=[
+            {"height": 104, "visuals": [{"type": "kpiCard", "measure": "M", "label": "Receita", "trend": "dm_c[Mês]",
+                                         "reference": "Meta", "higherIsBetter": False, "alt": "a"}]},
+            {"height": 248, "split": [2, 1], "visuals": [
+                {"type": "trend", "category": "dm_c[Mês]", "values": ["M"], "title": "Receita por mês", "alt": "b"},
+                {"type": "list", "item": "dm_x[Cliente]", "status": "Situação", "values": ["M"], "title": "Clientes",
+                 "sortBy": "M desc", "top": 5, "alt": "c"}]},
+            {"height": 228, "split": [1, 1], "visuals": [
+                {"type": "ring", "category": "dm_x[Faixa]", "values": ["M"], "title": "Por faixa", "alt": "d"},
+                {"type": "ring", "measure": "M", "target": "Meta", "title": "Contra a meta", "alt": "e"}]}])
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "X.Report"
+            b = pbir_layout.Builder(spec)
+            b.build(report)
+            b.register_resources(report, None)
+            vis = {v["visual"]["visualType"]: v["visual"] for _, v in visuals(report)}
+            kpi = vis[pbir_layout.ARCHITECT["kpiCard"][1]]
+            self.assertEqual(kpi["query"]["queryState"]["value"]["projections"][0]["displayName"], "Receita")
+            self.assertIn("reference", kpi["query"]["queryState"])
+            self.assertEqual(kpi["visualContainerObjects"]["title"][0]["properties"]["show"]["expr"]["Literal"]["Value"],
+                             "false")                                  # the visual draws its own label
+            lst = vis[pbir_layout.ARCHITECT["list"][1]]
+            self.assertEqual(lst["objects"]["list"][0]["properties"]["title"]["expr"]["Literal"]["Value"], "'Clientes'")
+            rings = [v["visual"] for _, v in visuals(report) if v["visual"]["visualType"] == pbir_layout.ARCHITECT["ring"][1]]
+            self.assertEqual(sorted(sorted(r["query"]["queryState"]) for r in rings),
+                             [["category", "value"], ["target", "value"]])     # slices, or progress to a target
+            rj = json.loads((report / "definition" / "report.json").read_text(encoding="utf-8"))
+            packs = {p["name"] for p in rj["resourcePackages"] if p["type"] == "CustomVisual"}
+            self.assertEqual(packs, {g for _, g in pbir_layout.ARCHITECT.values()})
+            for guid in packs:
+                self.assertTrue((report / "CustomVisuals" / guid / "resources" / f"{guid}.pbiviz.json").exists())
+            back, notes = pbir_layout.extract(report)                       # --extract reads them back
+            types = [v["type"] for r in back["pages"][0]["rows"] for v in r["visuals"]]
+            self.assertEqual(types, ["kpiCard", "trend", "list", "ring", "ring"])
+            self.assertEqual(back["pages"][0]["rows"][1]["visuals"][1]["top"], 5)
+            self.assertIs(back["pages"][0]["rows"][0]["visuals"][0]["higherIsBetter"], False)
+        titles = {t: audit_pbip.architect_title(v, t) for t, v in vis.items()}
+        self.assertIn("Receita", titles.values())
+        self.assertIn("Receita por mês", titles.values())
+
+    def test_kpi_trend_is_a_quiet_line_that_extract_reads_back(self):
+        spec = self.spec(rows=[{"height": 88, "visuals": [
+            {"type": "kpi", "measure": "M", "label": "M", "alt": "m", "trend": "dm_calendario[Ano-Mês]"}]}])
+        files = self.build(spec)
+        line = next(v for v in files.values() if (v.get("visual") or {}).get("visualType") == "lineChart")
+        self.assertEqual(line["visual"]["visualContainerObjects"]["title"][0]["properties"]["show"]["expr"]
+                         ["Literal"]["Value"], "false")
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "X.Report"
+            pbir_layout.Builder(spec).build(report)
+            back, _ = pbir_layout.extract(report)
+            kpi = back["pages"][0]["rows"][0]["visuals"][0]
+            self.assertEqual(kpi.get("trend"), "dm_calendario[Ano-Mês]")
+            self.assertEqual(len(back["pages"][0]["rows"][0]["visuals"]), 1)
+
     def test_a_bar_row_much_taller_than_its_bars_is_noted(self):
         b = pbir_layout.Builder(self.spec(rows=[{"height": 400, "visuals": [
             {"type": "clusteredBarChart", "category": "dm_x[X]", "values": ["M"], "title": "Barras", "alt": "a", "items": 5}]}]))

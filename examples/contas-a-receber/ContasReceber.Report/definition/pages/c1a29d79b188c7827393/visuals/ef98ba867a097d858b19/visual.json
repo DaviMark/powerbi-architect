@@ -3,11 +3,11 @@
   "name": "ef98ba867a097d858b19",
   "position": {
     "x": 264,
-    "y": 28,
-    "z": 9000,
+    "y": 8,
+    "z": 29000,
     "width": 520,
     "height": 24,
-    "tabOrder": 9000
+    "tabOrder": 29000
   },
   "visual": {
     "visualType": "textbox",
@@ -19,27 +19,11 @@
               {
                 "textRuns": [
                   {
-                    "value": "Contas a receber  /  ",
+                    "value": "Contas a receber  /  Clientes",
                     "textStyle": {
                       "fontFamily": "Segoe UI",
-                      "fontSize": "12pt",
-                      "color": "#6E6E73"
-                    }
-                  },
-                  {
-                    "value": "Clientes  /  ",
-                    "textStyle": {
-                      "fontFamily": "Segoe UI",
-                      "fontSize": "12pt",
-                      "color": "#6E6E73"
-                    }
-                  },
-                  {
-                    "value": "Detalhe do cliente",
-                    "textStyle": {
-                      "fontFamily": "Segoe UI Semibold",
-                      "fontSize": "12pt",
-                      "color": "#1D1D1F"
+                      "fontSize": "9pt",
+                      "color": "#71717A"
                     }
                   }
                 ]

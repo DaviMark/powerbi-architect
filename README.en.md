@@ -96,6 +96,10 @@ looks at it before delivering; `scripts/make_theme.py` builds a brand theme with
 
 Uses the Microsoft **Power BI Modeling MCP** when available (model edits + DAX validation).
 
+## With and without the skill
+
+Measured numbers, before and after images and the cost of each side: [docs/comparativo.md](docs/comparativo.md) (Portuguese).
+
 ## Contributing
 
 DAX patterns, connectors, page archetypes, translations and evals are welcome, in English or Portuguese.

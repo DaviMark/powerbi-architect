@@ -1,0 +1,10 @@
+{
+  "Role_Tooltips": "Tooltips",
+  "Role_Period": "Period",
+  "Role_Value": "Value",
+  "Role_Reference": "Reference (target or plan)",
+  "Landing_Title": "Architect KPI",
+  "Landing_Hint": "Add a Value; optionally a Period for the trend and a Reference (target).",
+  "Note_Reference": "vs",
+  "Role_Note": "Note (text measure)"
+}

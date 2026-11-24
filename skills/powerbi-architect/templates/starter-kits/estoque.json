@@ -208,20 +208,6 @@
       "folder": "Metas"
     },
     {
-      "name": "Texto Var Cobertura",
-      "description": "Linha do KPI de cobertura: distância para a meta, em dias.",
-      "expr": "VAR _d = [Cobertura (dias)] - [Meta Cobertura] RETURN IF ( ISBLANK ( [Cobertura (dias)] ), BLANK (), IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"#,0\" ) & \" dias \" & IF ( _d > 0, \"acima\", \"abaixo\" ) & \" da meta de \" & FORMAT ( [Meta Cobertura], \"#,0\" ) )",
-      "folder": "Textos",
-      "sample": "▲ 17 dias acima da meta de 30"
-    },
-    {
-      "name": "Cor Var Cobertura",
-      "description": "Cor da linha do KPI de cobertura: vermelho acima da meta (capital parado).",
-      "expr": "IF ( [Cobertura (dias)] > [Meta Cobertura], \"#CE2C31\", \"#00824D\" )",
-      "folder": "Cores",
-      "sampleColor": "#CE2C31"
-    },
-    {
       "name": "Texto sem Giro",
       "description": "Linha do KPI de valor sem giro: participação no estoque.",
       "expr": "FORMAT ( [% sem Giro], \"0.0%\" ) & \" do valor em estoque\"",
@@ -233,13 +219,6 @@
       "description": "Cor da cobertura em tabelas: vermelho acima de 90 dias, âmbar acima da meta.",
       "expr": "SWITCH ( TRUE (), [Cobertura (dias)] > 90, \"#CE2C31\", [Cobertura (dias)] > [Meta Cobertura], \"#AD6200\", \"#333333\" )",
       "folder": "Cores"
-    },
-    {
-      "name": "Titulo Estoque",
-      "description": "Título do gráfico de valor em estoque, com o valor atual.",
-      "expr": "\"Valor em estoque no fim de cada mês: \" & FORMAT ( [Valor em Estoque], \"R$ #,0\" ) & \" hoje\"",
-      "folder": "Títulos",
-      "sample": "Valor em estoque no fim de cada mês: R$ 7.402.913 hoje"
     }
   ],
   "series": {
@@ -274,6 +253,18 @@
       7.5,
       7.6,
       7.4
+    ],
+    "Cobertura (dias)": [
+      31,
+      62,
+      18,
+      47,
+      85,
+      24,
+      53,
+      39,
+      71,
+      12
     ]
   },
   "pages": [
@@ -282,92 +273,114 @@
       "icon": "layout-dashboard",
       "rows": [
         {
-          "height": 88,
+          "height": 104,
           "visuals": [
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Valor em Estoque",
-              "label": "Valor em estoque"
+              "label": "Valor em estoque",
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Valor em estoque no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Cobertura (dias)",
               "label": "Cobertura, em dias",
-              "variation": "Texto Var Cobertura",
-              "variationColor": "Cor Var Cobertura"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Meta Cobertura",
+              "alt": "Cobertura, em dias no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Itens Abaixo do Ponto",
-              "label": "Itens abaixo do ponto de pedido"
+              "label": "Itens abaixo do ponto de pedido",
+              "trend": "dm_calendario[Ano-Mês]",
+              "higherIsBetter": false,
+              "alt": "Itens abaixo do ponto de pedido no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Valor sem Giro",
               "label": "Sem saída há 90 dias",
-              "variation": "Texto sem Giro"
+              "trend": "dm_calendario[Ano-Mês]",
+              "noteMeasure": "Texto sem Giro",
+              "higherIsBetter": false,
+              "alt": "Sem saída há 90 dias no último mês, com a variação e a tendência"
             }
           ]
         },
         {
-          "height": 248,
+          "height": 228,
           "split": [
-            2,
-            1
+            3,
+            2
           ],
           "visuals": [
             {
-              "type": "lineChart",
-              "category": "dm_calendario[Ano-Mês]",
+              "type": "trend",
+              "category": "_Granularidade[Granularidade]",
               "values": [
                 "Valor em Estoque"
               ],
-              "titleMeasure": "Titulo Estoque",
-              "sort": "category",
+              "title": "Valor em estoque por período",
+              "seriesName": "Valor em Estoque",
               "alt": "Valor em estoque ao fim de cada mês"
             },
             {
-              "type": "clusteredColumnChart",
+              "type": "ring",
               "category": "dm_produto[Curva ABC]",
               "values": [
                 "Valor em Estoque"
               ],
               "title": "Valor por curva ABC",
-              "sort": "category",
-              "alt": "Valor em estoque por curva ABC"
+              "centerNote": "em estoque",
+              "alt": "Valor em estoque dividido pelas curvas A, B e C, com o total no centro"
             }
           ]
         },
         {
-          "height": 248,
+          "height": 252,
           "split": [
-            2,
-            1
+            3,
+            2
           ],
           "visuals": [
             {
-              "type": "clusteredBarChart",
-              "category": "dm_produto[Categoria]",
+              "type": "list",
+              "item": "dm_produto[Produto]",
+              "detail": "dm_produto[Categoria]",
               "values": [
-                "Valor em Estoque"
+                "Valor sem Giro",
+                "Cobertura (dias)"
               ],
-              "title": "Valor por categoria",
-              "sort": "desc",
-              "alt": "Valor em estoque por categoria, do maior para o menor"
+              "progress": "% sem Giro",
+              "sortBy": "Valor sem Giro desc",
+              "top": 3,
+              "title": "Os 3 produtos com mais valor parado",
+              "alt": "Os três produtos com mais valor sem giro, com a cobertura em dias"
             },
             {
-              "type": "clusteredBarChart",
-              "category": "dm_deposito[Depósito]",
+              "type": "list",
+              "item": "dm_deposito[Depósito]",
               "values": [
-                "Valor em Estoque"
+                "Valor em Estoque",
+                "Cobertura (dias)"
               ],
+              "sortBy": "Valor em Estoque desc",
+              "avatars": false,
               "title": "Valor por depósito",
-              "sort": "desc",
-              "alt": "Valor em estoque por depósito, do maior para o menor"
+              "alt": "Depósitos pelo valor em estoque, com a cobertura em dias"
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis",
+      "slicers": [],
+      "tabs": "_Granularidade[Granularidade]",
+      "action": {
+        "text": "Ver reposição",
+        "page": "Reposição"
+      }
     },
     {
       "name": "Cobertura",
@@ -420,7 +433,8 @@
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis"
     },
     {
       "name": "Reposição",
@@ -449,7 +463,18 @@
             }
           ]
         }
-      ]
+      ],
+      "section": "Painéis"
     }
-  ]
+  ],
+  "subtitle": "Suprimentos",
+  "progress": {
+    "dm_produto[Produto]": [
+      0.48,
+      0.36,
+      0.27,
+      0.19,
+      0.12
+    ]
+  }
 }

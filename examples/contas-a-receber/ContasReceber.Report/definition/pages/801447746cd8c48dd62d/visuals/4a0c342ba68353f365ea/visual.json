@@ -4,10 +4,10 @@
   "position": {
     "x": 232,
     "y": 80,
-    "z": 11000,
+    "z": 32000,
     "width": 672,
     "height": 264,
-    "tabOrder": 11000
+    "tabOrder": 32000
   },
   "visual": {
     "visualType": "waterfallChart",
@@ -124,7 +124,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#2E9E6B'"
+                      "Value": "'#18181B'"
                     }
                   }
                 }
@@ -135,7 +135,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#8E8E93'"
+                      "Value": "'#A1A1AA'"
                     }
                   }
                 }
