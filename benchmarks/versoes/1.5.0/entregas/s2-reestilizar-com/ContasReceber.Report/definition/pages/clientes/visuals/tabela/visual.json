@@ -1,0 +1,178 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
+  "name": "tabela",
+  "position": {
+    "x": 232,
+    "y": 80,
+    "z": 27000,
+    "width": 1024,
+    "height": 616,
+    "tabOrder": 27000
+  },
+  "visual": {
+    "visualType": "architectList5F4923141E4D499CB7BD0BB11305C6FF",
+    "query": {
+      "queryState": {
+        "item": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dm_cliente"
+                    }
+                  },
+                  "Property": "Cliente"
+                }
+              },
+              "queryRef": "dm_cliente.Cliente",
+              "nativeQueryRef": "Cliente"
+            }
+          ]
+        },
+        "detail": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dm_cliente"
+                    }
+                  },
+                  "Property": "Segmento"
+                }
+              },
+              "queryRef": "dm_cliente.Segmento",
+              "nativeQueryRef": "Segmento"
+            }
+          ]
+        },
+        "status": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Situação"
+                }
+              },
+              "queryRef": "_Medidas.Situação",
+              "nativeQueryRef": "Situação"
+            }
+          ]
+        },
+        "progress": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "% Vencido"
+                }
+              },
+              "queryRef": "_Medidas.% Vencido",
+              "nativeQueryRef": "% Vencido"
+            }
+          ]
+        },
+        "values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Valor Vencido"
+                }
+              },
+              "queryRef": "_Medidas.Valor Vencido",
+              "nativeQueryRef": "Valor Vencido"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "_Medidas"
+                  }
+                },
+                "Property": "Valor Vencido"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Clientes do maior para o menor valor vencido, com segmento, situação e percentual vencido do saldo'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "list": [
+        {
+          "properties": {
+            "avatars": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "title": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Clientes com valor vencido'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

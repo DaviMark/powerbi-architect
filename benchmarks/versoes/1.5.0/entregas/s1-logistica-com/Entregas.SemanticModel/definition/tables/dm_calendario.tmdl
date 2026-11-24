@@ -1,0 +1,97 @@
+/// Calendário em anos completos, da primeira à última data da tabela fato (ou de dois anos atrás até o
+/// fim do ano corrente enquanto a fato está vazia). Marcado como tabela de datas.
+table dm_calendario
+	dataCategory: Time
+
+	column Data
+		dataType: dateTime
+		isKey
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Data]
+
+	column Ano
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Ano]
+
+	column 'Mês Nº'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Mês Nº]
+
+	column Mês
+		dataType: string
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Mês]
+		sortByColumn: 'Mês Nº'
+
+	column 'Ano-Mês Nº'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Ano-Mês Nº]
+
+	column 'Ano-Mês'
+		dataType: string
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Ano-Mês]
+		sortByColumn: 'Ano-Mês Nº'
+
+	column 'Trimestre Nº'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Trimestre Nº]
+
+	column 'Ano-Trimestre'
+		dataType: string
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Ano-Trimestre]
+		sortByColumn: 'Trimestre Nº'
+
+	hierarchy 'Ano > Mês'
+
+		level Ano
+			column: Ano
+
+		level Mês
+			column: Mês
+
+	partition dm_calendario = calculated
+		mode: import
+		source =
+				VAR _primeira = COALESCE ( MIN ( ft_entregas[Data Prevista] ), DATE ( YEAR ( TODAY () ) - 2, 1, 1 ) )
+				VAR _ultima = MAX ( COALESCE ( MAX ( ft_entregas[Data Prevista] ), TODAY () ), TODAY () )
+				VAR _inicio = DATE ( YEAR ( _primeira ), 1, 1 )
+				VAR _fim = DATE ( YEAR ( _ultima ), 12, 31 )
+				RETURN
+				    ADDCOLUMNS (
+				        CALENDAR ( _inicio, _fim ),
+				        "Ano", YEAR ( [Date] ),
+				        "Mês Nº", MONTH ( [Date] ),
+				        "Mês", FORMAT ( [Date], "mmm" ),
+				        "Ano-Mês Nº", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+				        "Ano-Mês", FORMAT ( [Date], "mmm/yy" ),
+				        "Trimestre Nº", YEAR ( [Date] ) * 10 + QUARTER ( [Date] ),
+				        "Ano-Trimestre", "T" & QUARTER ( [Date] ) & "/" & FORMAT ( [Date], "yy" ),
+				        "Data", [Date]
+				    )

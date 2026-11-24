@@ -1,0 +1,136 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
+  "name": "98e29c87c8a22f465e92",
+  "position": {
+    "x": 492,
+    "y": 80,
+    "z": 29000,
+    "width": 244,
+    "height": 104,
+    "tabOrder": 29000
+  },
+  "visual": {
+    "visualType": "architectKpi65B0C3629EF349A48053C4786DFC05A7",
+    "query": {
+      "queryState": {
+        "value": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "% No Prazo"
+                }
+              },
+              "queryRef": "_Medidas.% No Prazo",
+              "nativeQueryRef": "% No Prazo",
+              "displayName": "Entregas no prazo"
+            }
+          ]
+        },
+        "period": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dm_calendario"
+                    }
+                  },
+                  "Property": "Ano-Mês"
+                }
+              },
+              "queryRef": "dm_calendario.Ano-Mês",
+              "nativeQueryRef": "Ano-Mês"
+            }
+          ]
+        },
+        "reference": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Meta % No Prazo"
+                }
+              },
+              "queryRef": "_Medidas.Meta % No Prazo",
+              "nativeQueryRef": "Meta % No Prazo"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "dm_calendario"
+                  }
+                },
+                "Property": "Ano-Mês"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Percentual de entregas no prazo contra a meta de 95%'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "kpi": [
+        {
+          "properties": {
+            "higherIsBetter": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

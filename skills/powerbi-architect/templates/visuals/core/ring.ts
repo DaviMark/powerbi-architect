@@ -55,12 +55,12 @@ export function renderRing(root: HTMLElement, m: RingModel, w: number, h: number
         "text-overflow:ellipsis", m.title));
 
     const bodyH = h - pad * 2 - 32;
-    const side = w >= 300;
+    const side = w >= 300 && bodyH < (w - pad * 2) * 0.9;     // a tall card stacks: ring on top, legend under it
     const legendRows = m.goal ? m.goal.legend : m.parts;
     const legendH = legendRows.length * 28;
     const narrow = w < 360;       // a phone: a smaller ring, and the legend keeps the label and the value
     const size = Math.max(64, Math.floor(side ? Math.min(bodyH, (w - pad * 2) * (narrow ? 0.34 : 0.4))
-        : Math.min(w - pad * 2, bodyH - legendH - 12)));
+        : Math.min(w - pad * 2, bodyH - legendH - 12, 240)));
     const body = el("div", `display:flex;${side ? "flex-direction:row" : "flex-direction:column"};align-items:center;` +
         `gap:${side && !narrow ? 20 : 12}px;flex:1;min-height:0`);
 

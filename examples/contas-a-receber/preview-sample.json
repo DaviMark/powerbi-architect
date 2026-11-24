@@ -12,7 +12,10 @@
     "Titulo Vencido": "Vencido: R$ 4,2 mi (22,6% do saldo)",
     "Meta % Vencido": "15,0%",
     "Meta Dias Atraso": "30",
-    "Clientes Vencidos": "312"
+    "Clientes Vencidos": "312",
+    "Valor a Vencer": "R$ 14,4 mi",
+    "Vencido 90+": "R$ 0,8 mi",
+    "Texto Vencido 90+": "19% do vencido"
   },
   "colors": {
     "Cor Var % Vencido": "#CE2C31",

@@ -1,0 +1,150 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "tabela",
+  "position": {
+    "x": 20,
+    "y": 430,
+    "width": 1240,
+    "height": 270,
+    "z": 0,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dm_transportadora"
+                    }
+                  },
+                  "Property": "Transportadora"
+                }
+              },
+              "queryRef": "dm_transportadora.Transportadora"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dm_transportadora"
+                    }
+                  },
+                  "Property": "Modal"
+                }
+              },
+              "queryRef": "dm_transportadora.Modal"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Entregas"
+                }
+              },
+              "queryRef": "_Medidas.Entregas"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "% No Prazo"
+                }
+              },
+              "queryRef": "_Medidas.% No Prazo"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Atraso Médio (dias)"
+                }
+              },
+              "queryRef": "_Medidas.Atraso Médio (dias)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "% Devolução"
+                }
+              },
+              "queryRef": "_Medidas.% Devolução"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Custo Frete"
+                }
+              },
+              "queryRef": "_Medidas.Custo Frete"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Frete por Kg"
+                }
+              },
+              "queryRef": "_Medidas.Frete por Kg"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Detalhe por transportadora'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

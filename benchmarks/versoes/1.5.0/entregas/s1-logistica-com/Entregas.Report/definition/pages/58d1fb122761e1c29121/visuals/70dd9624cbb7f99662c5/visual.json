@@ -1,0 +1,125 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
+  "name": "70dd9624cbb7f99662c5",
+  "position": {
+    "x": 232,
+    "y": 200,
+    "z": 32000,
+    "width": 604,
+    "height": 228,
+    "tabOrder": 32000
+  },
+  "visual": {
+    "visualType": "architectTrend04065D478A6B472B94D080E2C64E3531",
+    "query": {
+      "queryState": {
+        "period": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Granularidade"
+                    }
+                  },
+                  "Property": "Granularidade"
+                }
+              },
+              "queryRef": "_Granularidade.Granularidade",
+              "nativeQueryRef": "Granularidade"
+            }
+          ]
+        },
+        "value": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "% No Prazo"
+                }
+              },
+              "queryRef": "_Medidas.% No Prazo",
+              "nativeQueryRef": "% No Prazo",
+              "displayName": "No prazo"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "_Granularidade"
+                  }
+                },
+                "Property": "Granularidade"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Percentual de entregas no prazo por mês, trimestre ou ano; o último em destaque'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "header": [
+        {
+          "properties": {
+            "title": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Entregas no prazo por período'"
+                }
+              }
+            },
+            "showHeadline": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

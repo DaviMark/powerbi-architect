@@ -1,0 +1,136 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
+  "name": "ec0c71f991258438300c",
+  "position": {
+    "x": 492,
+    "y": 80,
+    "z": 33000,
+    "width": 244,
+    "height": 104,
+    "tabOrder": 33000
+  },
+  "visual": {
+    "visualType": "architectKpi65B0C3629EF349A48053C4786DFC05A7",
+    "query": {
+      "queryState": {
+        "value": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Vencido 90+"
+                }
+              },
+              "queryRef": "_Medidas.Vencido 90+",
+              "nativeQueryRef": "Vencido 90+",
+              "displayName": "Vencido há mais de 90 dias"
+            }
+          ]
+        },
+        "period": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dm_calendario"
+                    }
+                  },
+                  "Property": "Ano-Mês"
+                }
+              },
+              "queryRef": "dm_calendario.Ano-Mês",
+              "nativeQueryRef": "Ano-Mês"
+            }
+          ]
+        },
+        "note": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Texto Vencido 90+"
+                }
+              },
+              "queryRef": "_Medidas.Texto Vencido 90+",
+              "nativeQueryRef": "Texto Vencido 90+"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "dm_calendario"
+                  }
+                },
+                "Property": "Ano-Mês"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Valor vencido há mais de 90 dias, com a parte do vencido que ele representa'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "kpi": [
+        {
+          "properties": {
+            "higherIsBetter": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

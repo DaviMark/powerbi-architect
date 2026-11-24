@@ -1,0 +1,115 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
+  "name": "b54e116b5b4aec174ec1",
+  "position": {
+    "x": 852,
+    "y": 80,
+    "z": 27000,
+    "width": 404,
+    "height": 616,
+    "tabOrder": 27000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Cargas"
+                    }
+                  },
+                  "Property": "Tabela"
+                }
+              },
+              "queryRef": "_Cargas.Tabela",
+              "nativeQueryRef": "Tabela"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Cargas"
+                    }
+                  },
+                  "Property": "Descrição"
+                }
+              },
+              "queryRef": "_Cargas.Descrição",
+              "nativeQueryRef": "Descrição"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Cargas"
+                    }
+                  },
+                  "Property": "Armazenamento"
+                }
+              },
+              "queryRef": "_Cargas.Armazenamento",
+              "nativeQueryRef": "Armazenamento"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Cargas"
+                    }
+                  },
+                  "Property": "Última Carga"
+                }
+              },
+              "queryRef": "_Cargas.Última Carga",
+              "nativeQueryRef": "Última Carga"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Tabelas carregadas e data da última carga'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Cargas'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

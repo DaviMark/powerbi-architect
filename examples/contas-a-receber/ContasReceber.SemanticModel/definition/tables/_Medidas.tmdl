@@ -28,6 +28,15 @@ table _Medidas
 		formatString: #,0
 		displayFolder: Indicadores
 
+	/// Valor vencido há mais de 90 dias: a parte do vencido mais difícil de receber.
+	measure 'Vencido 90+' = CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 90 )
+		formatString: \R\$ #,0
+		displayFolder: Valores
+
+	/// Linha do KPI de vencido há mais de 90 dias: a parte que ele é do vencido.
+	measure 'Texto Vencido 90+' = FORMAT ( DIVIDE ( [Vencido 90+], [Valor Vencido] ), "0%" ) & " do vencido"
+		displayFolder: Textos
+
 	/// Valor vencido no mesmo período do ano anterior, para comparar na tendência.
 	measure 'Vencido Ano Anterior' = CALCULATE ( [Valor Vencido], SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )
 		formatString: \R\$ #,0

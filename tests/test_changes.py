@@ -48,8 +48,8 @@ class TestManualChanges(unittest.TestCase):
         self.assertIn("medida 'Valor Vencido' em _Medidas — expressão mudou para: CALCULATE ( [Valor Aberto], "
                       "ft_titulos[Dias Atraso] > 5 )", out)
         self.assertIn("medida 'Ticket Médio' criada em _Medidas", out)
-        self.assertIn('Diagnóstico: barras "Vencido por segmento" — movido (920, 80) → (928, 80); '
-                      'tamanho 336×264 → 336×284; título "Vencido por segmento" → "Vencido por região"', out)
+        self.assertIn('Diagnóstico: barras "Vencido por segmento" — movido (920, 200) → (928, 200); '
+                      'tamanho 336×228 → 336×248; título "Vencido por segmento" → "Vencido por região"', out)
 
     def test_hook_reports_once_journals_and_stays_silent_otherwise(self):
         event = json.dumps({"hook_event_name": "UserPromptSubmit", "cwd": str(self.repo)})

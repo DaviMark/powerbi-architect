@@ -65,13 +65,14 @@ class TestManualEditsSurvive(unittest.TestCase):
         order = json.loads(pages.read_text(encoding="utf-8"))
         order["pageOrder"].insert(0, order["pageOrder"].pop(2))     # pages reordered in Desktop
         save(pages, order)
-        col_path, col = v[("Detalhe do cliente", "clusteredColumnChart", "Vencido do cliente por faixa de atraso")]
+        col_path, col = v[("Tooltip regional", "clusteredColumnChart", "Vencido por faixa nesta regional")]
         save(col_path, col)                                         # untouched, only reformatted
 
         spec = json.loads(json.dumps(self.spec))
-        detail = next(p for p in spec["pages"] if p["name"] == "Detalhe do cliente")
-        detail["rows"][1]["visuals"][1]["title"] = "Vencido por faixa"     # spec changes another visual
-        spec["pages"][1]["rows"][0]["visuals"][1]["sort"] = "asc"   # and the visual the user moved
+        tip = next(p for p in spec["pages"] if p["name"] == "Tooltip regional")
+        tip["visuals"][0]["title"] = "Vencido por faixa"                   # spec changes another visual
+        diag = next(p for p in spec["pages"] if p["name"] == "Diagnóstico")
+        diag["rows"][1]["visuals"][1]["sort"] = "asc"                      # and the visual the user moved
         spec["pages"].insert(3, {"name": "Nova", "icon": "chart-bar", "rows": [{"height": 88, "visuals": [
             {"type": "kpi", "measure": "Valor Aberto", "label": "Saldo"}]}]})
         m = self.build(spec)
@@ -80,7 +81,7 @@ class TestManualEditsSurvive(unittest.TestCase):
         moved = after[("Diagnóstico", "clusteredBarChart", "Vencido por segmento (R$)")][1]
         self.assertEqual(moved["position"]["x"], bar["position"]["x"])              # your move kept
         self.assertEqual(moved["visual"]["query"]["sortDefinition"]["sort"][0]["direction"], "Ascending")
-        self.assertIn(("Detalhe do cliente", "clusteredColumnChart", "Vencido por faixa"), after)   # spec applied
+        self.assertIn(("Tooltip regional", "clusteredColumnChart", "Vencido por faixa"), after)   # spec applied
         self.assertNotIn(("Diagnóstico", "tableEx", "Regionais acima da meta de vencido"), after)
         self.assertTrue((mine / "visual.json").exists())
         new_order = json.loads(pages.read_text(encoding="utf-8"))["pageOrder"]
