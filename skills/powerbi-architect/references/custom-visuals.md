@@ -6,7 +6,8 @@ A custom visual is software the organization must maintain, certify and upgrade.
 ## Contents
 1. Toolchain · 2. Project layout · 3. Reference implementation · 4. Mandatory capabilities ·
 5. Data mapping · 6. Formatting model · 7. Interactivity · 8. Accessibility · 9. Security ·
-10. Performance · 11. Testing & packaging · 12. Distribution · 13. Review checklist
+10. Performance · 11. Testing & packaging · 12. Distribution · 13. Finish like a native visual ·
+14. Review checklist
 
 ## 1. Toolchain
 - Node.js LTS + `npm i -g powerbi-visuals-tools` (CLI `pbiviz`, v7.x at the time of writing).
@@ -126,8 +127,32 @@ visual uncertifiable and is blocked by most tenants — don't.
 
 Record version and distribution in `ficha.toml › [design] custom_visuals` and in the decision record.
 
-## 13. Review checklist
+## 13. Finish it like a native visual
+
+A custom visual sits next to native ones: any difference in type, spacing or behaviour shows at once.
+Before the checklist below, render it at its real sizes and check, pixel by pixel:
+
+- **Size range.** Test at the smallest and largest size it will have (e.g. 176×88 card, 504×248 chart,
+  full width). `update()` re-lays out on every resize; nothing is positioned for one size only.
+- **Text never cut.** Measure every string with `textMeasurementService.measureSvgTextWidth` before
+  drawing; if it does not fit, shorten in this order: display units (R$ 4,2 mi), fewer decimals, a
+  shorter label from the data, then ellipsis with the full text in the tooltip. Never let SVG clip a value.
+- **The value is the real value.** Format with `valueFormatter.create({ format: column.format,
+  value: max })`, the measure's own format string and the report culture (`host.locale`), so the visual
+  shows exactly what a native card shows for the same measure. Test 0, blank, negative, very large and
+  very small values.
+- **Type from the report.** Font family, sizes (9 · 10 · 12 · 20 pt) and colours come from the theme and
+  the formatting pane, not constants: `host.colorPalette`, high-contrast colours when `isHighContrast`.
+- **Spacing on the 4 px grid.** Inner padding 8–12 px, the same on every side the title sits; no element
+  closer than 8 px to the edge. Corner radius 0–8 px, no shadows or gradients (`PBI066`, `PBI067`).
+- **States.** Landing page when there is no data, a calm message when a filter empties it, selection and
+  highlight with the native 40% opacity for the unselected, focus ring for the keyboard.
+- **Compare side by side.** Put it next to a native card or bar with the same measure in Desktop and
+  check alignment of baselines, label colour and number format until you cannot tell them apart.
+
+## 14. Review checklist
 - [ ] ADR proves no native/AppSource option fits
+- [ ] §13 passed at the smallest and largest size, with 0, blank, negative and very large values
 - [ ] Landing page, rendering events, keyboard, high contrast, tooltips, context menu, highlights
 - [ ] `privileges: []`, no network, no innerHTML/eval, `npm audit` clean
 - [ ] Localized strings (at least en‑US + project language)
