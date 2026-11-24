@@ -3,7 +3,7 @@ name: powerbi-architect
 description: Senior Power BI engineering for AI agents. Use for ANY Power BI work - semantic models (star schema, minimal imports, date tables), SQL loads, one-step Power Query, DAX, TMDL and PBIR/PBIP files, report and page design, accessibility, documentation pages, refactoring or restyling legacy reports, performance, RLS, and custom visuals (.pbiviz) only when no native visual fits. Ships an offline knowledge graph of the repo (powerbi-graph/): query it before reading TMDL/PBIR files. Works standalone or inside the Power BI Workspaces framework (AGENTS.md).
 license: MIT
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
   homepage: https://github.com/DaviMark/powerbi-architect
 ---
 
@@ -140,11 +140,11 @@ add back one thing.
    `python scripts/pbir_layout.py layout.json <Name>.Report --theme <theme.json>`: shell, icons, KPIs,
    charts, matrix, combo, scatter, KPI trend, tables, drill-through, tooltip and phone layouts on the grid.
    Spec and archetypes: [templates/pbir-pages/](templates/pbir-pages/README.md). Never type positions.
-3. **Critique until clean, then look.** `python scripts/preview_pbir.py <Name>.Report --sample sample.json
-   --critique --png preview/` measures the rendered pages (cut or spilled text, padding, overlaps, gutters,
-   column grid, empty cards) and exits 1 until all are fixed; repeat with `--mobile`. Then open every PNG
-   and run the three-second review (chart-craft.md §5). Fix, regenerate, critique again: never stop at
-   "good enough". No image tool → ask the user to open `preview.html`.
+3. **Critique until clean, then look.** Give `sample.json` real counts (15+ customers, products), then
+   `python scripts/preview_pbir.py <Name>.Report --sample sample.json --critique --png preview/` measures
+   the pages (cut text, padding, overlaps, gutters, grid, table rows that do not fit) and exits 1 until all
+   are fixed; repeat with `--mobile`. A finding is never "just the sample". Open every PNG, run the
+   three-second review (chart-craft.md §5), fix, critique again. No image tool → ask for `preview.html`.
 4. **Audit.** `python scripts/audit_pbip.py <project> --min-harmony 90`: zero blockers, every page ≥ 90.
    In Claude Code the graph installer also audits after every edit and tells you what broke.
 
@@ -159,8 +159,7 @@ add back one thing.
   deleted by hand stay that way, and the output lists what was kept. Never pass `--force` unless the user
   asks to discard their edits; when a request contradicts one of them, ask.
 - **The `.pbip` must open after every edit.** Run `pbw validar` or `python scripts/audit_pbip.py <folder>`
-  (`--help`: rules, `--json`, `--sarif`, suppression). Regenerate pages with `pbir_layout.py` rather than
-  hand-editing visual JSON.
+  (`--help`: rules, `--json`, `--sarif`, suppression). Pages come from `pbir_layout.py`, not hand-edited JSON.
 
 ## 8. Refactoring legacy dashboards
 

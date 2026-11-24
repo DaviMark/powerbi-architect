@@ -91,6 +91,11 @@ theme already sets most of it; the spec keys are those of `scripts/pbir_layout.p
 - **One highlight:** colour one measure column by a colour measure (`highlight`); everything else ink.
 - **Sorting:** by the measure that decides the action (`sortBy`), and the title says so: "Clientes que
   concentram o valor vencido".
+- **Rows that fit:** on a summary page a table never hides rows behind a scroll bar. Keep the top rows
+  that fit with Power BI's Top N filter (`"top": 5` plus `sortBy` on the measure) and write the number in
+  the title: "Os 5 clientes com mais valor vencido". Or size the row to the rows (`"height": "auto"`,
+  `"items": n`). The full list belongs on its own page or a drill-through, where a full-height table may
+  scroll. The critique reports `[rows]` with the exact number that fits.
 - **Extras worth adding in Desktop:** data bars on the main measure; sparklines per row when the trend
   of each row matters. Totals only when the sum means something (not for percentages).
 
