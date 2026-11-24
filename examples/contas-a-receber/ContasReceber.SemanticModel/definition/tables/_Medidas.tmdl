@@ -28,6 +28,11 @@ table _Medidas
 		formatString: #,0
 		displayFolder: Indicadores
 
+	/// Valor vencido no mesmo período do ano anterior, para comparar na tendência.
+	measure 'Vencido Ano Anterior' = CALCULATE ( [Valor Vencido], SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )
+		formatString: \R\$ #,0
+		displayFolder: Valores
+
 	/// Saldo em aberto das parcelas que ainda não venceram.
 	measure 'Valor a Vencer' = [Valor Aberto] - [Valor Vencido]
 		formatString: \R\$ #,0

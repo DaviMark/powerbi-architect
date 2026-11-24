@@ -121,8 +121,8 @@ Start from the decision the person must make and work back to the pixels. Remove
 - 1280×720, **4 px grid**, 16 px gutters, aligned edges. **Type:** one family (Segoe UI + Semibold when
   there is no brand font); sizes 9 · 10 · 12 · 20, never above 14 in text boxes or 24 anywhere.
 - **Small filters:** dropdown slicers 176×40 in the top bar, at most 2 per page.
-- **The skill's visuals** (`templates/visuals`, packed into the report): `kpiCard` (value, variation
-  pill, trend), `trend` (dense columns, headline), `list` (avatars, status chips, progress). The
+- **The skill's visuals** (`templates/visuals`, packed into the report): `kpiCard` (variation pill,
+  trend), `trend` (dense columns), `list` (avatars, chips, progress), `ring` (slices or goal). The
   identity comes from the theme (`make_theme.py --primary --font`); no custom visuals allowed → `kpi`,
   `lineChart`, `tableEx`.
 - Ink and greys; colour only for focus and good/bad; ≤ 6 categories; labels over axes; sort by value;

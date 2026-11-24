@@ -19,14 +19,13 @@ sidebar and keep the panel and top bar). Canvas 1280×720, positions in px:
 | Piece | Position (x, y, w, h) | Spec |
 |---|---|---|
 | Canvas | 0, 0, 1280, 720 | page background `#F4F4F5` (theme `page.background`) |
-| Sidebar | 0, 0, 224, 720 | white shape with a 1 px `#E4E4E7` line at x 224; "updated at" at its foot (16, 680) |
-| App mark | 16, 20, 16, 16 | rounded square in the accent (ink `#18181B`), or the 16 px logo |
-| App name | 40, 16, 172, 24 | text box, 10 pt Segoe UI Semibold, `#18181B` |
-| Section label | 8, 52, 204, 24 | text box, 9 pt, `#71717A` ("Páginas", "Apoio") |
-| Page navigator | 8, 76, 204, 32·n | vertical, 32 px items, radius 8, text 10 pt left-aligned with a 32 px margin; default `#71717A`, hover `#F4F4F5`, selected `#E4E4E7` + `#18181B` semibold. Only visible pages (drill-through and tooltip pages are hidden) |
-| Page icons | 16, 84 + 32·i, 16, 16 | one 16 px Tabler icon per visible page, grey, centred on its navigator item ([templates/icons](../templates/icons/README.md)) |
-| Header | 232, 8, ≤ 520, 24 and 232, 32, 600, 36 | trail `<Report>` (9 pt `#71717A`, `<Report>  /  <Parent>` on drill-through) above the page name (14 pt semibold `#18181B`); on drill-through pages a 24 px back arrow at 232 and the text at 264 |
-| Top bar right | right edge 1256, y 20 | ≤ 2 compact slicers (176×40) |
+| Sidebar | 0, 0, 224, 720 | white, 1 px `#E4E4E7` line at x 224 |
+| Mark, name | 16, 16, 32, 32 · 56, 12, 160, 24 | the app's initial, white on the accent, radius 8; name 10 pt semibold; `"subtitle"` 8 pt grey under it |
+| Sections | 12, 76, 200, 24 | page `"section"` labels, 7 pt semibold grey caps ("PAINÉIS", "REFERÊNCIA") |
+| Page rows | 8, y, 208, 32, every 36 px | 16 px Tabler icon at x 20 ([templates/icons](../templates/icons/README.md)), name 10 pt at 44; current page `#F4F4F5` + ink semibold; `"badge"` (a count measure) in a pill at 172; an invisible button over the row opens the page. Visible pages only |
+| Sidebar foot | 12, 620, 200, 84 | panel: green dot, "Dados em dia", the `"updated"` measure, the `"source"` line |
+| Header | 232, 8 and 232, 28 | trail 9 pt `#71717A` (`<Report>  /  <Parent>` on drill-through) over the page name 14 pt semibold; drill-through: back arrow at 232, text at 264 |
+| Header right | right edge 1256, y 24 | right to left: `"action"` button (accent, white text, opens a page) · `"dateRange"` (two date boxes, 224×40) · dropdown slicers (176×40) · `"tabs"` (single-select tiles on the `_Granularidade` field parameter: Mês · Trimestre · Ano); ≤ 2 filters |
 | Content | 232, 80, 1024, 616 | everything else lives here, 16 px gutters |
 
 `scripts/pbir_layout.py` writes all of this from a layout spec. The theme in [templates/theme/](../templates/theme/powerbi-architect-acessivel.json) already styles the
@@ -35,10 +34,10 @@ navigator, cards, tables, slicers, text boxes and shapes this way; the example
 [templates/pbir-pages/](../templates/pbir-pages/README.md) implement the shell. Copy them, do not redraw it.
 
 **Components inside the content area:**
-- KPI card: white, 1 px `#E4E4E7` border, radius 12, on the grey canvas; label 9 pt `#71717A` (container
-  title); value 20 pt semibold `#18181B`; with `"trend"`, a thin grey trend line (88×36) at the right; one 9 pt line at the bottom (12 px in, 20 px high): context ("R$ 14,4 mi ainda a
-  vencer", grey) or distance to target / previous period with ▲/▼ coloured by a measure that knows
-  whether up is good ([dax.md](dax.md) › KPI lines). Height 88, 4 per row.
+- KPI card (`kpiCard`, height 104, 4 per row): uppercase label, value, a green/red pill with the
+  variation (vs the previous period or the `"reference"` target), a note, a small trend. Native `kpi`:
+  label 9 pt, value 20 pt, a 9 pt context line coloured by a measure ([dax.md](dax.md) › KPI lines).
+- Overview of 8 blocks: 4 KPIs (104) · `trend` 3/5 + `ring` 2/5 (228) · top-3 `list` 3/5 + `list` 2/5 (252).
 - Chart card: title 10 pt semibold, sentence case, left; bars and columns with 45 % inner padding
   (thin, never slabs) and data labels instead of a value axis; rankings and categories shaded by value,
   pale grey up to ink, so the eye lands on the largest first (months stay one colour); trends keep a

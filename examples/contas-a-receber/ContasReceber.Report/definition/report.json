@@ -85,6 +85,22 @@
       ]
     },
     {
+      "name": "architectRing689D7C06BDE24EB68F1D5159F5A63988",
+      "type": "CustomVisual",
+      "items": [
+        {
+          "name": "package.json",
+          "path": "package.json",
+          "type": "CustomVisualMetadata"
+        },
+        {
+          "name": "architectRing689D7C06BDE24EB68F1D5159F5A63988.pbiviz.json",
+          "path": "resources/architectRing689D7C06BDE24EB68F1D5159F5A63988.pbiviz.json",
+          "type": "CustomVisualJavascript"
+        }
+      ]
+    },
+    {
       "name": "architectTrend04065D478A6B472B94D080E2C64E3531",
       "type": "CustomVisual",
       "items": [

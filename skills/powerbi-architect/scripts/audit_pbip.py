@@ -596,6 +596,8 @@ def architect_title(visual: dict, vtype: str) -> str | None:
         return prop_text("header", "title") or first_name("value")
     if vtype.startswith("architectList"):
         return prop_text("list", "title")
+    if vtype.startswith("architectRing"):
+        return prop_text("header", "title") or first_name("value")
     return None
 
 
@@ -638,6 +640,25 @@ def _luminance(h: str) -> float:
 
 def contrast_on_white(h: str) -> float:
     return 1.05 / (_luminance(h) + 0.05)
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def own_background(visual: dict) -> str | None:
+    """The colour text sits on when the visual paints its own: a filled button, a text box with a background."""
+    def shown_colour(obj: dict | None, key: str) -> str | None:
+        props = ((obj or [{}])[0] or {}).get("properties", {})
+        if str(num_literal(props.get("show"), raw=True)).lower() != "true":
+            return None
+        return _hex(props.get(key))
+    if visual.get("visualType") == "actionButton":
+        fill = shown_colour((visual.get("objects") or {}).get("fill"), "fillColor")
+        if fill:
+            return fill
+    return shown_colour((visual.get("visualContainerObjects") or {}).get("background"), "color")
 
 
 def colour_usage(visual: dict) -> tuple[set[str], set[str]]:
@@ -1154,10 +1175,12 @@ def audit(root: Path, config: dict | None = None) -> list:
                                            "hairline border; depth adds noise, not meaning")
                 text_cols, fill_cols = colour_usage(v)
                 page_fills |= {c for c in fill_cols if not is_neutral(c)}
-                low = sorted(c for c in text_cols if contrast_on_white(c) < 4.5)
+                ground = own_background(v) or "#FFFFFF"
+                low = sorted(c for c in text_cols if contrast(c, ground) < 4.5)
                 if low:
+                    on = "white" if ground == "#FFFFFF" else ground
                     add("PBI054", where_v, f"{vtype} on page '{display}': text colour {', '.join(low)} has "
-                                           f"{contrast_on_white(low[0]):.1f}:1 on white (minimum 4.5:1)")
+                                           f"{contrast(low[0], ground):.1f}:1 on {on} (minimum 4.5:1)")
                 vco_ = v.get("visualContainerObjects", {}) or {}
                 for axis in ("valueAxis", "categoryAxis"):
                     shown = (((v.get("objects", {}) or {}).get(axis) or [{}])[0].get("properties", {})

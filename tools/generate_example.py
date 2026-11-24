@@ -8,6 +8,7 @@ tools/validate_schemas.py.
 import hashlib
 import json
 import shutil
+import sys
 from pathlib import Path
 
 ROOT = Path("examples/contas-a-receber")
@@ -168,6 +169,8 @@ write(D / "tables" / "dm_calendario.tmdl",
       + col("Mês", "string", sort_by="Mês Nº", inferred=True) + "\n"
       + col("Ano-Mês Nº", "int64", hidden=True, inferred=True) + "\n"
       + col("Ano-Mês", "string", sort_by="Ano-Mês Nº", inferred=True) + "\n"
+      + col("Trimestre Nº", "int64", hidden=True, inferred=True) + "\n"
+      + col("Ano-Trimestre", "string", sort_by="Trimestre Nº", inferred=True) + "\n"
       + "\thierarchy 'Ano > Mês'\n\n\t\tlevel Ano\n\t\t\tcolumn: Ano\n\n\t\tlevel Mês\n\t\t\tcolumn: Mês\n\n"
       + "\tpartition dm_calendario = calculated\n\t\tmode: import\n\t\tsource =\n"
       + "\t\t\t\tVAR _fim = DATE ( YEAR ( TODAY () ), 12, 31 )\n"
@@ -180,8 +183,14 @@ write(D / "tables" / "dm_calendario.tmdl",
       + "\t\t\t\t        \"Mês\", FORMAT ( [Date], \"mmm\" ),\n"
       + "\t\t\t\t        \"Ano-Mês Nº\", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),\n"
       + "\t\t\t\t        \"Ano-Mês\", FORMAT ( [Date], \"mmm/yy\" ),\n"
+      + "\t\t\t\t        \"Trimestre Nº\", YEAR ( [Date] ) * 10 + QUARTER ( [Date] ),\n"
+      + "\t\t\t\t        \"Ano-Trimestre\", \"T\" & QUARTER ( [Date] ) & \"/\" & FORMAT ( [Date], \"yy\" ),\n"
       + "\t\t\t\t        \"Data\", [Date]\n"
       + "\t\t\t\t    )\n")
+
+sys.path.insert(0, str(Path("skills/powerbi-architect/scripts").resolve()))
+from new_project import GRANULARITY  # noqa: E402  (the field parameter behind the header's period tabs)
+write(D / "tables" / "_Granularidade.tmdl", GRANULARITY)
 
 MEASURES = [
     ("Valor Aberto", "Saldo em aberto das parcelas, vencidas ou a vencer.",
@@ -194,6 +203,8 @@ MEASURES = [
      "DIVIDE (\n\t\t\tSUMX (\n\t\t\t\tFILTER ( ft_titulos, ft_titulos[Dias Atraso] > 0 ),\n"
      "\t\t\t\tft_titulos[Dias Atraso] * ft_titulos[Valor Aberto]\n\t\t\t),\n\t\t\t[Valor Vencido]\n\t\t)",
      "#,0", "Indicadores"),
+    ("Vencido Ano Anterior", "Valor vencido no mesmo período do ano anterior, para comparar na tendência.",
+     "CALCULATE ( [Valor Vencido], SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )", r"\R\$ #,0", "Valores"),
     ("Valor a Vencer", "Saldo em aberto das parcelas que ainda não venceram.",
      "[Valor Aberto] - [Valor Vencido]", r"\R\$ #,0", "Valores"),
     ("Clientes Vencidos", "Quantidade de clientes com pelo menos uma parcela vencida.",

@@ -35,6 +35,25 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
     const rowH = twoLines ? 52 : 36;
     const avatars = m.avatars !== false;
     const titleH = m.title ? 40 : 0;
+    // Narrow cards: tighter cells and a shorter progress track, so every column stays in view.
+    const width = (c: ListColumn) => c.kind === "progress" ? 140 : c.kind === "status" ? 110 : 96;
+    const need = (avatars ? 220 : 160) + m.columns.reduce((s, c) => s + width(c), 0);
+    const pad = need > w ? 8 : 12;
+    const trackW = need > w ? 48 : 72;
+    // A phone (under 420 px): keep the columns that fit, the first number first, then status, then the rest.
+    const order = m.columns.map((c, i) => i).sort((a, b) => rank(m.columns[a], a, m.columns) - rank(m.columns[b], b, m.columns));
+    const keep = new Set<number>();
+    // the header text is often the widest part of a column: uppercase 10 px with letter spacing, ~7 px a letter
+    const fit = (c: ListColumn) => Math.max(c.kind === "progress" ? 108 : c.kind === "status" ? 96 : 64, c.title.length * 7) + pad * 2;
+    let used = avatars ? 190 : 130;
+    order.forEach(i => {
+        const cw = fit(m.columns[i]);
+        if (!keep.size || used + cw <= w || w >= 420) {
+            keep.add(i);
+            used += cw;
+        }
+    });
+    const columns = m.columns.filter((_c, i) => keep.has(i));
     const frame = el("div", `box-sizing:border-box;width:${w}px;height:${h}px;display:flex;flex-direction:column;` +
         `font-family:${t.font};color:${t.ink}`);
     if (m.title) {
@@ -49,16 +68,16 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
     const hr = el("tr", "");
     const th = (text: string, right: boolean) => el("th", `position:sticky;top:0;z-index:1;background:${t.surface};` +
         `text-align:${right ? "right" : "left"};font-size:10px;font-weight:600;letter-spacing:.05em;` +
-        `text-transform:uppercase;color:${t.muted};padding:8px 12px;line-height:13px;border-bottom:1px solid ${t.faint};white-space:nowrap`, text);
+        `text-transform:uppercase;color:${t.muted};padding:8px ${pad}px;line-height:13px;border-bottom:1px solid ${t.faint};white-space:nowrap`, text);
     hr.appendChild(th(m.itemTitle, false));
-    m.columns.forEach(c => hr.appendChild(th(c.title, c.kind === "number")));
+    columns.forEach(c => hr.appendChild(th(c.title, c.kind === "number")));
     head.appendChild(hr);
     table.appendChild(head);
 
     const body = el("tbody", "");
     m.rows.forEach((r, i) => {
         const tr = el("tr", `height:${rowH}px;border-bottom:1px solid ${t.faint}`);
-        const first = el("td", "padding:0 12px;white-space:nowrap");
+        const first = el("td", `padding:0 ${pad}px;white-space:nowrap`);
         const box = el("div", "display:flex;align-items:center;gap:10px;min-width:0");
         if (avatars) {
             const [bg, fg] = t.highContrast ? [t.surface, t.ink] : avatarColours(r.item);
@@ -66,7 +85,7 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
                 `align-items:center;justify-content:center;font-size:11px;font-weight:600;background:${bg};color:${fg}`,
                 initials(r.item)));
         }
-        const names = el("div", "display:flex;flex-direction:column;min-width:0;line-height:16px");
+        const names = el("div", `display:flex;flex-direction:column;min-width:0;line-height:16px;max-width:${Math.max(96, w * 0.45)}px`);
         names.appendChild(el("span", "font-weight:600;overflow:hidden;text-overflow:ellipsis", r.item));
         if (r.sub) {
             names.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis`, r.sub));
@@ -74,7 +93,11 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
         box.appendChild(names);
         first.appendChild(box);
         tr.appendChild(first);
-        r.cells.forEach(c => tr.appendChild(cell(c, t)));
+        r.cells.forEach((c, j) => {
+            if (keep.has(j)) {
+                tr.appendChild(cell(c, t, pad, trackW));
+            }
+        });
         body.appendChild(tr);
         if (hook) {
             hook(tr, i);
@@ -86,8 +109,14 @@ export function renderList(root: HTMLElement, m: ListModel, w: number, h: number
     root.appendChild(frame);
 }
 
-function cell(c: ListCell, t: Tokens): HTMLElement {
-    const td = el("td", `padding:0 12px;white-space:nowrap;text-align:${c.kind === "number" ? "right" : "left"};` +
+/** Which columns a narrow list keeps first: the first number, then the status, then the others in order. */
+function rank(c: ListColumn, i: number, all: ListColumn[]): number {
+    const firstNumber = all.findIndex(x => x.kind === "number");
+    return i === firstNumber ? -2 : c.kind === "status" ? -1 : i;
+}
+
+function cell(c: ListCell, t: Tokens, pad: number, trackW: number): HTMLElement {
+    const td = el("td", `padding:0 ${pad}px;white-space:nowrap;text-align:${c.kind === "number" ? "right" : "left"};` +
         (c.kind === "number" ? "font-variant-numeric:tabular-nums" : ""));
     if (c.kind === "status") {
         const tone = t.tones[c.tone || toneOf(c.text)];
@@ -99,7 +128,7 @@ function cell(c: ListCell, t: Tokens): HTMLElement {
         td.appendChild(chip);
     } else if (c.kind === "progress") {
         const box = el("div", "display:flex;align-items:center;gap:8px");
-        const track = el("div", `width:72px;height:6px;border-radius:3px;background:${t.highContrast ? t.surface : "#F4F4F5"};` +
+        const track = el("div", `width:${trackW}px;height:6px;border-radius:3px;background:${t.highContrast ? t.surface : "#F4F4F5"};` +
             `overflow:hidden` + (t.highContrast ? `;border:1px solid ${t.ink}` : ""));
         track.appendChild(el("div", `width:${Math.max(0, Math.min(1, c.value)) * 100}%;height:100%;background:${t.accent}`));
         box.appendChild(track);

@@ -1,0 +1,11 @@
+{
+  "Role_Tooltips": "Dicas de ferramenta",
+  "Role_Category": "Fatias (categoria)",
+  "Role_Value": "Valor",
+  "Role_Target": "Meta (modo meta)",
+  "Landing_Title": "Architect Ring",
+  "Landing_Hint": "Adicione um Valor e Fatias (uma categoria) ou uma Meta.",
+  "Center_OfTarget": "da meta",
+  "Legend_ToGo": "Falta",
+  "Legend_Over": "Acima da meta"
+}

@@ -3,10 +3,11 @@
 Only after the decision tree in SKILL.md §4 and an ADR (template in `visual-selection.md`).
 A custom visual is software the organization must maintain, certify and upgrade.
 
-**The skill ships three** for what native visuals cannot draw at product quality: KPI card with a
-variation pill and trend, dense trend columns with a headline, and a list with status chips
-([templates/visuals](../templates/visuals/README.md)). They need no ADR: use `kpiCard`, `trend` and
-`list` in the layout spec, and the engine packs them into the report. Everything below is for any
+**The skill ships four** for what native visuals cannot draw at product quality: KPI card with a
+variation pill and trend, dense trend columns with a headline, a list with status chips and a ring
+with the number in its centre
+([templates/visuals](../templates/visuals/README.md)). They need no ADR: use `kpiCard`, `trend`,
+`list` and `ring` in the layout spec, and the engine packs them into the report. Everything below is for any
 other visual.
 
 ## Contents

@@ -6,3 +6,4 @@ dist/
 __pycache__/
 .DS_Store
 Thumbs.db
+!skills/powerbi-architect/templates/visuals/dist/

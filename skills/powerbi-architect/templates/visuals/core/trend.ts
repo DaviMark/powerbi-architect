@@ -31,10 +31,10 @@ export function renderTrend(root: HTMLElement, m: TrendModel, w: number, h: numb
     const left = el("div", "display:flex;flex-direction:column;gap:2px;min-width:0");
     left.appendChild(el("div", "font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis", m.title));
     if (m.total) {
-        const line = el("div", "display:flex;align-items:baseline;gap:8px;margin-top:6px;white-space:nowrap");
+        const line = el("div", "display:flex;align-items:baseline;gap:8px;margin-top:6px;white-space:nowrap;min-width:0");
         line.appendChild(el("span", "font-size:22px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums", m.total));
         if (m.totalNote) {
-            line.appendChild(el("span", `font-size:11px;color:${t.muted}`, m.totalNote));
+            line.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0`, m.totalNote));
         }
         left.appendChild(line);
     }
@@ -50,7 +50,9 @@ export function renderTrend(root: HTMLElement, m: TrendModel, w: number, h: numb
     if (m.compare && m.compareName) {
         key(t.track, m.compareName);
     }
-    head.appendChild(legend);
+    if (w >= 420) {               // narrow (a phone): the headline note already names the comparison
+        head.appendChild(legend);
+    }
     box.appendChild(head);
 
     const plotH = h - (m.total ? 70 : 40) - pad;

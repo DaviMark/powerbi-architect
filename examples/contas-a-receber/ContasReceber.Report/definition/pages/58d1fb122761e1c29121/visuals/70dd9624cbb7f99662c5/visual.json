@@ -1,0 +1,144 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
+  "name": "70dd9624cbb7f99662c5",
+  "position": {
+    "x": 232,
+    "y": 200,
+    "z": 37000,
+    "width": 604,
+    "height": 228,
+    "tabOrder": 37000
+  },
+  "visual": {
+    "visualType": "architectTrend04065D478A6B472B94D080E2C64E3531",
+    "query": {
+      "queryState": {
+        "period": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Granularidade"
+                    }
+                  },
+                  "Property": "Granularidade"
+                }
+              },
+              "queryRef": "_Granularidade.Granularidade",
+              "nativeQueryRef": "Granularidade"
+            }
+          ]
+        },
+        "value": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Valor Vencido"
+                }
+              },
+              "queryRef": "_Medidas.Valor Vencido",
+              "nativeQueryRef": "Valor Vencido",
+              "displayName": "Vencido"
+            }
+          ]
+        },
+        "compare": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Vencido Ano Anterior"
+                }
+              },
+              "queryRef": "_Medidas.Vencido Ano Anterior",
+              "nativeQueryRef": "Vencido Ano Anterior",
+              "displayName": "Ano anterior"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "_Granularidade"
+                  }
+                },
+                "Property": "Granularidade"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Valor vencido por mês, trimestre ou ano, contra o mesmo período do ano anterior; o último em destaque'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "objects": {
+      "header": [
+        {
+          "properties": {
+            "title": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Vencido por período de vencimento'"
+                }
+              }
+            },
+            "showHeadline": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

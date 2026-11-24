@@ -51,6 +51,22 @@ table dm_calendario
 		sourceColumn: [Ano-Mês]
 		sortByColumn: 'Ano-Mês Nº'
 
+	column 'Trimestre Nº'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Trimestre Nº]
+
+	column 'Ano-Trimestre'
+		dataType: string
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Ano-Trimestre]
+		sortByColumn: 'Trimestre Nº'
+
 	hierarchy 'Ano > Mês'
 
 		level Ano
@@ -72,5 +88,7 @@ table dm_calendario
 				        "Mês", FORMAT ( [Date], "mmm" ),
 				        "Ano-Mês Nº", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
 				        "Ano-Mês", FORMAT ( [Date], "mmm/yy" ),
+				        "Trimestre Nº", YEAR ( [Date] ) * 10 + QUARTER ( [Date] ),
+				        "Ano-Trimestre", "T" & QUARTER ( [Date] ) & "/" & FORMAT ( [Date], "yy" ),
 				        "Data", [Date]
 				    )
