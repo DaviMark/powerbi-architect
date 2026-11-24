@@ -47,7 +47,8 @@ theme already sets most of it; the spec keys are those of `scripts/pbir_layout.p
 ### Line (`lineChart`)
 - **When:** change over time, ≥ 6 points. Time on X, oldest left.
 - **Series:** 1 focus series in accent; up to 3 more in grey or the next palette colours; never > 4.
-- **Target:** `"target": "Meta …"` draws it thin, grey and dashed, without labels. Say it in the title:
+- **Target (mandatory when the model has one):** `"target": "Meta …"` draws it thin, grey and dashed,
+  without labels; the audit flags a trend of a measure whose target is left out (`PBI079`). Say it in the title:
   "Entregas no prazo por mês, contra a meta de 95%".
 - **Labels:** off; label the last point (§4) so the reader sees "now" without hunting.
 - **Axis:** auto range is fine for rates; for amounts that people compare to zero, start at 0.
@@ -62,8 +63,11 @@ theme already sets most of it; the spec keys are those of `scripts/pbir_layout.p
 - **When:** ranking or comparing categories with names. Sort descending. Never time on the vertical axis (`PBI062`).
 - **How many:** ≤ 10 bars; more → top N + "Outros" (§4), with the full list in a table page.
 - **Height:** `"height": "auto"` and `"items": n` gives 32 px per bar; bars stay 20–28 px thick.
-- **Colour:** one accent, or red for the bars below target via `colorMeasure` ("Margem por segmento:
-  vermelho abaixo da meta de 30%").
+- **Colour:** one accent, or red for the bars below target with `"target": "Meta …"` (the engine writes
+  Power BI's rule-based colour; `"higherIsBetter": false` for costs and delays) or a hex `colorMeasure`
+  ("Margem por segmento: vermelho abaixo da meta de 30%").
+- **Height:** row `"height": "auto"` with `"items": n` (52 + 32 px per bar). A fixed 248 px row for 5 bars
+  leaves a band of empty card; the preview critic reports it as `[sparse]`.
 - **Pitfalls:** truncated labels (widen the card or abbreviate in the dimension); sorted alphabetically.
 
 ### Combo (`combo`: columns + line)

@@ -52,6 +52,18 @@ class TestPreview(unittest.TestCase):
             for text in ("Meta: R$ 18,6 mi", "<polygon", "border-radius:50%", ">Varejo</th>", "Saldo e vencido por mês"):
                 self.assertIn(text, html)
 
+    def test_numbers_follow_the_sample_format(self):
+        import preview_pbir as pp
+        self.assertEqual(pp.fmt(3.14159, "R$ 3,1 mi"), "R$ 3,1 mi")
+        self.assertEqual(pp.fmt(91.37, "91,4%"), "91,4%")
+        self.assertEqual(pp.fmt(48210, "48.210"), "48.210")
+        self.assertEqual(pp.nice_ticks(0, 9.3)[-1], 10)
+        html = run("preview_pbir.py", REPORT, "--sample", EXAMPLE / "preview-sample.json", "--out",
+                   Path(tempfile.gettempdir()) / "n.html")
+        self.assertEqual(html.returncode, 0)
+        page = (Path(tempfile.gettempdir()) / "n.html").read_text(encoding="utf-8")
+        self.assertIn("R$ ", page)                                         # tables and bars show formatted values
+
     def test_target_line_and_bar_colours(self):
         sys.path.insert(0, str(SCRIPTS))
         import pbir_layout

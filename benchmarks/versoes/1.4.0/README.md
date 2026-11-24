@@ -6,8 +6,8 @@ Medido em 2026-11-24, com Claude Sonnet 5.5 nas duas condições. Página com gr
 |---|---|---|
 | Requisitos atendidos | **14 de 14** (100%) | 4 de 14 (29%) |
 | Entregas que atendem a tudo | **2 de 2** | 0 de 2 |
-| Harmonia média | **100** | 6 |
-| Achados médios da auditoria | **2** | 24.5 |
+| Harmonia média | **98** | 5 |
+| Achados médios da auditoria | **3.5** | 25 |
 | Tokens por execução (média) | 96.098 | 76.183 |
 | Chamadas de ferramenta (média) | 12 | 4 |
 | Tempo por execução (média) | 59 s | 31 s |
@@ -28,7 +28,7 @@ Medido em 2026-11-24, com Claude Sonnet 5.5 nas duas condições. Página com gr
 
 | Cenário | Condição | Requisitos | Harmonia | Tokens | O que faltou |
 |---|---|---|---|---|---|
-| Logística: relatório a partir do modelo | com a skill | 7/7 | 100 | 92.142 | — |
-| Logística: relatório a partir do modelo | sem a skill | 2/7 | 8 | 73.441 | abre: 2 erro(s) de schema; bloqueadores: 1 bloqueador(es); harmonia: Visão Geral 0, Transportadoras 16; acessivel: PBI019, PBI056; pixel: 1 achado(s) |
+| Logística: relatório a partir do modelo | com a skill | 7/7 | 96 | 92.142 | — |
+| Logística: relatório a partir do modelo | sem a skill | 2/7 | 6 | 73.441 | abre: 2 erro(s) de schema; bloqueadores: 1 bloqueador(es); harmonia: Visão Geral 0, Transportadoras 12; acessivel: PBI019, PBI056; pixel: 2 achado(s) |
 | Relatório amador: deixar profissional sem perder informação | sem a skill | 2/7 | 4 | 78.925 | abre: 9 erro(s) de schema; bloqueadores: 1 bloqueador(es); harmonia: Painel de Cobrança 4; acessivel: PBI019, PBI056; pixel: 1 achado(s) |
 | Relatório amador: deixar profissional sem perder informação | com a skill | 7/7 | 100 | 100.054 | — |

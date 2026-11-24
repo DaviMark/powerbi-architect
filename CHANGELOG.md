@@ -5,6 +5,26 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
+### Adicionado
+- **Meta em todo gráfico que tem meta.** `"target"` em gráfico de barras ou colunas pinta de vermelho
+  as barras abaixo da meta, com a cor por regra do próprio Power BI (sem medida DAX extra);
+  `"higherIsBetter": false` inverte para custos e atrasos. O `--extract` lê a meta de volta.
+- Regra `PBI079`: medida com meta no modelo (`Meta % No Prazo`) mostrada sem ela, em tendência ou barras.
+- Regra `PBI078`: o mesmo título dinâmico em visuais que mostram coisas diferentes, como o título da
+  tendência repetido no gráfico por transportadora.
+- A crítica do preview aponta barras com sobra de espaço (`[sparse]`) e o `pbir_layout.py` avisa quando
+  uma linha de barras é bem mais alta que as barras pedem.
+- **Explorador do Power BI.** `pbi_graph.py view` abre o `graph.html` com seis vistas: grafo, modelo
+  estrela, catálogo de medidas com DAX, páginas em escala, identidade visual e achados. O grafo passa a
+  guardar a posição dos visuais, o tamanho das páginas e as cores do tema.
+- `preview_pbir.py --png-scale 2` para imagens nítidas; `tools/screenshot.py` captura páginas locais.
+### Mudado
+- **Preview com cara de Power BI.** Eixo de valores com grade, meses no eixo, números no formato da
+  amostra (R$ 3,1 mi, 91,4%), tabelas com valores em vez de barras cinza e tendências suaves.
+- **Benchmark reorganizado:** `cenarios/`, `versoes/<x.y.z>/` e `pagina.html`. A página publicada foi
+  redesenhada e o GitHub Pages passa a publicar só a página, as imagens e os resultados.
+- As duas versões medidas foram pontuadas de novo com as conferências novas.
+- README mais curto, com o detalhe movido para `docs/guia.md`. Guia da pasta `tests/`.
 
 ## [1.4.0] — 2026-11-24
 ### Adicionado

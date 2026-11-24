@@ -26,8 +26,8 @@ Talk to the user in **their language**. Write documentation in the project langu
    execute DAX. Otherwise edit files per [references/tmdl.md](references/tmdl.md) and [references/pbir.md](references/pbir.md).
 3. **Graph before files.** Read `powerbi-graph/GRAPH_REPORT.md`, then `powerbi-graph/wiki/<model>.md`
    instead of `*.tmdl`/`visual.json`; use `python scripts/pbi_graph.py query|explain|impact|path "…"` and open
-   a source file only to edit it at the file:line given. No graph in a PBIP repo → run
-   `python scripts/pbi_graph.py install <repo>` once. Run `impact` before changing a measure, column or
+   a source file only to edit it at the file:line given. No graph → `python scripts/pbi_graph.py install <repo>`;
+   `view` opens the visual explorer (graph, star schema, measures, pages) for the user. Run `impact` before changing a measure, column or
    table. Details: [references/graph.md](references/graph.md).
 4. **Read before writing:** brief → existing model → source SQL and connection (dialect!) → brand.
    **The user edits by hand too.** A hook reports their changes since your last edit ("O usuário mudou o
@@ -114,8 +114,7 @@ parameters, visual calculations, DAX functions: [references/semantic-features.md
 
 ## 6. Report design — the short version
 
-Start from the decision the person must make and work back to the pixels. Remove until it breaks, then
-add back one thing.
+Start from the decision the person must make and work back to the pixels. Remove until it breaks.
 
 - **Never the default Microsoft look.** Every report is a calm product in the style of Twenty (the
   open-source CRM): grey canvas, quiet 220 px sidebar with the page navigator, white panel (radius 8,
@@ -127,15 +126,16 @@ add back one thing.
 - KPI cards: label · value · one context or variation line coloured by a measure that knows the good
   direction ([references/dax.md](references/dax.md)).
 - One accent for focus, greys for context, green/red only for good/bad, ≤ 6 categories; data labels over
-  axes; sort by value; targets as grey dashed lines; no 3D, gradients, shadows or pies > 3 slices.
+  axes; sort by value; no 3D, gradients, shadows or pies > 3 slices.
+- **A measure with a target (`Meta …`) never appears without it:** `"target"` draws a dashed line on
+  trends and paints bars below it red. Bar rows: `"height": "auto"` + `"items": n`. One `titleMeasure` per visual.
   **Every visual is finished by its recipe in [references/chart-craft.md](references/chart-craft.md).**
 - Accessibility: contrast ≥ 4.5:1, alt text, tab order, colour never the only signal.
 - **Words matter as much as pixels:** conclusion titles, business-language measure names with accents,
   helpful empty states: [references/copywriting.md](references/copywriting.md).
 
 **Build loop (always):**
-1. **Theme.** Brand colour → `python scripts/make_theme.py --primary "#RRGGBB" --name "<Brand>"` (fixes
-   contrast, refuses fonts Power BI cannot render); else `templates/theme/powerbi-architect-acessivel.json`.
+1. **Theme.** Brand colour → `python scripts/make_theme.py --primary "#RRGGBB" --name "<Brand>"`; else `templates/theme/powerbi-architect-acessivel.json`.
 2. **Layout spec, not coordinates.** Describe pages as rows of visuals and run
    `python scripts/pbir_layout.py layout.json <Name>.Report --theme <theme.json>`: shell, icons, KPIs,
    charts, matrix, combo, scatter, KPI trend, tables, drill-through, tooltip and phone layouts on the grid.
@@ -144,9 +144,8 @@ add back one thing.
    `python scripts/preview_pbir.py <Name>.Report --sample sample.json --critique --png preview/` measures
    the pages (cut text, padding, overlaps, gutters, grid, table rows that do not fit) and exits 1 until all
    are fixed; repeat with `--mobile`. A finding is never "just the sample". Open every PNG, run the
-   three-second review (chart-craft.md §5), fix, critique again. No image tool → ask for `preview.html`.
+   three-second review (chart-craft.md §5), fix, critique again.
 4. **Audit.** `python scripts/audit_pbip.py <project> --min-harmony 90`: zero blockers, every page ≥ 90.
-   In Claude Code the graph installer also audits after every edit and tells you what broke.
 
 ## 7. When editing files directly
 
@@ -168,7 +167,7 @@ Power Query steps moved to SQL → rebuild pages → prove numbers match ([refer
 **Restyle a PBIR report:** `python scripts/pbir_layout.py --extract <Name>.Report --out layout.json` writes
 the spec of what is there (pies become sorted bars, decoration dropped) and lists on stderr what needs a
 person. Fix those notes (alt text, business labels, "updated" measure), commit, build into the same
-folder, then §6 from step 3. Bookmarks pointing at old visuals break.
+folder, then §6 from step 3.
 
 ## 9. Security & governance
 

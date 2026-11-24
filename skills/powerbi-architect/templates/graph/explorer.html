@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Power BI Explorer</title>
+<style>
+:root{--font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,monospace;
+  --bg:#ffffff;--canvas:#fbfbfd;--side:rgba(246,246,248,.86);--card:#ffffff;--fg:#1d1d1f;--mut:#6e6e73;--mut2:#86868b;--line:rgba(0,0,0,.08);--fill:rgba(0,0,0,.04);
+  --sel:rgba(0,113,227,.10);--acc:#0071e3;--warn:#c93400;--dotgrid:rgba(0,0,0,.07);--edge:rgba(60,60,67,.16);--edge-dim:rgba(60,60,67,.05);
+  --k-model:#5856d6;--k-fact:#ff9500;--k-dim:#30b0c7;--k-date:#34c759;--k-measure:#af52de;--k-column:#aeaeb2;--k-report:#ff2d55;
+  --k-page:#ffcc00;--k-visual:#ff9f0a;--k-source:#007aff;--k-doc:#8e8e93;--k-role:#ff3b30;--k-param:#8e8e93;--k-missing:#ff3b30;
+  --kw:#ad3da4;--fn:#0f68a0;--ref:#c41a16;--str:#3e8087}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1e1e1e;--canvas:#161618;--side:rgba(40,40,42,.82);--card:#232325;--fg:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
+  --line:rgba(255,255,255,.09);--fill:rgba(255,255,255,.06);--sel:rgba(10,132,255,.22);--acc:#0a84ff;--warn:#ff9f0a;--dotgrid:rgba(255,255,255,.06);
+  --edge:rgba(235,235,245,.13);--edge-dim:rgba(235,235,245,.035);--k-column:#636366;--kw:#ff7ab2;--fn:#6bdfff;--ref:#ff8170;--str:#a3dab8}}
+:root[data-theme=dark]{--bg:#1e1e1e;--canvas:#161618;--side:rgba(40,40,42,.82);--card:#232325;--fg:#f5f5f7;--mut:#a1a1a6;--mut2:#8e8e93;
+  --line:rgba(255,255,255,.09);--fill:rgba(255,255,255,.06);--sel:rgba(10,132,255,.22);--acc:#0a84ff;--warn:#ff9f0a;--dotgrid:rgba(255,255,255,.06);
+  --edge:rgba(235,235,245,.13);--edge-dim:rgba(235,235,245,.035);--k-column:#636366;--kw:#ff7ab2;--fn:#6bdfff;--ref:#ff8170;--str:#a3dab8}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:13px/1.45 var(--font);letter-spacing:-.008em;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:232px 1fr;height:100%}
+.sidebar{background:var(--side);backdrop-filter:saturate(180%) blur(30px);-webkit-backdrop-filter:saturate(180%) blur(30px);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:auto;padding:14px 10px}
+.proj{padding:6px 10px 14px}
+.proj b{display:block;font-size:15px;font-weight:600;letter-spacing:-.02em}
+.proj span{color:var(--mut2);font-size:12px}
+.group{margin:6px 0 2px;padding:6px 10px 4px;font-size:11px;font-weight:600;color:var(--mut2);letter-spacing:.01em}
+.item{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:6px 10px;border-radius:7px;cursor:pointer;text-align:left;font-size:13px}
+.item:hover{background:var(--fill)}
+.item.on{background:var(--sel);color:var(--acc);font-weight:500}
+.item svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.item .count{margin-left:auto;color:var(--mut2);font-size:12px;font-variant-numeric:tabular-nums;font-weight:400}
+.item.on .count{color:var(--acc)}
+.item .count.warn{color:var(--warn);font-weight:600}
+.layer{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:5px 10px;border-radius:7px;cursor:pointer;font-size:13px;text-align:left}
+.layer:hover{background:var(--fill)}
+.layer .sw{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.layer.off{color:var(--mut2)}.layer.off .sw{background:transparent!important;box-shadow:inset 0 0 0 1.5px var(--mut2)}
+.layer .count{margin-left:auto;color:var(--mut2);font-size:12px;font-variant-numeric:tabular-nums}
+.sidebar .grow{flex:1}
+.foot{padding:10px;color:var(--mut2);font-size:11px;line-height:1.5}
+.content{display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.toolbar{height:52px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px 0 20px;border-bottom:1px solid var(--line)}
+.toolbar h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.02em}
+.toolbar .hint{color:var(--mut2);font-size:12px}
+.toolbar .grow{flex:1}
+.search{position:relative}
+.search svg{position:absolute;left:9px;top:50%;width:14px;height:14px;transform:translateY(-50%);stroke:var(--mut2);fill:none;stroke-width:2}
+.search input{width:240px;height:30px;border:0;border-radius:8px;background:var(--fill);padding:0 10px 0 30px;color:var(--fg);font:13px var(--font);outline:none;letter-spacing:-.01em}
+.search input:focus{box-shadow:0 0 0 3.5px color-mix(in srgb,var(--acc) 35%,transparent)}
+.icon-btn{width:30px;height:30px;border:0;border-radius:8px;background:none;display:grid;place-items:center;cursor:pointer;color:var(--mut)}
+.icon-btn:hover{background:var(--fill);color:var(--fg)}
+.icon-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+main{position:relative;flex:1;min-height:0}
+.view{display:none;position:absolute;inset:0;overflow:auto}
+.view.on{display:block}
+#gv{background:var(--canvas);overflow:hidden}
+#gv canvas{display:block;width:100%;height:100%;cursor:default}
+.zoom{position:absolute;right:16px;bottom:16px;display:flex;background:var(--card);border-radius:10px;box-shadow:0 0 0 1px var(--line),0 6px 20px rgba(0,0,0,.08)}
+.zoom button{border:0;background:none;width:34px;height:32px;cursor:pointer;color:var(--mut);font-size:16px}
+.zoom button:hover{color:var(--fg)}
+.zoom button+button{border-left:1px solid var(--line)}
+.caption{position:absolute;left:20px;bottom:18px;color:var(--mut2);font-size:12px}
+aside{position:fixed;right:12px;top:64px;bottom:12px;width:min(380px,calc(100vw - 24px));background:var(--card);border-radius:14px;box-shadow:0 0 0 1px var(--line),0 24px 60px rgba(0,0,0,.16);z-index:10;overflow:auto;padding:22px 22px 26px;opacity:0;transform:translateX(16px);pointer-events:none;transition:opacity .22s ease,transform .22s cubic-bezier(.2,.8,.2,1)}
+aside.on{opacity:1;transform:none;pointer-events:auto}
+aside h2{margin:4px 0 2px;font-size:20px;font-weight:600;letter-spacing:-.025em;line-height:1.2;padding-right:28px}
+aside .x{position:absolute;right:14px;top:14px}
+.kind{font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--mut2);display:flex;align-items:center;gap:6px}
+.kind i{width:8px;height:8px;border-radius:50%}
+.meta{color:var(--mut);font-size:12px;margin:2px 0 12px}
+.desc{font-size:13px;line-height:1.5;margin:10px 0}
+pre.dax{background:var(--fill);border-radius:10px;padding:12px 14px;white-space:pre-wrap;font:12px/1.55 var(--mono);margin:0;overflow:auto}
+.kw{color:var(--kw);font-weight:600}.fn{color:var(--fn)}.ref{color:var(--ref)}.str{color:var(--str)}
+.sec{margin:20px 0 8px;color:var(--mut2);font-size:11px;font-weight:600;letter-spacing:.01em}
+.path{font:11.5px var(--mono);color:var(--mut);word-break:break-all}
+.link{color:var(--acc);cursor:pointer}
+.list{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:7px;padding:3px 9px;cursor:pointer;background:var(--fill);font-size:12px;border:0}
+.pill:hover{background:var(--sel);color:var(--acc)}
+.pill i{width:7px;height:7px;border-radius:50%}
+.btn{border:0;background:var(--acc);color:#fff;border-radius:980px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:500}
+.page{padding:32px 40px 60px;max-width:1280px}
+.page h2{font-size:28px;font-weight:700;letter-spacing:-.035em;margin:0}
+.page .lead{color:var(--mut);font-size:14px;margin:4px 0 24px}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--fill);border-radius:9px;padding:2px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:4px 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500}
+.seg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+select{appearance:none;-webkit-appearance:none;background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2386868b' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;border:0;border-radius:8px;padding:6px 30px 6px 12px;color:var(--fg);font:13px var(--font)}
+.field{height:30px;border:0;border-radius:8px;background:var(--fill);padding:0 12px;color:var(--fg);font:13px var(--font);min-width:220px;outline:none}
+.panel{background:var(--card);border-radius:16px;box-shadow:0 0 0 1px var(--line);padding:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.m-name{font-weight:600;font-size:14px;letter-spacing:-.015em}
+.m-meta{color:var(--mut2);font-size:12px;margin:2px 0 10px}
+.folder{margin:28px 0 12px;font-size:13px;font-weight:600;color:var(--mut);display:flex;align-items:center;gap:10px}
+.folder:first-child{margin-top:0}
+.folder:after{content:"";flex:1;height:1px;background:var(--line)}
+.tag{display:inline-block;font-size:11px;font-weight:600;color:var(--warn)}
+svg text{fill:var(--fg);font-family:var(--font)}
+.tbl{cursor:pointer}
+.tbl rect.box{fill:var(--card);stroke:var(--line);transition:stroke .15s}
+.tbl:hover rect.box{stroke:var(--acc);stroke-width:1.5}
+.vbox{cursor:pointer}
+.vbox rect{transition:stroke-width .15s}
+.vbox:hover rect{stroke-width:2.5}
+.swatches{display:flex;gap:14px;flex-wrap:wrap}
+.swatch{width:92px}
+.swatch i{display:block;height:92px;border-radius:18px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.swatch b{display:block;font-size:12px;font-weight:500;margin-top:8px}
+.swatch span{display:block;font:11px var(--mono);color:var(--mut2)}
+.find{display:flex;gap:18px;align-items:flex-start;padding:18px 0;border-top:1px solid var(--line)}
+.find:first-child{border-top:0;padding-top:0}
+.find .n{min-width:44px;font-size:28px;font-weight:700;letter-spacing:-.04em;line-height:1;color:var(--warn);font-variant-numeric:tabular-nums}
+.empty{color:var(--mut2);padding:60px 20px;text-align:center;font-size:14px}
+.note{color:var(--mut2);font-size:12px;margin-top:12px}
+@media (max-width:760px){.app{grid-template-columns:1fr}.sidebar{display:none}.search input{width:150px}.page{padding:20px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="proj"><b id="pname"></b><span id="pmeta"></span></div>
+    <div class="group">Explorar</div>
+    <div id="nav"></div>
+    <div class="group" id="layersT">Camadas do grafo</div>
+    <div id="chips"></div>
+    <div class="grow"></div>
+    <div class="foot">Gerado pelo <b>pbi_graph.py</b>. Só metadados: nenhum dado do relatório sai do seu computador.</div>
+  </div>
+  <div class="content">
+    <div class="toolbar">
+      <h1 id="title">Grafo</h1><span class="hint" id="hint"></span>
+      <span class="grow"></span>
+      <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" placeholder="Buscar" autocomplete="off" aria-label="Buscar tabela, medida, página ou visual"></label>
+      <button class="icon-btn" id="theme" title="Aparência clara ou escura" aria-label="Alternar aparência"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
+    </div>
+    <main>
+      <section class="view on" id="gv"><canvas id="cv"></canvas>
+        <div class="caption">Clique para ver as ligações · duplo clique para isolar a vizinhança</div>
+        <div class="zoom"><button id="zout" aria-label="Diminuir">−</button><button id="zfit" aria-label="Ajustar" style="font-size:12px">Ajustar</button><button id="zin" aria-label="Aumentar">+</button></div></section>
+      <section class="view" id="mv"><div class="page"><h2>Modelo</h2><p class="lead" id="mInfo"></p><div class="bar"><select id="mSel" aria-label="Modelo"></select></div><div class="panel" id="star"></div><p class="note">Clique numa tabela para ver colunas, medidas, relações e a origem. Colunas em cinza não são usadas por nada.</p></div></section>
+      <section class="view" id="ms"><div class="page"><h2>Medidas</h2><p class="lead" id="msInfo"></p><div class="bar"><select id="msSel" aria-label="Modelo"></select><input class="field" id="msQ" placeholder="Filtrar por nome, descrição ou DAX"></div><div id="mlist"></div></div></section>
+      <section class="view" id="rv"><div class="page"><h2>Relatórios</h2><p class="lead" id="rInfo"></p><div class="bar"><select id="rSel" aria-label="Relatório"></select><div class="seg" id="pages"></div></div><div class="panel" id="wire"></div><p class="note">Cada visual na posição real da página. Clique para ver os campos que ele usa.</p></div></section>
+      <section class="view" id="iv"><div class="page"><h2>Identidade visual</h2><p class="lead">Cores, significado e tipografia do tema de cada relatório.</p><div id="ident"></div></div></section>
+      <section class="view" id="fv"><div class="page"><h2>Achados</h2><p class="lead">O que o grafo encontrou sozinho, sem abrir o Power BI.</p><div id="finds"></div></div></section>
+    </main>
+  </div>
+</div>
+<aside id="side" aria-live="polite"></aside>
+<script>
+const G = __DATA__;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fold = s => String(s || "").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const N = G.nodes, byId = {}; N.forEach((n, i) => { n.i = i; byId[n.id] = n; });
+const E = G.edges.filter(e => byId[e.s] && byId[e.t]);
+const out = {}, inn = {};
+E.forEach(e => { (out[e.s] = out[e.s] || []).push(e); (inn[e.t] = inn[e.t] || []).push(e); });
+const kindName = {model:"Modelo",table:"Tabela",column:"Coluna",measure:"Medida",report:"Relatório",page:"Página",visual:"Visual",
+  source_object:"Fonte",sql_file:"SQL",doc:"Documento",role:"Papel RLS",parameter:"Parâmetro",missing:"Referência quebrada",
+  dashboard:"Dashboard",py_module:"Python",py_symbol:"Python",connection:"Conexão"};
+const roleName = {fact:"Fato",dimension:"Dimensão",date:"Calendário",measures:"Medidas",system:"Sistema",bridge:"Ponte",disconnected:"Desconectada"};
+function kindColor(n) {
+  if (n.k === "table") return css({fact:"--k-fact",date:"--k-date"}[n.role] || "--k-dim");
+  return css({model:"--k-model",measure:"--k-measure",column:"--k-column",report:"--k-report",page:"--k-page",visual:"--k-visual",
+    source_object:"--k-source",sql_file:"--k-source",doc:"--k-doc",role:"--k-role",parameter:"--k-param",missing:"--k-missing"}[n.k] || "--k-doc");
+}
+const count = k => N.filter(n => n.k === k).length;
+const nf = G.findings || {};
+const findTotal = Object.values(nf).reduce((a, b) => a + b.length, 0);
+
+// ───────────── sidebar
+const ICONS = {gv:'<circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="m8.2 8.3 2.6 7.4M15.8 7.6l-2.6 8.3M8.5 7h7"/>',
+  mv:'<rect x="3" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="3" width="7" height="6" rx="1.5"/><rect x="8.5" y="15" width="7" height="6" rx="1.5"/><path d="M6.5 9v2.5h11V9M12 11.5V15"/>',
+  ms:'<path d="M17 5H7l6 7-6 7h10"/>', rv:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+  iv:'<circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.3"/><circle cx="12" cy="7.5" r="1.3"/><circle cx="15.5" cy="10" r="1.3"/>',
+  fv:'<path d="M12 3 2.5 20h19z"/><path d="M12 10v4M12 17.2v.1"/>'};
+const VIEWS = [["gv", "Grafo", N.length], ["mv", "Modelo", count("table")], ["ms", "Medidas", count("measure")], ["rv", "Relatórios", count("page")],
+  ["iv", "Identidade", N.filter(n => n.k === "report" && n.theme).length], ["fv", "Achados", findTotal]];
+$("#pname").textContent = G.meta.root || "Projeto Power BI";
+$("#pmeta").textContent = `${count("model")} modelo(s) · ${count("report")} relatório(s)`;
+$("#nav").innerHTML = VIEWS.map(([v, l, c]) => `<button class="item ${v === "gv" ? "on" : ""}" data-v="${v}"><svg viewBox="0 0 24 24">${ICONS[v]}</svg>${l}<span class="count ${v === "fv" && c ? "warn" : ""}">${c.toLocaleString("pt-BR")}</span></button>`).join("");
+const HINT = {gv: `${E.length.toLocaleString("pt-BR")} ligações`, mv: "", ms: "", rv: "", iv: "", fv: ""};
+
+// ───────────── tabs, theme
+let current = "gv";
+function tab(v) {
+  current = v;
+  document.querySelectorAll(".item[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+  $("#title").textContent = VIEWS.find(x => x[0] === v)[1]; $("#hint").textContent = HINT[v] || "";
+  $("#layersT").style.display = $("#chips").style.display = v === "gv" ? "" : "none";
+  document.querySelectorAll(".view").forEach(s => s.classList.toggle("on", s.id === v));
+  ({mv: drawModel, ms: drawMeasures, rv: drawReport, iv: drawIdentity, fv: drawFindings}[v] || (() => { resize(); wake(); }))();
+}
+$("#nav").onclick = e => { const b = e.target.closest("[data-v]"); if (b) tab(b.dataset.v); };
+$("#hint").textContent = HINT.gv;
+try { const t = localStorage.getItem("pbx-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+$("#theme").onclick = () => {
+  const light = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = light ? "light" : "dark";
+  try { localStorage.setItem("pbx-theme", light ? "light" : "dark"); } catch (e) {}
+  wake(); if (current !== "gv") tab(current);
+};
+
+// ───────────── side panel
+const side = $("#side");
+function closeSide() { side.classList.remove("on"); sel = -1; }
+function daxHtml(x) {
+  return esc(x).replace(/(&quot;[^&]*&quot;|"[^"]*")/g, '<span class="str">$1</span>')
+    .replace(/\b(VAR|RETURN|IN|TRUE|FALSE|NOT|AND|OR)\b/g, '<span class="kw">$1</span>')
+    .replace(/\b([A-Z][A-Z0-9.]+)(?=\s*\()/g, '<span class="fn">$1</span>')
+    .replace(/(\[[^\]]+\])/g, '<span class="ref">$1</span>');
+}
+function pills(list) {
+  return list.length ? `<div class="list">${list.map(n => `<span class="pill" data-id="${esc(n.id)}" title="${esc(kindName[n.k] || n.k)}"><i style="background:${kindColor(n)}"></i>${esc(short(n))}</span>`).join("")}</div>` : `<div class="m-meta">—</div>`;
+}
+function short(n) { return n.k === "column" ? n.l.replace(/^.*\[/, "[") : n.l; }
+const relName = {uses_measure:"usa a medida",uses_column:"usa a coluna",has_column:"coluna",has_measure:"medida",has_visual:"visual",has_page:"página",
+  contains:"contém",relates_to:"relaciona com",relationship:"relação",reads_source:"lê a fonte",binds_model:"usa o modelo",filters:"filtra",
+  sorted_by:"ordenada por",uses_parameter:"usa o parâmetro",defines:"define",hierarchy_level:"nível de hierarquia",uses_table:"usa a tabela"};
+function open(id) {
+  const n = byId[id]; if (!n) return;
+  const o = (out[id] || []).map(e => [e, byId[e.t]]), i = (inn[id] || []).map(e => [e, byId[e.s]]);
+  const group = (arr, title) => {
+    const g = {}; arr.forEach(([e, m]) => (g[e.r] = g[e.r] || []).push(m));
+    return Object.entries(g).map(([r, ms]) => `<div class="sec">${title === "→" ? "" : "Recebe de · "}${esc(relName[r] || r)} · ${ms.length}</div>${pills(ms.slice(0, 80))}`).join("");
+  };
+  const facts = [];
+  if (n.k === "table") facts.push(roleName[n.role] || n.role || "", n.mode || "", n.pq_steps ? n.pq_steps + " passo(s) no Power Query" : "");
+  if (n.k === "column") facts.push(n.data_type || "", n.key ? "chave" : "", n.hidden ? "oculta" : "", (G.findings.unused_columns || []).includes(id) ? "não usada" : "");
+  if (n.k === "measure") facts.push(n.format ? "formato " + n.format : "", n.folder ? "pasta " + n.folder : "", (G.findings.unused_measures || []).includes(id) ? "sem uso em visuais" : "");
+  if (n.k === "visual") facts.push(n.visual_type || "", n.page ? "página " + n.page : "");
+  side.innerHTML = `<button class="icon-btn x" onclick="closeSide()" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="kind"><i style="background:${kindColor(n)}"></i>${esc(kindName[n.k] || n.k)}</div><h2>${esc(n.l)}</h2>
+    <div class="meta">${facts.filter(Boolean).map(esc).join(" · ")}</div>
+    ${n.d ? `<div class="desc">${esc(n.d)}</div>` : ""}
+    ${n.dax ? `<div class="sec">DAX</div><pre class="dax">${daxHtml(n.dax)}</pre>` : ""}
+    ${n.value ? `<div class="sec">Valor</div><pre class="dax">${esc(n.value)}</pre>` : ""}
+    ${n.f ? `<div class="sec">Arquivo</div><div class="path">${esc(n.f)}</div>` : ""}
+    ${group(o, "→")}${group(i, "←")}
+    <div style="margin-top:22px"><button class="btn" onclick="focusNode('${esc(id)}')">Mostrar no grafo</button></div>`;
+  side.classList.add("on");
+}
+side.onclick = e => { const p = e.target.closest(".pill[data-id]"); if (p) open(p.dataset.id); };
+addEventListener("keydown", e => { if (e.key === "Escape") closeSide(); });
+
+// ───────────── graph view (force layout on a canvas, spatial hash for repulsion)
+const cv = $("#cv"), cx = cv.getContext("2d");
+let W = 0, H = 0, dpr = Math.max(1, devicePixelRatio || 1), ox = 0, oy = 0, sc = 1, alpha = 1, sel = -1, focus = null, hits = new Set();
+const kinds = [...new Set(N.map(n => n.k))];
+const hidden = new Set(N.length > 700 ? ["column", "py_symbol"] : []);
+$("#chips").innerHTML = kinds.map(k => `<button class="layer ${hidden.has(k) ? "off" : ""}" data-k="${k}"><span class="sw" style="background:${kindColor({k, role: "dimension"})}"></span>${esc(kindName[k] || k)}<span class="count">${count(k).toLocaleString("pt-BR")}</span></button>`).join("");
+$("#chips").onclick = e => { const c = e.target.closest(".layer"); if (!c) return; const k = c.dataset.k; hidden.has(k) ? hidden.delete(k) : hidden.add(k); c.classList.toggle("off"); wake(); };
+const deg = new Array(N.length).fill(0), adj = N.map(() => []);
+E.forEach(e => { const a = byId[e.s].i, b = byId[e.t].i; deg[a]++; deg[b]++; adj[a].push(b); adj[b].push(a); });
+N.forEach((n, i) => {                                   // seed: communities on a spiral, members around them
+  const c = n.c || 0, a = c * 2.399, r = 60 + 150 * Math.sqrt(c);
+  n.x = Math.cos(a) * r + (Math.random() - .5) * 60; n.y = Math.sin(a) * r + (Math.random() - .5) * 60; n.vx = n.vy = 0;
+  n.r = 2.5 + Math.min(14, Math.sqrt(deg[i]) * 1.6);
+});
+const visible = n => !hidden.has(n.k) && (!focus || focus.has(n.i));
+function resize() { const r = cv.getBoundingClientRect(); W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; if (!ox && !oy) { ox = W / 2; oy = H / 2; } }
+function wake() { alpha = Math.max(alpha, .5); }
+function step() {
+  if (alpha < .01) return;
+  const vis = N.filter(visible), cell = 110, grid = new Map(), cen = {};
+  vis.forEach(p => { const c = cen[p.c] || (cen[p.c] = [0, 0, 0]); c[0] += p.x; c[1] += p.y; c[2]++; });
+  vis.forEach(p => { const k = Math.floor(p.x / cell) + "," + Math.floor(p.y / cell); (grid.get(k) || grid.set(k, []).get(k)).push(p); });
+  vis.forEach(p => {
+    const gx = Math.floor(p.x / cell), gy = Math.floor(p.y / cell);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const b = grid.get((gx + dx) + "," + (gy + dy)); if (!b) continue;
+      for (const q of b) { if (q === p) continue; let x = p.x - q.x, y = p.y - q.y, d2 = x * x + y * y + .1; if (d2 > 12100) continue;
+        const f = 90 * (1 + q.r / 4) / d2 * alpha; p.vx += x * f; p.vy += y * f; }
+    }
+  });
+  E.forEach(e => { const p = byId[e.s], q = byId[e.t]; if (!visible(p) || !visible(q)) return;
+    const x = q.x - p.x, y = q.y - p.y, d = Math.sqrt(x * x + y * y) + .01, f = (d - (p.r + q.r + (deg[p.i] < 2 || deg[q.i] < 2 ? 6 : 22))) * .07 * alpha; p.vx += x / d * f; p.vy += y / d * f; q.vx -= x / d * f; q.vy -= y / d * f; });
+  vis.forEach(p => { const c = cen[p.c]; p.vx += (c[0] / c[2] - p.x) * .012 * alpha; p.vy += (c[1] / c[2] - p.y) * .012 * alpha;
+    p.vx -= p.x * .0025 * alpha; p.vy -= p.y * .0025 * alpha; if (p !== drag) { p.x += p.vx; p.y += p.vy; } p.vx *= .55; p.vy *= .55; });
+  alpha *= .99;
+}
+function draw() {
+  if (current === "gv") {
+    if (!fitted) { resize(); fit(); }
+    step();
+    const fg = css("--fg"), edge = css("--edge"), edgeDim = css("--edge-dim"), acc = css("--acc"), cvbg = css("--canvas"), font = css("--font");
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, W, H);
+    cx.fillStyle = css("--dotgrid"); const gs = 24 * sc; if (gs > 8) {        // a quiet dot grid, like a design canvas
+      for (let gx = ((ox % gs) + gs) % gs; gx < W; gx += gs) for (let gy = ((oy % gs) + gs) % gs; gy < H; gy += gs) cx.fillRect(gx, gy, 1.3, 1.3); }
+    cx.save(); cx.translate(ox, oy); cx.scale(sc, sc);
+    const near = sel >= 0 ? new Set([sel, ...adj[sel]]) : null;
+    cx.lineWidth = .7 / sc;
+    E.forEach(e => { const p = byId[e.s], q = byId[e.t]; if (!visible(p) || !visible(q)) return;
+      const on = near && (p.i === sel || q.i === sel);
+      cx.strokeStyle = on ? acc : near ? edgeDim : edge; cx.lineWidth = (on ? 1.4 : .7) / sc;
+      cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(q.x, q.y); cx.stroke(); });
+    N.forEach(p => { if (!visible(p)) return;
+      const dim = (near && !near.has(p.i)) || (hits.size && !hits.has(p.i));
+      const col = kindColor(p); cx.globalAlpha = dim ? .12 : 1;
+      cx.fillStyle = col; cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.3); cx.fill();
+      if (p.r > 5) { cx.strokeStyle = cvbg; cx.lineWidth = 1.5 / sc; cx.stroke(); }
+      if (p.i === sel) { cx.strokeStyle = acc; cx.lineWidth = 2.5 / sc; cx.beginPath(); cx.arc(p.x, p.y, p.r + 3 / sc, 0, 6.3); cx.stroke(); }
+      if (!dim && (p.r > 8 || p.i === sel || hits.has(p.i) || (near && near.has(p.i)) || sc > 2.2)) {
+        cx.fillStyle = fg; cx.font = `${p.r > 10 ? 600 : 400} ${(p.r > 10 ? 12.5 : 11) / sc}px ${font}`; cx.fillText(short(p).slice(0, 38), p.x + p.r + 3 / sc, p.y + 4 / sc); }
+    });
+    cx.globalAlpha = 1; cx.restore();
+  }
+  requestAnimationFrame(draw);
+}
+function at(x, y) { x = (x - ox) / sc; y = (y - oy) / sc; let best = -1, bd = 1e9;
+  N.forEach(p => { if (!visible(p)) return; const d = (p.x - x) ** 2 + (p.y - y) ** 2; if (d < Math.max(p.r, 6 / sc) ** 2 && d < bd) { bd = d; best = p.i; } }); return best; }
+let drag = null, pan = null, moved = false;
+cv.onmousedown = e => { const r = cv.getBoundingClientRect(), i = at(e.clientX - r.left, e.clientY - r.top); moved = false;
+  if (i >= 0) { drag = N[i]; } else pan = [e.clientX - ox, e.clientY - oy]; };
+addEventListener("mousemove", e => { if (drag) { const r = cv.getBoundingClientRect(); drag.x = (e.clientX - r.left - ox) / sc; drag.y = (e.clientY - r.top - oy) / sc; moved = true; wake(); }
+  else if (pan) { ox = e.clientX - pan[0]; oy = e.clientY - pan[1]; moved = true; } });
+addEventListener("mouseup", e => { if (drag && !moved) { sel = drag.i; open(drag.id); } else if (pan && !moved) closeSide(); drag = null; pan = null; });
+cv.ondblclick = e => { const r = cv.getBoundingClientRect(), i = at(e.clientX - r.left, e.clientY - r.top);
+  if (i < 0) { focus = null; wake(); return; } focus = new Set([i]); adj[i].forEach(j => { focus.add(j); adj[j].forEach(k => focus.add(k)); }); wake(); };
+cv.addEventListener("wheel", e => { e.preventDefault(); const r = cv.getBoundingClientRect(), k = e.deltaY < 0 ? 1.12 : .89, mx = e.clientX - r.left, my = e.clientY - r.top;
+  ox = mx - (mx - ox) * k; oy = my - (my - oy) * k; sc *= k; }, {passive: false});
+function focusNode(id) { tab("gv"); const n = byId[id]; hidden.delete(n.k); document.querySelector(`.layer[data-k="${n.k}"]`)?.classList.remove("off");
+  sel = n.i; sc = 1.6; ox = W / 2 - n.x * sc; oy = H / 2 - n.y * sc; wake(); }
+$("#q").oninput = e => { const v = fold(e.target.value); hits = new Set();
+  if (v.length > 1) N.forEach(n => { if (fold(n.l).includes(v)) hits.add(n.i); });
+  if (current === "ms") { $("#msQ").value = e.target.value; drawMeasures(); } };
+$("#q").onkeydown = e => { if (e.key === "Enter" && hits.size) { const n = N[[...hits][0]]; focusNode(n.id); open(n.id); } };
+addEventListener("resize", () => { resize(); });
+const zoomBy = k => { ox = W / 2 - (W / 2 - ox) * k; oy = H / 2 - (H / 2 - oy) * k; sc *= k; };
+$("#zin").onclick = () => zoomBy(1.25); $("#zout").onclick = () => zoomBy(.8); $("#zfit").onclick = () => fit();
+let fitted = false;
+resize(); for (let k = 0; k < 400; k++) step(); alpha = .15; fit(); draw();
+function fit() { const vs = N.filter(visible); if (!vs.length || !W || !H) return; fitted = true; const xs = vs.map(n => n.x), ys = vs.map(n => n.y);
+  const w = Math.max(...xs) - Math.min(...xs) + 80, h = Math.max(...ys) - Math.min(...ys) + 80; sc = Math.min(W / w, H / h, 2);
+  ox = W / 2 - (Math.max(...xs) + Math.min(...xs)) / 2 * sc; oy = H / 2 - (Math.max(...ys) + Math.min(...ys)) / 2 * sc; }
+
+// ───────────── model view: star schema
+const models = N.filter(n => n.k === "model");
+$("#mSel").innerHTML = models.map(m => `<option value="${esc(m.id)}">${esc(m.l)}</option>`).join("");
+$("#mSel").onchange = drawModel;
+function tablesOf(mid) { return (out[mid] || []).filter(e => e.r === "contains").map(e => byId[e.t]).filter(t => t && t.k === "table"); }
+function children(id, r) { return (out[id] || []).filter(e => e.r === r).map(e => byId[e.t]); }
+function drawModel() {
+  const m = byId[$("#mSel").value]; if (!m) { $("#star").innerHTML = `<div class="empty">Nenhum modelo semântico encontrado.</div>`; return; }
+  const tabs = tablesOf(m.id), facts = tabs.filter(t => t.role === "fact"), others = tabs.filter(t => t.role !== "fact");
+  const rels = []; tabs.forEach(t => (out[t.id] || []).filter(e => e.r === "relates_to").forEach(e => rels.push([t.id, e.t])));
+  const cardRel = {}; tabs.forEach(t => children(t.id, "has_column").forEach(c => (out[c.id] || []).filter(e => e.r === "relationship").forEach(e => {
+    cardRel[t.id + ">" + byId[e.t]?.t] = e.card; })));
+  $("#mInfo").textContent = `${tabs.length} tabelas · ${facts.length} fato(s) · ${rels.length} relações · data/hora automática ${m.auto_datetime ? "ligada" : "desligada"}`;
+  const BW = 210, row = 18, head = 36;
+  const hOf = t => head + Math.min(children(t.id, "has_column").length, 8) * row + 30;
+  const pos = {}, cxm = 640, cym = 380;
+  const ring = others.filter(t => rels.some(r => r.includes(t.id)) || t.role === "date" || t.role === "dimension");
+  const loose = others.filter(t => !ring.includes(t));
+  facts.forEach((t, i) => pos[t.id] = [cxm - BW / 2 + (i - (facts.length - 1) / 2) * (BW + 40), cym - hOf(t) / 2]);
+  const factH = Math.max(0, ...facts.map(hOf));
+  const R = 210 + Math.max(0, ring.length - 6) * 26;
+  ring.forEach((t, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / Math.max(ring.length, 1); const sy = Math.sin(a), push = Math.abs(sy) > .3 ? Math.sign(sy) * (factH / 2 + hOf(t) / 2 + 20) : 0;
+    pos[t.id] = [cxm + Math.cos(a) * R * 1.45 - BW / 2, cym + sy * R * .45 + push - hOf(t) / 2]; });
+  loose.forEach((t, i) => pos[t.id] = [cxm - (loose.length * (BW + 20)) / 2 + i * (BW + 20), cym + R * .45 + factH / 2 + 260]);
+  const xs = Object.values(pos), minx = Math.min(...xs.map(p => p[0])) - 30, miny = Math.min(...xs.map(p => p[1])) - 30;
+  const maxx = Math.max(...xs.map(p => p[0])) + BW + 30, maxy = Math.max(...tabs.map(t => pos[t.id][1] + hOf(t))) + 30;
+  let s = `<svg viewBox="${minx} ${miny} ${maxx - minx} ${maxy - miny}" width="100%" style="max-height:78vh">`;
+  rels.forEach(([a, b]) => { const A = pos[a], B = pos[b], ta = byId[a], tb = byId[b]; if (!A || !B) return;
+    const x1 = A[0] + BW / 2, y1 = A[1] + hOf(ta) / 2, x2 = B[0] + BW / 2, y2 = B[1] + hOf(tb) / 2;
+    const c = (cardRel[a + ">" + tb.l] || "many:one").split(":").map(x => x === "many" ? "*" : "1");
+    s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${css("--mut2")}" stroke-opacity=".5" stroke-width="1.2"/>`;
+    const f = .22; s += `<text x="${x1 + (x2 - x1) * f}" y="${y1 + (y2 - y1) * f}" font-size="13" font-weight="600" style="fill:var(--mut2)">${c[0]}</text>
+      <text x="${x2 - (x2 - x1) * f}" y="${y2 - (y2 - y1) * f}" font-size="13" font-weight="600" style="fill:var(--mut2)">${c[1]}</text>`; });
+  tabs.forEach(t => { const [x, y] = pos[t.id], h = hOf(t), cols = children(t.id, "has_column"), ms = children(t.id, "has_measure"), col = kindColor(t);
+    const unused = new Set(G.findings.unused_columns || []);
+    s += `<g class="tbl" data-id="${esc(t.id)}"><rect class="box" x="${x}" y="${y}" width="${BW}" height="${h}" rx="10"/>
+      <circle cx="${x + 16}" cy="${y + 20}" r="4" fill="${col}"/>
+      <text x="${x + 26}" y="${y + 24}" font-size="13" font-weight="600">${esc(t.l)}</text>
+      <text x="${x + BW - 12}" y="${y + 24}" font-size="10.5" font-weight="600" text-anchor="end" style="fill:${col}">${esc(roleName[t.role] || "")}</text>
+      <line x1="${x}" x2="${x + BW}" y1="${y + head}" y2="${y + head}" stroke="var(--line)"/>`;
+    cols.slice(0, 8).forEach((c, i) => s += `<text x="${x + 12}" y="${y + head + 12 + i * row}" font-size="11.5" style="fill:${unused.has(c.id) ? "var(--mut)" : "var(--fg)"}">${esc(short(c).slice(1, -1).slice(0, 26))}${c.key ? `<tspan style="fill:var(--acc);font-weight:600"> · chave</tspan>` : ""}</text>`);
+    s += `<text x="${x + 12}" y="${y + h - 10}" font-size="11" style="fill:var(--mut)">${cols.length} colunas${cols.length > 8 ? " (8 mostradas)" : ""}${ms.length ? " · " + ms.length + " medidas" : ""}</text></g>`; });
+  $("#star").innerHTML = s + "</svg>";
+  $("#star").onclick = e => { const g = e.target.closest(".tbl"); if (g) open(g.dataset.id); };
+}
+
+// ───────────── measures catalogue
+$("#msSel").innerHTML = models.map(m => `<option value="${esc(m.l)}">${esc(m.l)}</option>`).join("");
+$("#msSel").onchange = drawMeasures; $("#msQ").oninput = drawMeasures;
+function drawMeasures() {
+  const model = $("#msSel").value, q = fold($("#msQ").value);
+  const ms = N.filter(n => n.k === "measure" && n.model === model && (!q || fold(n.l + " " + (n.d || "") + " " + (n.dax || "")).includes(q)));
+  const unused = new Set(G.findings.unused_measures || []);
+  const folders = {}; ms.forEach(m => (folders[m.folder || "Sem pasta"] = folders[m.folder || "Sem pasta"] || []).push(m));
+  $("#msInfo").textContent = `${ms.length} medidas · ${ms.filter(m => unused.has(m.id)).length} sem uso · ${ms.filter(m => !m.d).length} sem descrição`;
+  $("#mlist").innerHTML = Object.keys(folders).sort().map(f => `<div class="folder">${esc(f)} · ${folders[f].length}</div><div class="grid">${folders[f].sort((a, b) => a.l.localeCompare(b.l)).map(m => {
+    const deps = (out[m.id] || []).filter(e => e.r === "uses_measure" || e.r === "uses_column").map(e => byId[e.t]);
+    const usedBy = (inn[m.id] || []).filter(e => e.r === "uses_measure").map(e => byId[e.s]);
+    const visuals = usedBy.filter(n => n.k === "visual"), pages = [...new Set(visuals.map(v => v.page))];
+    return `<div class="panel"><div class="m-name"><span class="link" data-id="${esc(m.id)}">${esc(m.l)}</span></div>
+      <div class="m-meta">${esc(m.format || "sem formato")} · ${visuals.length ? visuals.length + " visual(is) em " + pages.length + " página(s)" : unused.has(m.id) ? '<span class="tag">sem uso</span>' : "usada por outras medidas"}</div>
+      ${m.d ? `<div class="desc" style="margin:0 0 12px">${esc(m.d)}</div>` : `<div class="m-meta"><span class="tag">sem descrição</span></div>`}
+      <pre class="dax">${daxHtml((m.dax || "").slice(0, 600))}</pre>${deps.length ? `<div class="sec">Depende de</div>${pills(deps.slice(0, 12))}` : ""}</div>`; }).join("")}</div>`).join("")
+    || `<div class="empty">Nenhuma medida.</div>`;
+  $("#mlist").onclick = e => { const t = e.target.closest("[data-id]"); if (t) open(t.dataset.id); };
+}
+
+// ───────────── reports: page wireframes
+const reports = N.filter(n => n.k === "report");
+$("#rSel").innerHTML = reports.map(r => `<option value="${esc(r.id)}">${esc(r.l)}</option>`).join("");
+let page = null;
+$("#rSel").onchange = () => { page = null; drawReport(); };
+const family = t => /card|kpi|gauge/i.test(t) ? "#af52de" : /table|pivot|matrix/i.test(t) ? "#007aff" : /slicer/i.test(t) ? "#8e8e93" :
+  /line|area|combo/i.test(t) ? "#34c759" : /bar|column|waterfall|funnel/i.test(t) ? "#ff9500" : /scatter|map|pie|donut|treemap/i.test(t) ? "#ff2d55" : "#8e8e93";
+function drawReport() {
+  const r = byId[$("#rSel").value]; if (!r) { $("#wire").innerHTML = `<div class="empty">Nenhum relatório PBIR encontrado.</div>`; return; }
+  const pages = children(r.id, "has_page").sort((a, b) => (a.order || 0) - (b.order || 0));
+  page = page && pages.find(p => p.id === page.id) || pages[0];
+  const model = (out[r.id] || []).find(e => e.r === "binds_model");
+  $("#rInfo").innerHTML = `${pages.length} páginas${model ? ` · modelo <span class="link" data-id="${esc(model.t)}">${esc(byId[model.t].l)}</span>` : ""}`;
+  $("#rInfo").onclick = e => { const t = e.target.closest("[data-id]"); if (t) open(t.dataset.id); };
+  $("#pages").innerHTML = pages.map(p => `<button class="${p === page ? "on" : ""}" data-p="${esc(p.id)}">${esc(p.l)}</button>`).join("");
+  $("#pages").onclick = e => { const t = e.target.closest("[data-p]"); if (t) { page = byId[t.dataset.p]; drawReport(); } };
+  if (!page) { $("#wire").innerHTML = ""; return; }
+  const W = page.width || 1280, Hh = page.height || 720, vs = children(page.id, "has_visual").filter(v => v.pos && v.pos[2] > 1 && v.pos[3] > 1);
+  let s = `<svg viewBox="0 0 ${W} ${Hh}" width="100%" style="max-height:70vh;background:${(r.theme || {}).background || "var(--fill)"};border-radius:10px">`;
+  vs.sort((a, b) => a.pos[2] * a.pos[3] < b.pos[2] * b.pos[3] ? 1 : -1).forEach(v => {
+    const [x, y, w, h] = v.pos, col = family(v.visual_type || ""), deco = v.chromeless || /shape|textbox|image|navigator|button/i.test(v.visual_type || "");
+    const fields = (out[v.id] || []).filter(e => /uses_/.test(e.r)).length;
+    s += `<g class="vbox" data-id="${esc(v.id)}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${deco ? "rgba(128,128,128,.05)" : "#ffffff"}" stroke="${deco ? "rgba(128,128,128,.18)" : "rgba(0,0,0,.10)"}" stroke-width="1"/>${deco ? "" : `<rect x="${x}" y="${y + 10}" width="3" height="${Math.max(h - 20, 4)}" rx="1.5" fill="${col}"/>`}`;
+    if (!deco && w > 60 && h > 24) s += `<text x="${x + 14}" y="${y + 22}" font-size="14" font-weight="600" style="fill:#1d1d1f">${esc((v.title || v.visual_type).slice(0, Math.max(4, w / 8)))}</text>
+      ${h > 44 ? `<text x="${x + 14}" y="${y + 40}" font-size="12" style="fill:#86868b">${esc(v.visual_type)} · ${fields} campo(s)</text>` : ""}`;
+    s += `</g>`; });
+  $("#wire").innerHTML = s + "</svg>";
+  $("#wire").onclick = e => { const g = e.target.closest(".vbox"); if (g) open(g.dataset.id); };
+}
+
+// ───────────── identity
+function drawIdentity() {
+  const rs = reports.filter(r => r.theme);
+  $("#ident").innerHTML = rs.length ? rs.map(r => { const t = r.theme;
+    const sw = (c, l) => c ? `<div class="swatch"><i style="background:${esc(c)}"></i><b>${esc(l || "")}</b><span>${esc(c)}</span></div>` : "";
+    return `<div class="panel" style="margin-bottom:16px;padding:28px"><div class="m-name" style="font-size:17px">${esc(r.l)}</div><div class="m-meta">Tema ${esc(t.name)}</div>
+      <div class="sec">Cores de dados</div><div class="swatches">${(t.colors || []).map((c, i) => sw(c, i ? "Série " + (i + 1) : "Destaque")).join("")}</div>
+      <div class="sec">Significado</div><div class="swatches">${sw(t.good, "Bom")}${sw(t.bad, "Ruim")}${sw(t.neutral, "Neutro")}${sw(t.foreground, "Texto")}${sw(t.background, "Página")}</div>
+      <div class="sec">Tipografia</div><div style="font-family:'${esc(t.font || "Segoe UI")}';font-size:34px;letter-spacing:-.02em;line-height:1.2">R$ 4,2 mi <span style="color:var(--mut2)">Aa</span></div><div class="m-meta">${esc(t.font || "Segoe UI")}</div></div>`; }).join("")
+    : `<div class="empty">Nenhum relatório com tema personalizado. Gere um com <code>make_theme.py --primary "#RRGGBB"</code>.</div>`;
+}
+
+// ───────────── findings
+const findName = {unused_columns:["Colunas importadas e nunca usadas","Tire do SQL: o modelo fica menor e mais rápido."],
+  unused_measures:["Medidas sem uso em visuais","Confirme se ainda servem ou apague."],
+  measures_without_description:["Medidas sem descrição","A descrição aparece na página de Documentação."],
+  disconnected_tables:["Tabelas desconectadas","Sem relação com o resto do modelo."],
+  broken_refs:["Referências quebradas","Um visual ou medida aponta para algo que não existe."],
+  power_query_steps:["Tabelas com vários passos no Power Query","Leve a lógica para o SQL (um passo por tabela)."],
+  crowded_pages:["Páginas com mais de 8 visuais","Uma página, uma pergunta."], prototype_pages:["Páginas protótipo","Ainda marcadas como PROTÓTIPO."],
+  shared_sources:["Fontes lidas por mais de um modelo","Candidatas a um modelo compartilhado."],divergent_measures:["Medidas com o mesmo nome e DAX diferente","Números diferentes para o mesmo nome."]};
+function drawFindings() {
+  const ks = Object.keys(nf).filter(k => nf[k].length);
+  $("#finds").innerHTML = ks.length ? `<div class="panel" style="padding:28px">${ks.map(k => { const [t, why] = findName[k] || [k, ""], items = nf[k];
+    const objs = items.map(x => typeof x === "string" ? byId[x] : null).filter(Boolean);
+    return `<div class="find"><div class="n">${items.length}</div><div style="flex:1"><div class="m-name">${esc(t)}</div><div class="m-meta">${esc(why)}</div>
+      ${objs.length ? pills(objs.slice(0, 60)) : `<div class="m-meta">${esc(items.slice(0, 8).map(x => typeof x === "string" ? x : JSON.stringify(x)).join(" · "))}</div>`}</div></div>`; }).join("")}</div>`
+    : `<div class="empty">Nenhum achado. Modelo enxuto e relatórios limpos.</div>`;
+  $("#finds").onclick = e => { const p = e.target.closest(".pill[data-id]"); if (p) open(p.dataset.id); };
+}
+
+// ───────────── deep links: graph.html#modelo, #medidas, #relatorios, #identidade, #achados
+const ROUTE = {grafo: "gv", modelo: "mv", medidas: "ms", relatorios: "rv", identidade: "iv", achados: "fv"};
+if (ROUTE[location.hash.slice(1)]) tab(ROUTE[location.hash.slice(1)]);
+</script>
+</body>
+</html>

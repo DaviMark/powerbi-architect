@@ -52,6 +52,30 @@ class TestLayoutEngine(unittest.TestCase):
             self.assertLessEqual(pos["x"] + pos["width"], page["width"], f)
             self.assertLessEqual(pos["y"] + pos["height"], page["height"], f)
 
+    def test_target_on_bars_paints_the_ones_below_it(self):
+        spec = self.spec(rows=[{"height": 248, "visuals": [
+            {"type": "clusteredBarChart", "category": "dm_x[X]", "values": ["% No Prazo"], "target": "Meta % No Prazo",
+             "title": "t", "alt": "a", "items": 3}]}])
+        files = self.build(spec)
+        bar = next(v for v in files.values() if (v.get("visual") or {}).get("visualType") == "clusteredBarChart")
+        rule = bar["visual"]["objects"]["dataPoint"][0]["properties"]["fill"]["solid"]["color"]["expr"]["Conditional"]
+        cmp_ = rule["Cases"][0]["Condition"]["Comparison"]
+        self.assertEqual(cmp_["ComparisonKind"], 3)                       # below the target
+        self.assertEqual(cmp_["Right"]["Measure"]["Property"], "Meta % No Prazo")
+        self.assertEqual(rule["Cases"][0]["Value"]["Literal"]["Value"], "'#CE2C31'")
+        with tempfile.TemporaryDirectory() as d:                          # --extract gives the target back
+            report = Path(d) / "X.Report"
+            pbir_layout.Builder(spec).build(report)
+            back, _ = pbir_layout.extract(report)
+            chart = [v for r in back["pages"][0]["rows"] for v in r["visuals"] if v["type"] == "clusteredBarChart"][0]
+            self.assertEqual(chart.get("target"), "Meta % No Prazo")
+
+    def test_a_bar_row_much_taller_than_its_bars_is_noted(self):
+        b = pbir_layout.Builder(self.spec(rows=[{"height": 400, "visuals": [
+            {"type": "clusteredBarChart", "category": "dm_x[X]", "values": ["M"], "title": "Barras", "alt": "a", "items": 5}]}]))
+        b.build(Path(tempfile.mkdtemp()) / "X.Report", write=False)
+        self.assertTrue(any("5 bars in 400 px" in n for n in b.notes), b.notes)
+
     def test_rows_that_do_not_fit_are_refused(self):
         spec = self.spec(rows=[{"height": 400, "visuals": [{"type": "card", "measure": "M", "title": "M", "alt": "m"}]},
                                {"height": 400, "visuals": [{"type": "card", "measure": "N", "title": "N", "alt": "n"}]}])
@@ -141,7 +165,7 @@ class TestLayoutEngine(unittest.TestCase):
         self.assertEqual(bars[0]["position"]["height"], 616 - 88 - 212 - 32)                # fill takes the rest
         with self.assertRaises(pbir_layout.SpecError):
             self.build(self.spec(rows=[{"height": 248, "visuals": [
-                {"type": "clusteredBarChart", "category": "a[b]", "values": ["M"], "target": "T", "title": "t", "alt": "t"}]}]))
+                {"type": "waterfallChart", "category": "a[b]", "values": ["M"], "target": "T", "title": "t", "alt": "t"}]}]))
 
     def test_table_top_n_filter(self):
         table = {"type": "tableEx", "columns": ["dm_cliente[Cliente]", "Valor Vencido"], "sortBy": "Valor Vencido desc",

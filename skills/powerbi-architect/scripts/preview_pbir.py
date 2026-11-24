@@ -28,10 +28,12 @@ import argparse
 import base64
 import html
 import json
+import re
 import sys
 from pathlib import Path
 
 PT = 4 / 3  # Power BI font sizes are points; the canvas is in pixels.
+ALERT_DEFAULT = "#CE2C31"
 FONT = "'Segoe UI', 'Selawik', 'Inter', 'Helvetica Neue', Arial, sans-serif"
 # How far the preview's boxes sit from Power BI's. Measured against Desktop screenshots with --overlay;
 # override any of them with --calibration file.json (docs/calibrar-preview.md explains the procedure).
@@ -74,6 +76,54 @@ def measure_name(o):
         return o["expr"]["Measure"]["Property"]
     except (KeyError, TypeError):
         return None
+
+
+NUMBER = re.compile(r"^(.*?)(-?\d[\d.]*(?:,\d+)?)(.*)$")
+# Deterministic wobble for values the sample does not give: plausible, never random between renders.
+WOBBLE = [1.0, 0.93, 0.88, 0.97, 0.9, 1.04, 0.95, 0.86, 1.02, 0.91, 0.99, 0.94, 0.89, 1.01, 0.92, 0.97]
+TREND = [0.95, 0.965, 0.955, 0.975, 0.985, 0.97, 0.99, 1.005, 0.995, 1.015, 1.0, 1.02]   # months: a gentle climb
+
+
+def parse_like(like: str | None):
+    """(prefix, value, decimals, suffix) of a formatted sample value such as 'R$ 3,1 mi' or '91,4%'."""
+    m = NUMBER.match(like or "")
+    if not m:
+        return None
+    digits = m.group(2)
+    decimals = len(digits.split(",")[1]) if "," in digits else 0
+    try:
+        return m.group(1), float(digits.replace(".", "").replace(",", ".")), decimals, m.group(3)
+    except ValueError:
+        return None
+
+
+def fmt(v: float, like: str | None = None) -> str:
+    """A number written the way the sample writes its measure (pt-BR: 1.234,5), or a short default."""
+    p = parse_like(like)
+    if p:
+        prefix, _, decimals, suffix = p
+    else:
+        prefix, suffix = "", ""
+        decimals = 0 if abs(v) >= 100 or float(v).is_integer() else 1
+    text = f"{v:,.{decimals}f}".replace(",", "§").replace(".", ",").replace("§", ".")
+    return f"{prefix}{text}{suffix}"
+
+
+def nice_ticks(lo: float, hi: float, n: int = 4) -> list[float]:
+    """Round axis ticks covering lo..hi, like Power BI's value axis."""
+    import math
+    span = (hi - lo) or abs(hi) or 1
+    raw = span / n
+    mag = 10 ** math.floor(math.log10(raw))
+    step = next(s * mag for s in (1, 2, 2.5, 5, 10) if s * mag >= raw)
+    start = math.floor(lo / step) * step
+    ticks, t = [], start
+    while t <= hi + step * 0.001:
+        ticks.append(round(t, 10))
+        t += step
+    if ticks[-1] < hi:
+        ticks.append(round(t, 10))
+    return ticks
 
 
 class Preview:
@@ -141,7 +191,27 @@ class Preview:
 
     def series(self, measure: str | None, n: int, fallback: list[float]) -> list[float]:
         vals = self.sample.get("series", {}).get(measure or "", [])
-        return (vals or fallback)[:n]
+        return (vals or self.synth(measure, n) or fallback)[:n]
+
+    def like(self, measure: str | None) -> str | None:
+        """The sample's formatted value of a measure: the pattern every number of that measure follows."""
+        v = self.sample.get("measures", {}).get(measure or "")
+        return v if isinstance(v, str) and parse_like(v) else None
+
+    def synth(self, measure: str | None, n: int, offset: int = 0, trend: bool = False) -> list[float]:
+        """n plausible values of a measure the sample gives only as a total: rates and averages wobble
+        around it, counts and amounts are shared among the n points."""
+        p = parse_like(self.like(measure))
+        if not p or n < 1:
+            return []
+        base = p[1]
+        rate = "%" in p[3] or re.search(r"m[eé]di|\bpor\b|%|taxa|ticket|avg|average|per\b", measure or "", re.I)
+        each = base if rate else base / n
+        shape = TREND if trend else WOBBLE
+        return [round(each * shape[(i + offset) % len(shape)], max(p[2], 1)) for i in range(n)]
+
+    def num_text(self, v: float, measure: str | None) -> str:
+        return html.escape(fmt(v, self.like(measure)))
 
     def image_uri(self, objs: dict) -> str | None:
         url = prop(objs, "general", "imageUrl")
@@ -294,6 +364,15 @@ class Preview:
             if top:                                        # Power BI's Top N filter keeps only these rows
                 first, n_rows = first[:top], min(n_rows, top)
             size = 9 * PT
+            filled = {}
+            for j, c in enumerate(cols[1:], 1):            # numbers the sample can stand behind
+                if "[" in c and not c.startswith("["):
+                    vals = self.sample.get("fields", {}).get(c) or []
+                    filled[j] = [html.escape(vals[(r * 7 + j) % len(vals)]) for r in range(n_rows)] if vals else []
+                else:
+                    meas = c if not c.startswith("[") else (roles.get("Values") or [None])[0]
+                    raw = self.sample.get("series", {}).get(meas or "") or self.synth(meas, n_rows, offset=j * 3)
+                    filled[j] = [self.num_text(x, meas) for x in raw[:n_rows]]
             head = "".join(f'<th style="text-align:{"left" if i == 0 else "right"};font-weight:600;color:{ink2};'
                            f'padding:{CAL["table_cell_padding"]}">{html.escape(c.split("[")[-1].rstrip("]"))}</th>' for i, c in enumerate(cols))
             body = ""
@@ -303,6 +382,8 @@ class Preview:
                     name = c.split("[")[-1].rstrip("]")
                     if j == 0 and r < len(first):
                         content = html.escape(first[r])
+                    elif r < len(filled.get(j) or []):
+                        content = filled[j][r]
                     else:
                         content = bar(40 + (r * 17 + j * 29) % 45)
                     style_ink = hl.get(name, ink)
@@ -333,11 +414,26 @@ class Preview:
                 return meta.split(".", 1)[-1] if meta else None
         return None
 
-    def bar_colours(self, objs: dict, n: int) -> list[str]:
-        """Accent for every bar, or the sample colours of a colour measure (one per bar, or one for all)."""
+    def bar_colours(self, objs: dict, n: int, vals: list[float] | None = None) -> list[str]:
+        """Accent for every bar, the sample colours of a colour measure (one per bar, or one for all), or
+        the rule-based colour of a target ("target" in the layout spec): bars below it in the alert colour."""
         for item in objs.get("dataPoint", []):
             if (item.get("selector") or {}).get("data"):
-                m = measure_name(((item.get("properties") or {}).get("fill") or {}).get("solid", {}).get("color"))
+                c = ((item.get("properties") or {}).get("fill") or {}).get("solid", {}).get("color") or {}
+                cond = ((c.get("expr") or {}).get("Conditional") or {}) if isinstance(c, dict) else {}
+                if cond and vals:
+                    case = (cond.get("Cases") or [{}])[0]
+                    cmp_ = (case.get("Condition") or {}).get("Comparison") or {}
+                    goal_m = ((cmp_.get("Right") or {}).get("Measure") or {}).get("Property")
+                    goal = (self.sample.get("series", {}).get(goal_m or "") or [None])[0]
+                    if goal is None:
+                        p = parse_like(self.sample.get("measures", {}).get(goal_m or ""))
+                        goal = p[1] if p else sorted(vals)[len(vals) // 2]   # no sample target: the median
+                    hit = lit(case.get("Value"), ALERT_DEFAULT)
+                    other = lit(cond.get("DefaultValue"), self.accent)
+                    below = cmp_.get("ComparisonKind", 3) in (3, 4)
+                    return [hit if (v < goal if below else v > goal) else other for v in vals][:n]
+                m = measure_name(c)
                 c = self.sample.get("colors", {}).get(m) if m else None
                 if isinstance(c, dict):
                     c = c.get("byCategory") or c.get("total")
@@ -346,6 +442,70 @@ class Preview:
                 if isinstance(c, str):
                     return [c] * n
         return [self.accent] * n
+
+    def xy_plot(self, w: float, body_h: float, labels: list[str], layers: list[dict], measure: str | None,
+                zero: bool) -> str:
+        """Value axis with round ticks and light gridlines, category labels underneath, and the layers
+        ({"kind": "col" | "line" | "target", "values": [...], "color": hex, "fills": [...]}) on one scale."""
+        n = max(len(labels), max((len(x["values"]) for x in layers), default=1), 1)
+        everything = [v for x in layers for v in x["values"]] or [0, 1]
+        lo, hi = min(everything), max(everything)
+        if zero or lo > 0 and lo < hi * 0.5:
+            lo = min(lo, 0)
+        ticks = nice_ticks(lo if zero else lo - (hi - lo) * 0.1, hi)
+        lo, hi = ticks[0], ticks[-1]
+        like = self.like(measure)
+        tick_text = [fmt(t, like) for t in ticks]
+        left = 12 + max(len(t) for t in tick_text) * 6.4 + 6
+        top, bottom, right = 8, 22, 14
+        pw, ph = max(w - left - right, 20), max(body_h - top - bottom, 20)
+        y = lambda v: ph - ph * (v - lo) / ((hi - lo) or 1)  # noqa: E731
+        lab = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2};white-space:nowrap;position:absolute"
+        out = []
+        for t, text in zip(ticks, tick_text):
+            ty = top + y(t)
+            out.append(f'<div style="position:absolute;left:{left:.0f}px;width:{pw:.0f}px;top:{ty:.1f}px;'
+                       f'border-top:1px {"solid #D6D6D6" if t == 0 else "solid #F0F0F0"}"></div>'
+                       f'<div style="{lab};right:{w - left + 6:.0f}px;top:{ty - 8:.1f}px">{html.escape(text)}</div>')
+        step = max(1, -(-n * 52 // int(pw)))                 # thin the category labels until they fit
+        slot = pw / n
+        for i, text in enumerate(labels[:n]):
+            if i % step:
+                continue
+            cx = left + slot * (i + 0.5)
+            anchor = "translateX(-50%)"
+            if cx - 26 < 12:
+                cx, anchor = 12, "none"
+            out.append(f'<div style="{lab};top:{top + ph + 5:.0f}px;left:{cx:.0f}px;transform:{anchor}">'
+                       f'{html.escape(text)}</div>')
+        svg = []
+        for layer in layers:
+            vals = layer["values"][:n]
+            if layer["kind"] == "col":
+                fills = layer.get("fills") or [layer["color"]] * n
+                bw = slot * 0.56
+                for i, v in enumerate(vals):
+                    y0, y1 = y(max(v, 0) if lo < 0 else v), y(0 if lo <= 0 else lo)
+                    svg.append(f'<rect x="{slot * i + (slot - bw) / 2:.1f}" y="{min(y0, y1):.1f}" width="{bw:.1f}" '
+                               f'height="{abs(y1 - y0):.1f}" rx="2" fill="{fills[i % len(fills)]}"/>')
+            else:
+                pts = " ".join(f"{slot * (i + 0.5):.1f},{y(v):.1f}" for i, v in enumerate(vals))
+                if layer["kind"] == "target":
+                    svg.append(f'<polyline points="{pts}" fill="none" stroke="#999999" stroke-width="1.5" '
+                               f'stroke-dasharray="4 3"/>')
+                else:
+                    if layer.get("area"):
+                        svg.append(f'<polygon points="{slot * 0.5:.1f},{ph} {pts} {slot * (len(vals) - 0.5):.1f},{ph}" '
+                                   f'fill="{layer["color"]}" fill-opacity=".08"/>')
+                    svg.append(f'<polyline points="{pts}" fill="none" stroke="{layer["color"]}" stroke-width="2" '
+                               f'stroke-linejoin="round" stroke-linecap="round"/>')
+                    if vals:
+                        lx, ly = slot * (len(vals) - 0.5), y(vals[-1])
+                        svg.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="3.5" fill="#FFFFFF" '
+                                   f'stroke="{layer["color"]}" stroke-width="2"/>')
+        out.append(f'<svg width="{pw:.0f}" height="{ph:.0f}" style="position:absolute;left:{left:.0f}px;'
+                   f'top:{top}px;overflow:visible">{"".join(svg)}</svg>')
+        return f'<div style="position:relative;height:{body_h:.0f}px">{"".join(out)}</div>'
 
     def chart(self, vtype: str, roles: dict, objs: dict, w: float, h: float) -> str:
         cat = (roles.get("Category") or [None])[0]
@@ -394,28 +554,25 @@ class Preview:
             if line_v and not shared:                      # secondary axis: the line has its own scale
                 line_v = [v / (max(line_v) or 1) * peak * 0.9 for v in line_v]
             n = len(labels)
-            fills = self.bar_colours(objs, n)
+            fills = self.bar_colours(objs, n, cols_v)
             bars = "".join(f'<rect x="{i * 100 / n + 100 / n * 0.2:.1f}" y="{66 - 60 * v / peak:.1f}" '
                            f'width="{100 / n * 0.6:.1f}" height="{60 * v / peak:.1f}" fill="{fills[i]}"/>'
                            for i, v in enumerate(cols_v))
-            svg = bars
+            del bars
+            layers = [{"kind": "col", "values": cols_v, "fills": fills, "color": self.accent}]
             if line_v:
-                pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(line_v))
-                svg += (f'<polyline points="{pts}" fill="none" stroke="{self.ink2}" stroke-width="2" '
-                        f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/>')
+                layers.append({"kind": "line", "values": line_v, "color": self.ink2})
             if target_v:
-                pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(target_v))
-                svg += (f'<polyline points="{pts}" fill="none" stroke="#999999" stroke-width="1.5" '
-                        f'stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>')
-            return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
-                    f'padding:{CAL["chart_padding"]};box-sizing:border-box">{svg}</svg>')
+                layers.append({"kind": "target", "values": list(target_v)[:n]})
+            return self.xy_plot(w, body_h, labels, layers, m, zero=True)
         n = (min(len(self.labels(cat, 10)) or 5, 10) if "bar" in kind or "column" in kind or kind == "waterfallchart"
              else 12)
         labels = self.labels(cat, n) or [""] * n
         by_measure, by_category = (self.sample.get("series", {}).get(k or "") for k in (m, cat))
         # A time series belongs to the measure; a ranking belongs to the category it ranks.
         first, second = (by_measure, by_category) if kind == "linechart" else (by_category, by_measure)
-        vals = (first or second or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
+        vals = (first or second or self.synth(m, n, trend=kind == "linechart")
+                or [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2])[:len(labels)]
         if getattr(self, "_sort_desc", False) and kind != "linechart":     # Power BI applies the visual's sort
             pairs = sorted(zip(labels, vals), key=lambda lv: -lv[1])
             labels, vals = [lv[0] for lv in pairs], [lv[1] for lv in pairs]
@@ -424,14 +581,18 @@ class Preview:
         if "bar" in kind:
             slot = (body_h + 20) / max(len(labels), 1)      # bars share the plot height, as in Power BI
             thick = min(max(slot * 0.62, 8), 28)
-            fills = self.bar_colours(objs, len(labels))
+            fills = self.bar_colours(objs, len(labels), vals)
+            name_w = min(max((max((len(x) for x in labels), default=4) * 6.6 + 8), 48), 140)
             rows = "".join(
                 f'<div style="display:flex;align-items:center;height:{slot:.1f}px">'
-                f'<div style="flex:none;width:96px;{lab};white-space:nowrap;overflow:hidden">{html.escape(l)}</div>'
-                f'<div style="height:{thick:.0f}px;width:{70 * v / peak:.0f}%;background:{fills[i]};'
-                f'border-radius:2px"></div><span style="{lab};margin-left:6px">{v:g}</span></div>'
+                f'<div style="flex:none;width:{name_w:.0f}px;{lab};white-space:nowrap;overflow:hidden">{html.escape(l)}</div>'
+                f'<div style="flex:1;display:flex;align-items:center;height:100%;border-left:1px solid #E6E6E6">'
+                f'<div style="height:{thick:.0f}px;width:{78 * v / peak:.0f}%;background:{fills[i]};'
+                f'border-radius:0 3px 3px 0"></div><span style="{lab};margin-left:6px;white-space:nowrap">'
+                f'{self.num_text(v, m)}</span></div></div>'
                 for i, (l, v) in enumerate(zip(labels, vals)))
-            return f'<div style="padding:4px 12px 0">{rows}</div>'
+            sparse = f' data-sparse="{len(labels)},{slot:.0f}"' if labels and slot > 60 else ""
+            return f'<div{sparse} style="padding:4px 12px 0">{rows}</div>'
         if "column" in kind or kind == "waterfallchart":
             waterfall = kind == "waterfallchart"
             sent = {k: self.color(prop(objs, "sentimentColors", k + "Fill"))
@@ -446,7 +607,7 @@ class Preview:
                     steps.append((l, v, 0.0, v, "column"))
             if waterfall:
                 steps.append(("Total", level, 0.0, level, "total"))
-            col_fills = self.bar_colours(objs, len(steps))
+            col_fills = self.bar_colours(objs, len(steps), [st[1] for st in steps])
             ends = [x for st in steps for x in st[2:4]] + [0.0]
             lo, hi = min(ends), max(ends)
             plot = body_h - 40                     # room for the value and category labels
@@ -457,7 +618,7 @@ class Preview:
                 top = (hi - max(a, b)) * scale
                 cols.append(f'<div style="flex:1;margin:0 6px;position:relative;height:{plot + 18:.0f}px">'
                             f'<div style="position:absolute;left:0;right:0;top:{top - 16:.0f}px;{lab};'
-                            f'text-align:center">{v:g}</div>'
+                            f'text-align:center;white-space:nowrap">{self.num_text(v, m)}</div>'
                             f'<div style="position:absolute;left:0;right:0;top:{top:.0f}px;height:{max(abs(b - a) * scale, 1):.0f}px;'
                             f'background:{fill};border-radius:2px"></div>'
                             f'<div style="position:absolute;left:0;right:0;bottom:0;{lab};text-align:center;white-space:nowrap;'
@@ -471,19 +632,11 @@ class Preview:
             series.append(self.series(extra, len(vals), [v * 0.7 for v in vals]))
         target_v = (self.sample.get("series", {}).get(target) or [max(vals) * 0.9] * len(vals))[:len(vals)] \
             if target else []
-        everything = [v for sr in series for v in sr] + list(target_v)
-        peak, low = max(everything) or 1, min(everything)     # line axes fit the data, like Power BI
-        low = 0 if low > 0 and low < peak * 0.5 else low
-        xy = lambda sr: " ".join(f"{i * 100 / (len(sr) - 1 or 1):.1f},{62 - 52 * (v - low) / ((peak - low) or 1):.1f}"  # noqa: E731
-                                 for i, v in enumerate(sr))
-        sw = num(self.style("lineChart", "lineStyles", "strokeWidth", 2), 2)
-        svg = "".join(f'<polyline points="{xy(sr)}" fill="none" stroke="{palette[i % len(palette)]}" stroke-width="{sw}" '
-                      f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' for i, sr in enumerate(series))
+        layers = [{"kind": "line", "values": sr, "color": palette[i % len(palette)], "area": len(series) == 1}
+                  for i, sr in enumerate(series)]
         if target_v:
-            svg += (f'<polyline points="{xy(target_v)}" fill="none" stroke="#999999" stroke-width="1.5" '
-                    f'stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>')
-        return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
-                f'padding:{CAL["chart_padding"]};box-sizing:border-box">{svg}</svg>')
+            layers.append({"kind": "target", "values": list(target_v)})
+        return self.xy_plot(w, body_h, labels, layers, m, zero=False)
 
     # ------------------------------------------------------------------ pages
     def render(self, mobile: bool = False, overlays: list[Path] | None = None) -> str:
@@ -586,6 +739,11 @@ CRITIC_JS = r"""
       });
       if (spilled.length) add(page, v, "clipped", spilled.length + " text(s) spill out of the visual, e.g. '" +
                                 spilled[0] + "'");
+      v.querySelectorAll("[data-sparse]").forEach(s => {
+        const [n, slot] = s.dataset.sparse.split(",").map(Number);
+        add(page, v, "sparse", n + " bars with " + slot + " px each (32 is enough) — the card is " + Math.round(r.height) +
+            " px for " + (52 + 32 * n) + " px of bars: make the row \"height\": \"auto\" with \"items\": " + n);
+      });
       v.querySelectorAll("table").forEach(t => {
         const trs = [...t.querySelectorAll("tr")].slice(1);
         const fit = trs.filter(tr => tr.getBoundingClientRect().bottom <= r.bottom + 0.5).length;
@@ -685,7 +843,7 @@ def find_browser() -> str | None:
     return None
 
 
-def screenshot(preview: "Preview", mobile: bool, out_dir: Path) -> int:
+def screenshot(preview: "Preview", mobile: bool, out_dir: Path, scale: float = 1) -> int:
     """One PNG per page: Playwright when installed, otherwise the local Edge/Chrome in headless mode."""
     out_dir.mkdir(parents=True, exist_ok=True)
     pages = preview.pages(mobile)
@@ -694,7 +852,7 @@ def screenshot(preview: "Preview", mobile: bool, out_dir: Path) -> int:
         from playwright.sync_api import sync_playwright  # optional
         with sync_playwright() as p:
             b = p.chromium.launch()
-            page = b.new_page()
+            page = b.new_page(device_scale_factor=scale)
             for (_t, w, h, body), name in zip(pages, names):
                 page.set_viewport_size({"width": w, "height": h})
                 page.set_content(Preview.document(body, margin=0))
@@ -716,7 +874,7 @@ def screenshot(preview: "Preview", mobile: bool, out_dir: Path) -> int:
             f.write_text(Preview.document(body, margin=0), encoding="utf-8")
             subprocess.run([browser, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run",
                             f"--user-data-dir={Path(tmp) / 'profile'}", f"--window-size={w},{h}",
-                            f"--screenshot={(out_dir / name).resolve()}", f.resolve().as_uri()],
+                            f"--force-device-scale-factor={scale}", f"--screenshot={(out_dir / name).resolve()}", f.resolve().as_uri()],
                            capture_output=True, timeout=120, check=False)
     return sum(1 for n in names if (out_dir / n).exists())
 
@@ -728,6 +886,7 @@ def main() -> int:
     ap.add_argument("--sample", type=Path, help="JSON with sample measure values, category labels and series")
     ap.add_argument("--mobile", action="store_true", help="render the phone layout (mobile.json)")
     ap.add_argument("--png", type=Path, metavar="DIR", help="also save one PNG per page (needs playwright)")
+    ap.add_argument("--png-scale", type=float, default=1, metavar="N", help="pixel density of the PNGs (2 = retina)")
     ap.add_argument("--overlay", type=Path, nargs="+", metavar="PNG",
                     help="Power BI Desktop screenshots, one per page in page order (or one folder of page-N.png), "
                          "drawn over the preview to calibrate it")
@@ -758,7 +917,7 @@ def main() -> int:
     args.out.write_text(Preview(args.report, sample).render(mobile=args.mobile, overlays=overlays), encoding="utf-8")
     print(f"[ok] {args.out}")
     if args.png:
-        n = screenshot(Preview(args.report, sample), args.mobile, args.png)
+        n = screenshot(Preview(args.report, sample), args.mobile, args.png, args.png_scale)
         if n:
             print(f"[ok] {n} PNG(s) in {args.png}")
     if args.critique:
