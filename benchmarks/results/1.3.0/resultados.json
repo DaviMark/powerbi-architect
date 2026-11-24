@@ -265,7 +265,7 @@
         ]
       },
       "critica_detalhe": [
-        "Visão Geral › tableEx: [clipped] 9 text(s) spill out of the visual, e.g. 'Atacadão Litoral'"
+        "Visão Geral › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
       ],
       "run": "s2-reestilizar-com",
       "cenario": "s2-reestilizar",
@@ -334,7 +334,7 @@
         ]
       },
       "critica_detalhe": [
-        "Painel de Cobrança › tableEx: [clipped] 8 text(s) spill out of the visual, e.g. 'Indústria Pinhal'"
+        "Painel de Cobrança › tableEx: [rows] 8 of 14 rows do not fit (room for 6) — keep the rows that fit (\"top\": 6 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
       ],
       "run": "s2-reestilizar-sem",
       "cenario": "s2-reestilizar",

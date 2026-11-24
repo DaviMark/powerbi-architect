@@ -221,7 +221,21 @@ function trend() {
   $("#trend").innerHTML = `<div class="legend"><span class="c">Com a skill</span><span class="s">Sem a skill</span></div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Percentual de requisitos atendidos por versão" style="color:var(--ink-2)">
     ${grid}${series("sem", "var(--grey)")}${series("com", "var(--accent)")}${labels}</svg>` +
-    (n === 1 ? `<p class="note">Primeira versão medida. A próxima entra neste gráfico ao lado desta.</p>` : "");
+    (n === 1 ? `<p class="note">Primeira versão medida. A próxima entra neste gráfico ao lado desta.</p>` : versionTable());
+}
+
+function versionTable() {
+  const pp = d => d === null ? "—" : `<span class="${d > 0 ? "up" : d < 0 ? "down" : ""}">${d > 0 ? "+" : ""}${fmt(d)} p.p.</span>`;
+  const rows = DATA.map((v, i) => {
+    const c = v.resumo.com, s = v.resumo.sem, prev = i ? pct(DATA[i - 1].resumo.com) : null;
+    return `<tr><td>v${esc(v.versao)}</td><td class="num">${fmt(pct(c))}%</td><td class="num">${fmt(pct(s))}%</td>
+      <td class="num">${pp(pct(c) - pct(s))}</td><td class="num">${prev === null ? "primeira medição" : pp(pct(c) - prev)}</td>
+      <td class="num">${c.entregas_completas} de ${c.execucoes}</td>
+      <td class="num">${c.tokens_medios ? fmt(c.tokens_medios / 1000) + " mil" : "—"}</td></tr>`;
+  }).join("");
+  return `<div style="overflow-x:auto;margin-top:16px"><table><tr><th>Versão</th><th class="num">Com a skill</th>
+    <th class="num">Sem a skill</th><th class="num">Ganho da skill</th><th class="num">Contra a versão anterior</th>
+    <th class="num">Entregas completas</th><th class="num">Tokens com a skill</th></tr>${rows}</table></div>`;
 }
 
 function method(v) {
