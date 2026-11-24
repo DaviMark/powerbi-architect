@@ -287,25 +287,29 @@
             {
               "type": "kpi",
               "measure": "Valor em Estoque",
-              "label": "Valor em estoque"
+              "label": "Valor em estoque",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "Cobertura (dias)",
               "label": "Cobertura, em dias",
               "variation": "Texto Var Cobertura",
-              "variationColor": "Cor Var Cobertura"
+              "variationColor": "Cor Var Cobertura",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "Itens Abaixo do Ponto",
-              "label": "Itens abaixo do ponto de pedido"
+              "label": "Itens abaixo do ponto de pedido",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "Valor sem Giro",
               "label": "Sem saída há 90 dias",
-              "variation": "Texto sem Giro"
+              "variation": "Texto sem Giro",
+              "trend": "dm_calendario[Ano-Mês]"
             }
           ]
         },

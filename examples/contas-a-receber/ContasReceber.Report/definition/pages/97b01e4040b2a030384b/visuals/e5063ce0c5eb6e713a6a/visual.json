@@ -4,10 +4,10 @@
   "position": {
     "x": 232,
     "y": 80,
-    "z": 10000,
+    "z": 13000,
     "width": 604,
     "height": 616,
-    "tabOrder": 10000
+    "tabOrder": 13000
   },
   "visual": {
     "visualType": "tableEx",

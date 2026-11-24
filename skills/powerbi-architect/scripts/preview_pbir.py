@@ -126,6 +126,12 @@ def nice_ticks(lo: float, hi: float, n: int = 4) -> list[float]:
     return ticks
 
 
+
+def mix(a: str, b: str, t: float) -> str:
+    """Colour between a (t = 0) and b (t = 1)."""
+    ca, cb = (tuple(int(x.lstrip("#")[k:k + 2], 16) for k in (0, 2, 4)) for x in (a, b))
+    return "#" + "".join(f"{round(p + (q - p) * t):02X}" for p, q in zip(ca, cb))
+
 class Preview:
     def __init__(self, report: Path, sample: dict | None):
         self.report = report
@@ -373,7 +379,8 @@ class Preview:
                     meas = c if not c.startswith("[") else (roles.get("Values") or [None])[0]
                     raw = self.sample.get("series", {}).get(meas or "") or self.synth(meas, n_rows, offset=j * 3)
                     filled[j] = [self.num_text(x, meas) for x in raw[:n_rows]]
-            head = "".join(f'<th style="text-align:{"left" if i == 0 else "right"};font-weight:600;color:{ink2};'
+            is_text = lambda i: i == 0 or ("[" in cols[i] and not cols[i].startswith("["))  # noqa: E731
+            head = "".join(f'<th style="text-align:{"left" if is_text(i) else "right"};font-weight:600;color:{ink2};'
                            f'padding:{CAL["table_cell_padding"]}">{html.escape(c.split("[")[-1].rstrip("]"))}</th>' for i, c in enumerate(cols))
             body = ""
             for r in range(n_rows):
@@ -387,7 +394,7 @@ class Preview:
                     else:
                         content = bar(40 + (r * 17 + j * 29) % 45)
                     style_ink = hl.get(name, ink)
-                    cells.append(f'<td style="padding:{CAL["table_cell_padding"]};color:{style_ink};text-align:{"left" if j == 0 else "right"};'
+                    cells.append(f'<td style="padding:{CAL["table_cell_padding"]};color:{style_ink};text-align:{"left" if is_text(j) else "right"};'
                                  f'border-top:1px solid #F1F1F1">{content}</td>')
                 body += "<tr>" + "".join(cells) + "</tr>"
             # A full-height list scrolls in Power BI; a short table must fit its rows (the critic counts them).
@@ -421,6 +428,15 @@ class Preview:
             if (item.get("selector") or {}).get("data"):
                 c = ((item.get("properties") or {}).get("fill") or {}).get("solid", {}).get("color") or {}
                 cond = ((c.get("expr") or {}).get("Conditional") or {}) if isinstance(c, dict) else {}
+                rule = ((c.get("expr") or {}).get("FillRule") or {}) if isinstance(c, dict) else {}
+                grad = (rule.get("FillRule") or {}).get("linearGradient2") or {}
+                if grad and vals:
+                    def stop(k, default):
+                        v = (((grad.get(k) or {}).get("color") or {}).get("Literal") or {}).get("Value")
+                        return v.strip("'") if isinstance(v, str) else default
+                    lo_c, hi_c = stop("min", "#D4D4D8"), stop("max", self.accent)
+                    lo, hi = min(vals), max(vals)
+                    return [mix(lo_c, hi_c, (v - lo) / (hi - lo) if hi > lo else 1) for v in vals][:n]
                 if cond and vals:
                     case = (cond.get("Cases") or [{}])[0]
                     cmp_ = (case.get("Condition") or {}).get("Comparison") or {}
@@ -510,6 +526,25 @@ class Preview:
         m = (roles.get("Y") or [None])[0]
         kind = vtype.lower()
         body_h = h - CAL["chart_reserved_height"]
+        hidden = lambda o: str(lit(prop(objs, o, "show"))).lower() == "false"  # noqa: E731
+        if kind == "linechart" and hidden("categoryAxis") and hidden("valueAxis"):
+            # A trend inside a KPI card: one thin line on its own scale, no axes, no labels.
+            labels = self.labels(cat, 12) or [""] * 12
+            # The sample's own series when it has one; otherwise a gentle monthly climb with some noise
+            # (unrounded: rounding a total shared by 12 months to the KPI's decimals draws steps).
+            vals = self.sample.get("series", {}).get(m or "") or [
+                TREND[i % len(TREND)] * (0.9 + 0.1 * WOBBLE[(i * 5 + len(m or "")) % len(WOBBLE)])
+                for i in range(len(labels))]
+            vals = vals[:len(labels)]
+            lo, hi = min(vals), max(vals)
+            span = (hi - lo) or 1
+            stroke = self.color(prop(objs, "dataPoint", "fill"), self.ink2)
+            pts = " ".join(f"{2 + i * (w - 4) / max(len(vals) - 1, 1):.1f},{h - 3 - (h - 6) * (v - lo) / span:.1f}"
+                           for i, v in enumerate(vals))
+            last = pts.split()[-1].split(",")
+            return (f'<svg width="{w}" height="{h}" style="display:block"><polyline points="{pts}" fill="none" '
+                    f'stroke="{stroke}" stroke-width="1.5" stroke-linejoin="round"/>'
+                    f'<circle cx="{last[0]}" cy="{last[1]}" r="2.5" fill="{self.ink}"/></svg>')
         if kind == "scatterchart":
             names = self.labels(cat, 12) or [""] * 12
             xs = self.series((roles.get("X") or [None])[0], len(names), [2, 3.5, 5, 6, 7.5, 3, 8, 4.5, 6.5, 9, 2.5, 5.5])

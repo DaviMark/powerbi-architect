@@ -18,15 +18,15 @@ sidebar and keep the panel and top bar). Canvas 1280×720, positions in px:
 
 | Piece | Position (x, y, w, h) | Spec |
 |---|---|---|
-| Canvas | 0, 0, 1280, 720 | page background `#F5F5F7` (theme `page.background`) |
-| Sidebar | 0 – 220 | no shape: sits on the grey canvas, 8 px inner padding |
-| App mark | 16, 20, 16, 16 | rounded square in the accent colour, or the 16 px logo |
-| App name | 40, 16, 172, 24 | text box, 10 pt Segoe UI Semibold, `#1D1D1F` |
-| Section label | 8, 52, 204, 24 | text box, 9 pt, `#6E6E73` ("Páginas", "Apoio") |
-| Page navigator | 8, 76, 204, 32·n | vertical, 32 px items, radius 8, text 10 pt left-aligned with a 32 px margin; default `#6E6E73` on transparent, hover `#ECECF0`, selected `#E5E5EA` + `#1D1D1F` semibold. Only visible pages (drill-through and tooltip pages are hidden) |
+| Canvas | 0, 0, 1280, 720 | page background `#F4F4F5` (theme `page.background`) |
+| Sidebar | 0, 0, 224, 720 | white shape with a 1 px `#E4E4E7` line at x 224; "updated at" at its foot (16, 680) |
+| App mark | 16, 20, 16, 16 | rounded square in the accent (ink `#18181B`), or the 16 px logo |
+| App name | 40, 16, 172, 24 | text box, 10 pt Segoe UI Semibold, `#18181B` |
+| Section label | 8, 52, 204, 24 | text box, 9 pt, `#71717A` ("Páginas", "Apoio") |
+| Page navigator | 8, 76, 204, 32·n | vertical, 32 px items, radius 8, text 10 pt left-aligned with a 32 px margin; default `#71717A`, hover `#F4F4F5`, selected `#E4E4E7` + `#18181B` semibold. Only visible pages (drill-through and tooltip pages are hidden) |
 | Page icons | 16, 84 + 32·i, 16, 16 | one 16 px Tabler icon per visible page, grey, centred on its navigator item ([templates/icons](../templates/icons/README.md)) |
-| Breadcrumb | 232, 28, ≤ 520, 24 | text box: `<Report>  /  ` 12 pt `#6E6E73` + page name 12 pt semibold `#1D1D1F`; on drill-through pages a 24 px back arrow at 232 and the breadcrumb at 264 (`<Report> / <Parent> / <Page>`) |
-| Top bar right | right edge 1256, y 20–28 | "Updated at" text (9 pt `#6E6E73`, card without chrome) and ≤ 2 compact slicers (176×40) |
+| Header | 232, 8, ≤ 520, 24 and 232, 32, 600, 36 | trail `<Report>` (9 pt `#71717A`, `<Report>  /  <Parent>` on drill-through) above the page name (14 pt semibold `#18181B`); on drill-through pages a 24 px back arrow at 232 and the text at 264 |
+| Top bar right | right edge 1256, y 20 | ≤ 2 compact slicers (176×40) |
 | Content | 232, 80, 1024, 616 | everything else lives here, 16 px gutters |
 
 `scripts/pbir_layout.py` writes all of this from a layout spec. The theme in [templates/theme/](../templates/theme/powerbi-architect-acessivel.json) already styles the
@@ -35,16 +35,18 @@ navigator, cards, tables, slicers, text boxes and shapes this way; the example
 [templates/pbir-pages/](../templates/pbir-pages/README.md) implement the shell. Copy them, do not redraw it.
 
 **Components inside the content area:**
-- KPI card: white, no border, radius 8, on the grey canvas; label 9 pt `#6E6E73` (container title);
-  value 20 pt semibold `#1D1D1F`; one 9 pt line at the bottom (12 px in, 20 px high): context ("R$ 14,4 mi ainda a
+- KPI card: white, 1 px `#E4E4E7` border, radius 12, on the grey canvas; label 9 pt `#71717A` (container
+  title); value 20 pt semibold `#18181B`; with `"trend"`, a thin grey trend line (88×36) at the right; one 9 pt line at the bottom (12 px in, 20 px high): context ("R$ 14,4 mi ainda a
   vencer", grey) or distance to target / previous period with ▲/▼ coloured by a measure that knows
   whether up is good ([dax.md](dax.md) › KPI lines). Height 88, 4 per row.
 - Chart card: title 10 pt semibold, sentence case, left; bars and columns with 45 % inner padding
-  (thin, never slabs) and data labels instead of a value axis; trends keep a light value axis with
-  `#EDEDF0` gridlines; no axis titles, legend only with 2+ series (top-left, 9 pt).
-- Table: header 9 pt semibold `#6E6E73`, values 9 pt `#1D1D1F`, horizontal hairlines `#F5F5F7` only,
-  numbers right-aligned, no zebra stripes, no vertical grid.
-- Colour: one accent for the focus series, greys for context, green/red only for good/bad.
+  (thin, never slabs) and data labels instead of a value axis; rankings and categories shaded by value,
+  pale grey up to ink, so the eye lands on the largest first (months stay one colour); trends keep a
+  light value axis with dashed `#EBEBEE` gridlines; no axis titles, legend only with 2+ series.
+- Table: header 9 pt semibold `#71717A`, values 9 pt `#18181B`, horizontal hairlines `#F4F4F5` only,
+  text left-aligned, numbers right-aligned, no zebra stripes, no vertical grid.
+- Colour: ink `#18181B` and greys carry the data; green/red only for good/bad; a brand colour, when
+  there is one, replaces the ink as the accent (`make_theme.py --primary`).
 
 ## 1. Mindset
 Great products start from the experience of the person using them and work backwards to the technology.
@@ -90,20 +92,21 @@ For each page, fill this before placing any visual:
   `PBI048`); 1 px hairlines are the only exception.
 - Spacing scale (Twenty's): 4 · 8 · 12 · 16 · 24 · 32. Gutter between cards **16**; panel padding
   **12**; never mix two gutters on one page.
-- **Z‑pattern**: top‑left = most important (breadcrumb + headline KPI), top‑right = context (updated
-  at, filters), middle = explanation, bottom = detail.
+- **Z‑pattern**: top‑left = most important (breadcrumb + headline KPI), top‑right = filters, bottom of the
+  sidebar = updated at, middle = explanation, bottom = detail.
 - Rows inside the content area (y 80 → 696): KPI row **88** · main row **248** · bottom row **248**
   (88 + 16 + 248 + 16 + 248 = 616). Two-column rows split 2:1 (672 + 16 + 336) or 1:1 (504 + 16 + 504).
 - Equal widths within a row; left edges of everything in a column aligned; equal heights in a row.
 - Whitespace is a feature: never fill empty space with another visual.
 
 ```
-┌ sidebar 220 ┬─ panel (white, radius 8) ────────────────────────────────────────┐
-│ ■ App name  │ Report / Page                     Updated at …   [Segment ▾]   │ 56
-│ Páginas     ├──────────────────────────────────────────────────────────────────┤
-│ ▌Overview   │ KPI 244×88   │ KPI 244×88   │ KPI 244×88   │ KPI 244×88         │
+┌ sidebar 224 ┬ canvas #F4F4F5 ──────────────────────────────────────────────────┐
+│ ■ App name  │ Report                                          [Segment ▾]   │
+│ Páginas     │ Page name                                                      │ 72
+│ ▌Overview   │ KPI ∿ 244×88 │ KPI ∿ 244×88 │ KPI ∿ 244×88 │ KPI ∿ 244×88       │
 │  Customers  │ Explanation 672×248                    │ Breakdown 336×248     │
 │  Docs       │ Detail / ranking 1024×248                                       │
+│ Updated at  │                                                                  │
 └─────────────┴──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -133,11 +136,11 @@ say why. Never DIN (the Power BI default look), Comic Sans, Impact, Arial Black 
 
 | Use | Size | Weight · colour |
 |---|---|---|
-| Page title / breadcrumb current page | 12 | semibold · `#333333` |
-| Visual title, app name, navigator item | 10 | semibold (title, app) or regular · `#333333`/`#666666` |
-| Body: table values, slicer items, data labels, axis labels, KPI label | 9 | regular · `#333333`/`#666666` |
-| Secondary: updated at, section labels, breadcrumb parent, legend | 9 | regular · `#757575` |
-| KPI value | 20 (max 24) | semibold · `#333333` |
+| Page name (header) | 14 | semibold · `#18181B` |
+| Visual title, app name, navigator item | 10 | semibold (title, app) or regular · `#18181B`/`#71717A` |
+| Body: table values, slicer items, data labels, axis labels, KPI label | 9 | regular · `#18181B`/`#71717A` |
+| Secondary: updated at, section labels, report trail, legend | 9 | regular · `#71717A` |
+| KPI value | 20 (max 24) | semibold · `#18181B` |
 
 Limits enforced by the audit (`PBI047`): text boxes ≤ 14 pt, KPI values ≤ 24 pt, everything else
 ≤ 12 pt. Minimum 9 pt anywhere.
@@ -151,14 +154,13 @@ Limits enforced by the audit (`PBI047`): text boxes ≤ 14 pt, KPI values ≤ 24
   status and only when the business agrees on what "good" is. **Never** decorative color per category.
 - ≤ 6 categorical colors; beyond that, group into "Others" or use small multiples.
 - Same meaning, same color across all pages (e.g., "Online" is always the 2nd palette color).
-- Neutrals (Twenty's): canvas `#F1F1F1`, panels and cards `#FFFFFF`, borders `#EBEBEB` (strong
-  `#D6D6D6`), text `#333333` / `#666666` / `#757575` (Twenty uses `#999999` for tertiary text; it fails
-  4.5:1, so this skill darkens it). One accent (`#3E63DD` by default, or the brand's) for focus and
-  selection. No gradients, glow, shadows, 3D.
+- Neutrals: canvas `#F4F4F5`, sidebar and cards `#FFFFFF`, borders `#E4E4E7`, text `#18181B` /
+  `#71717A`. The accent is ink (`#18181B`) or the brand's colour. The only gradient is a bar's shade by
+  its own value (pale grey to ink); no glow, shadows, 3D.
 - Contrast ≥ 4.5:1 for text, ≥ 3:1 for graphical objects. Don't rely on color alone — add labels/icons.
 - No brand theme yet? Start from [templates/theme/powerbi-architect-acessivel.json](../templates/theme/powerbi-architect-acessivel.json):
-  Twenty-inspired neutrals, 6 categorical colors (≥ 3:1 on white, distinguishable with protanopia,
-  deuteranopia and tritanopia), status colors, Segoe UI, the type scale, styled visuals, no gridlines.
+  zinc neutrals, 6 categorical colors (≥ 3:1 on white, distinguishable with protanopia,
+  deuteranopia and tritanopia), status colors, Segoe UI, the type scale, styled visuals.
   Register it as `customTheme` ([pbir.md](pbir.md) › Theme registration). For a brand, run
   `make_theme.py`, never hand-pick categorical colours: it keeps contrast and colour-blind safety
   (`PBI065` flags palettes that clash).

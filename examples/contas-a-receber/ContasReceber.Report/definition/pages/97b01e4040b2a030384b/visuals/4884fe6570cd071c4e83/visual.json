@@ -4,10 +4,10 @@
   "position": {
     "x": 16,
     "y": 20,
-    "z": 0,
+    "z": 2000,
     "width": 16,
     "height": 16,
-    "tabOrder": 0
+    "tabOrder": 2000
   },
   "visual": {
     "visualType": "shape",
@@ -40,7 +40,7 @@
                 "color": {
                   "expr": {
                     "Literal": {
-                      "Value": "'#2F6FEB'"
+                      "Value": "'#18181B'"
                     }
                   }
                 }

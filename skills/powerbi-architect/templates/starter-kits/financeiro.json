@@ -318,26 +318,30 @@
               "measure": "Receita Líquida",
               "label": "Receita líquida",
               "variation": "Texto Var Receita",
-              "variationColor": "Cor Var Receita"
+              "variationColor": "Cor Var Receita",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "EBITDA",
               "label": "EBITDA",
               "variation": "Texto Var EBITDA",
-              "variationColor": "Cor Var EBITDA"
+              "variationColor": "Cor Var EBITDA",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "% Margem EBITDA",
-              "label": "Margem EBITDA"
+              "label": "Margem EBITDA",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "Despesas Operacionais",
               "label": "Despesas operacionais",
               "variation": "Texto Var Despesas",
-              "variationColor": "Cor Var Despesas"
+              "variationColor": "Cor Var Despesas",
+              "trend": "dm_calendario[Ano-Mês]"
             }
           ]
         },
@@ -384,9 +388,9 @@
               "title": "Da receita bruta ao EBITDA",
               "sort": "category",
               "sentiment": {
-                "increase": "#2E9E6B",
+                "increase": "#18181B",
                 "decrease": "#E5484D",
-                "total": "#8E8E93"
+                "total": "#A1A1AA"
               },
               "alt": "Cascata da DRE da receita bruta ao EBITDA"
             }

@@ -71,7 +71,7 @@ Os códigos `PBI044` e `PBI045` estão reservados para as regras propostas nas i
 | PBI063 | Sugestão | 6 | Cartões de KPI estreitos demais ou muitos na mesma linha | No máximo 5 cartões por linha, cada um com pelo menos 176 px, para caberem o valor e a linha de contexto. | — |
 | PBI064 | Sugestão | 6 | Gráfico pequeno demais para ler | Pelo menos 200 × 140 px; menor que isso, prefira um cartão. Páginas de tooltip são exceção. | — |
 | PBI065 | Sugestão | a11y | Cores do tema que se confundem para quem tem daltonismo | Duas das 6 primeiras cores de categoria ficam parecidas demais com protanopia, deuteranopia ou tritanopia simuladas (cerca de 1 em cada 12 homens). Gere o tema com `make_theme.py`, que escolhe uma paleta que continua distinguível. | — |
-| PBI066 | Sugestão | 6 | Cantos mais arredondados que 8 px | Use de 0 a 8 px. Cartões muito arredondados parecem modelo pronto, a "cara de dashboard feito por IA", e não um produto. | — |
+| PBI066 | Sugestão | 6 | Cantos mais arredondados que 12 px | Use de 0 a 12 px (o tema usa 12). Cartões muito arredondados parecem modelo pronto, a "cara de dashboard feito por IA", e não um produto. | — |
 | PBI067 | Sugestão | 6 | Sombra ou brilho num visual | Use a borda fina. Profundidade acrescenta ruído, não significado. | — |
 | PBI068 | Sugestão | 6 | Gutters irregulares, apertados ou largos demais | Mantenha 16 px entre vizinhos, o mesmo em toda a página. Menos de 8 px parece apertado; mais de 32 px desconecta. | — |
 | PBI069 | Sugestão | 1 | Dois visuais mostrando a mesma coisa | Dois gráficos do mesmo tipo com os mesmos campos na mesma página, como uma cópia esquecida. Fique com um e use o espaço para outra pergunta. | — |

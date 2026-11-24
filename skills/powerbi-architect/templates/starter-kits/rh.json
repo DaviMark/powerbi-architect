@@ -304,24 +304,28 @@
               "type": "kpi",
               "measure": "Headcount",
               "label": "Pessoas no quadro",
-              "variation": "Texto Admissões"
+              "variation": "Texto Admissões",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "Turnover Mensal",
               "label": "Turnover mensal médio",
               "variation": "Texto Var Turnover",
-              "variationColor": "Cor Var Turnover"
+              "variationColor": "Cor Var Turnover",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "% Voluntário",
-              "label": "Desligamentos a pedido"
+              "label": "Desligamentos a pedido",
+              "trend": "dm_calendario[Ano-Mês]"
             },
             {
               "type": "kpi",
               "measure": "Salário Médio",
-              "label": "Salário base médio"
+              "label": "Salário base médio",
+              "trend": "dm_calendario[Ano-Mês]"
             }
           ]
         },

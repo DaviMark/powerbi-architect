@@ -9,11 +9,11 @@
       "icon": "layout-dashboard",
       "rows": [
         {"height": 88, "visuals": [
-          {"type": "kpi", "measure": "Valor Aberto", "label": "Saldo em aberto", "variation": "Texto A Vencer"},
-          {"type": "kpi", "measure": "Valor Vencido", "label": "Vencido", "variation": "Texto Clientes Vencidos"},
-          {"type": "kpi", "measure": "% Vencido", "label": "% do saldo vencido",
+          {"type": "kpi", "trend": "dm_calendario[Ano-Mês]", "measure": "Valor Aberto", "label": "Saldo em aberto", "variation": "Texto A Vencer"},
+          {"type": "kpi", "trend": "dm_calendario[Ano-Mês]", "measure": "Valor Vencido", "label": "Vencido", "variation": "Texto Clientes Vencidos"},
+          {"type": "kpi", "trend": "dm_calendario[Ano-Mês]", "measure": "% Vencido", "label": "% do saldo vencido",
            "variation": "Texto Var % Vencido", "variationColor": "Cor Var % Vencido"},
-          {"type": "kpi", "measure": "Atraso Médio (dias)", "label": "Dias de atraso, média ponderada",
+          {"type": "kpi", "trend": "dm_calendario[Ano-Mês]", "measure": "Atraso Médio (dias)", "label": "Dias de atraso, média ponderada",
            "variation": "Texto Var Dias Atraso", "variationColor": "Cor Var Dias Atraso"}
         ]},
         {"height": 248, "split": [2, 1], "visuals": [
@@ -38,7 +38,7 @@
         {"height": 264, "split": [2, 1], "visuals": [
           {"type": "waterfallChart", "category": "ft_titulos[Faixa Atraso]", "values": ["Valor Vencido"],
            "title": "Como as faixas compõem o vencido", "sort": "category",
-           "sentiment": {"increase": "#E5484D", "decrease": "#2E9E6B", "total": "#8E8E93"},
+           "sentiment": {"increase": "#E5484D", "decrease": "#18181B", "total": "#A1A1AA"},
            "alt": "Cascata do valor vencido por faixa de atraso, até o total"},
           {"type": "clusteredBarChart", "category": "dm_cliente[Segmento]", "values": ["Valor Vencido"],
            "title": "Vencido por segmento", "sort": "desc",
