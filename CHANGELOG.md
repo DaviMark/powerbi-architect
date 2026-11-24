@@ -26,6 +26,27 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 - Referência `chart-craft.md`, com a receita de acabamento de cada visual, formatos de número, técnicas
   de DAX e a revisão de três segundos.
 - Galeria de componentes em `docs/galeria`, gerada por `tools/generate_gallery.py`.
+- **Crítica pixel a pixel** (`preview_pbir.py --critique`): mede a página renderizada no navegador e
+  aponta:
+  - texto cortado ou vazando, e valor que não cabe;
+  - texto colado na borda;
+  - tabela mais larga que o cartão;
+  - visuais sobrepostos;
+  - gutters irregulares, apertados ou largos demais;
+  - linhas de gráficos fora da mesma grade de colunas;
+  - cartões grandes demais para o conteúdo.
+
+  O `SKILL.md` exige criticar, corrigir e repetir até zerar antes de entregar.
+- Auditoria contra a "cara de dashboard genérico": cantos acima de 8 px (`PBI066`), sombras
+  (`PBI067`), gutters irregulares (`PBI068`) e visuais duplicados (`PBI069`).
+- Auditoria de números: média de percentual (`PBI070`), saldo somado no tempo (`PBI071`), formato
+  incoerente (`PBI072`). No SQL de origem: junção implícita ou sem chave (`PBI073`), NOLOCK (`PBI074`),
+  DISTINCT na fato (`PBI075`), SELECT * (`PBI076`) e função no WHERE (`PBI077`).
+- `scripts/reconcile.py`: compara os números do relatório com os da origem, linha a linha, com
+  tolerância, chaves faltantes e totais. Gera também a consulta DAX a exportar. A referência
+  `numbers.md` traz o roteiro da prova e as armadilhas de DAX, SQL e M.
+- Visuais customizados: seção de acabamento de visual nativo na referência `custom-visuals.md`.
+- Avaliações E13 (rodada 2) e E14, sobre edições manuais (`evals/results/2026-11-24-e13r2-e14`).
 - Padrão visual inspirado no Twenty, o CRM open source: estrutura de página com sidebar de 220 px e
   navegação de páginas, painel branco com cantos de 8 px e barra do topo de 56 px (caminho da página, data
   da carga e filtros compactos), com a posição de cada peça em `references/report-design.md`.
@@ -89,6 +110,9 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   `Atraso Médio (dias)`.
 - Linhas de texto sem moldura (variação do KPI, data da carga) não contam como visuais separados.
 ### Corrigido
+- Extrair e gerar de novo um relatório editado à mão duplicava os visuais criados pelo usuário; o
+  `--extract` agora fixa páginas e visuais nas pastas existentes (encontrado pela avaliação E14).
+- Tabelas com mais de 3 colunas não cabiam no layout de celular; agora ficam de fora dele.
 - A paleta padrão tinha dois laranjas iguais para quem tem protanopia (#D14E00 e #AD6200); trocada.
 - O calendário dos kits e do exemplo não cobria os meses mais antigos das tabelas fato; agora vai da
   primeira à última data da fato, em anos completos.
