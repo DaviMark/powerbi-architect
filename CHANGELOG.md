@@ -6,6 +6,13 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 
 ## [Não publicado]
 ### Adicionado
+- Regra `PBI080`: título ou texto alternativo com cara de texto gerado (travessão ligando frases,
+  elogio vazio como `robusto` ou `insights`, abertura de enchimento, emoji). A lista completa está em
+  `copywriting.md` §6 e um teste aplica as mesmas regras ao README, ao guia e ao `SKILL.md`.
+- Revisão da página antes dos visuais: cinco segundos olhando, e a pergunta "qual é o número principal
+  e ele está bom ou ruim?". Achados de revisão agrupados em "impede a decisão", "atrasa" e "acabamento".
+- Quantos KPIs cabem por público (diretoria 3 a 4, gestão até 8, analistas conforme a necessidade) em
+  `report-design.md`.
 - **Meta em todo gráfico que tem meta.** `"target"` em gráfico de barras ou colunas pinta de vermelho
   as barras abaixo da meta, com a cor por regra do próprio Power BI (sem medida DAX extra);
   `"higherIsBetter": false` inverte para custos e atrasos. O `--extract` lê a meta de volta.
