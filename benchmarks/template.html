@@ -227,7 +227,7 @@ function trend() {
 function method(v) {
   const items = [
     "Cada versão roda os mesmos cenários duas vezes: uma com a skill (a IA lê o SKILL.md e pode usar os scripts) e outra sem (a IA não pode abrir o repositório). A ordem entre as condições alterna de um cenário para o outro.",
-    "Os cenários usam modelos que a skill não traz (logística, atendimento, compras), um projeto editado à mão entre dois pedidos e um relatório amador para reestilizar.",
+    "Dois cenários: um relatório novo a partir de um modelo de logística que a skill não traz, e um relatório amador para reestilizar sem perder informação.",
     ...v.requisitos.map(r => `<strong>${esc(r.nome)}</strong>: ${esc(r.descricao)}.`),
     "Consumo: tokens, chamadas de ferramenta e tempo de cada execução, como o agente informa ao terminar. A média é por condição.",
     "Limites: uma execução por cenário e condição; os relatórios não foram abertos no Power BI Desktop; as imagens vêm do preview da skill.",

@@ -6,13 +6,13 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 
 ## [Não publicado]
 ### Adicionado
-- **Benchmark por versão** em `benchmarks/`. A cada versão, a mesma IA recebe cinco pedidos com a skill e
-  os mesmos cinco sem ela: dois modelos novos, um relatório de logística, um projeto editado à mão e um
-  relatório amador para reestilizar. O `benchmarks/run.py` prepara as pastas, registra o consumo e
+- **Benchmark por versão** em `benchmarks/`. A cada versão, a mesma IA recebe dois pedidos com a skill e
+  os mesmos dois sem ela: um relatório novo a partir de um modelo de logística e um relatório amador
+  para reestilizar. O `benchmarks/run.py` prepara as pastas, registra o consumo e
   confere sete requisitos por ferramenta: abre sem erro, zero bloqueadores, harmonia, acessibilidade,
   crítica pixel a pixel, pedido atendido e números seguros. Ele também gera `benchmarks/index.html`, que
   compara a skill com a IA sem a skill em cada versão e mostra a evolução entre versões. Na versão
-  1.3.0, com a skill, a IA atendeu 94% dos requisitos, contra 49% sem ela.
+  1.3.0, com a skill, a IA atendeu 93% dos requisitos, contra 43% sem ela.
 
 ## [1.3.0] — 2026-11-24
 ### Adicionado

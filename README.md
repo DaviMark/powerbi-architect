@@ -48,8 +48,8 @@ atendeu **16 de 18** itens esperados com a skill e **6 de 18** sem ela (8 de 10 
 com correção às cegas. As respostas brutas estão no repositório. No design, com um modelo que a skill
 nunca tinha visto, [dois modelos de IA](evals/results/2026-11-22-design-e13/README.md) passaram de
 harmonia 0 para 100 com a skill, e um avaliador cego preferiu a versão com a skill nos dois casos.
-No [benchmark da versão 1.3.0](benchmarks/README.md), cinco relatórios feitos com a skill atenderam
-**94%** dos requisitos conferidos por ferramenta, contra **49%** sem ela. Cada versão nova é medida do
+No [benchmark da versão 1.3.0](benchmarks/README.md), os relatórios feitos com a skill atenderam
+**93%** dos requisitos conferidos por ferramenta, contra **43%** sem ela. Cada versão nova é medida do
 mesmo jeito.
 
 ## Os oito princípios
@@ -318,8 +318,8 @@ Detalhes em [SECURITY.md](SECURITY.md).
 
 - [`evals/`](evals/README.md): dez cenários com comportamento esperado, os materiais de apoio e os
   [resultados publicados](evals/results/2026-11-21/README.md), com as respostas brutas.
-- [`benchmarks/`](benchmarks/README.md): a cada versão, cinco execuções com a skill e cinco sem, nos
-  mesmos cenários, com consumo médio de tokens e tempo, os mesmos sete requisitos e uma
+- [`benchmarks/`](benchmarks/README.md): a cada versão, os mesmos dois pedidos com a skill e sem
+  ela, com consumo médio de tokens e tempo, os mesmos sete requisitos e uma
   [página](benchmarks/index.html) que compara as versões.
 - CI no Linux e no Windows, do Python 3.9 ao 3.13: testes da auditoria, do grafo e dos instaladores sobre o
   projeto de exemplo; todo exemplo de código das referências conferido; JSON validado pelos schemas da
