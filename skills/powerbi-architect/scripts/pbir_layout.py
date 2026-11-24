@@ -41,6 +41,10 @@ Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, wat
   combo     {"category": field, "values": [column measures], "lineValues": [line measures]}
   scatter   {"details": field, "x": measure, "y": measure, "size": measure}
   kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
+Chart craft: "target": m on lineChart and combo adds the target as a thin grey dashed line;
+"colorMeasure": m on bar and column charts colours each bar from a measure that returns a hex (red below
+target, accent otherwise). Row "height": "auto" fits the content (bars: 52 + 32 per expected category,
+set "items": n on the visual); "fill" takes what is left of the 616 px.
 A field parameter is just a column: use its column as "category" or "rows" and put a slicer on it.
 Every data visual needs "alt" (alt text) and "title" or "titleMeasure" (kpi uses "label").
 Row heights plus 16 px gutters must fit the 616 px content area. --check validates without writing.
@@ -68,6 +72,7 @@ from pathlib import Path
 
 SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition"
 INK, INK3, LINE, ACCENT = "#333333", "#757575", "#EBEBEB", "#3E63DD"
+TARGET = "#999999"   # target and reference series: visible, but quieter than the data
 PAGE_W, PAGE_H = 1280, 720
 CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H, GUTTER = 232, 80, 1024, 616, 16
 NAV_X, NAV_Y, NAV_ITEM = 8, 76, 32
@@ -353,6 +358,40 @@ class Builder:
         v["drillFilterOtherVisuals"] = True
         return v
 
+    # ------------------------------------------------------------------ chart craft
+    def target_series(self, measure: str) -> dict:
+        """The target as a thin grey dashed line without labels: context, not a second story."""
+        _, entity, prop = self.ref(measure)
+        sel = {"metadata": f"{entity}.{prop}"}
+        return {"dataPoint": [{"properties": {"fill": color(TARGET)}, "selector": sel}],
+                "lineStyles": [{"properties": {"lineStyle": lit("'dashed'"), "strokeWidth": lit("1D"),
+                                               "showMarker": lit("false")}, "selector": sel}],
+                "labels": [{"properties": {"showSeries": lit("false")}, "selector": sel}]}
+
+    def colour_by(self, measure: str) -> dict:
+        """Bar colour from a measure that returns a hex per category (e.g. red below the target)."""
+        return {"properties": {"fill": {"solid": {"color": self.measure_expr(measure)}}},
+                "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}
+
+    @staticmethod
+    def auto_height(visuals: list[dict]) -> int:
+        """Row height that fits its content: bars grow with the expected number of categories."""
+        need = 0
+        for v in visuals:
+            t, n = v.get("type"), v.get("items")
+            if t in ("kpi", "card"):
+                h = 88
+            elif t == "kpiTrend":
+                h = 120
+            elif t == "clusteredBarChart" and n:
+                h = 52 + 32 * n                         # title + 32 px per bar (24 bar + 8 gap)
+            elif t in ("tableEx", "matrix") and n:
+                h = 64 + 28 * min(n, 20)                # header + rows
+            else:
+                h = 248
+            need = max(need, max(h, 160) if t not in ("kpi", "card") else h)
+        return -(-need // 4) * 4
+
     # ------------------------------------------------------------------ components
     def component(self, spec: dict, pos):
         """Return [(key, pos, visual), ...] for one spec visual placed at pos."""
@@ -377,17 +416,30 @@ class Builder:
             return out
         if t in CHARTS:
             cat_role = "Category"
+            values = list(spec["values"])
+            if spec.get("target") and t == "lineChart":
+                values.append(spec["target"])
             roles = {cat_role: {"projections": [self.proj(spec["category"])]},
-                     "Y": {"projections": [self.proj(m) for m in spec["values"]]}}
+                     "Y": {"projections": [self.proj(m) for m in values]}}
             sort = None
             if spec.get("sort") == "desc":
                 sort = (spec["values"][0], "Descending")
             elif spec.get("sort") in ("asc", "category"):
                 sort = (spec["category"], "Ascending")
-            objects = None
+            objects = {}
             if t == "waterfallChart" and spec.get("sentiment"):
                 s = spec["sentiment"]
                 objects = {"sentimentColors": [{"properties": {k + "Fill": color(v) for k, v in s.items()}}]}
+            if spec.get("target") and t == "lineChart":
+                objects.update(self.target_series(spec["target"]))
+            if spec.get("colorMeasure"):
+                if t not in ("clusteredBarChart", "clusteredColumnChart"):
+                    raise SpecError(f"'colorMeasure' works on bar and column charts, not {t}")
+                objects["dataPoint"] = [self.colour_by(spec["colorMeasure"])]
+            if spec.get("target") and t != "lineChart":
+                raise SpecError(f"'target' draws a dashed line on lineChart and combo; on {t} use 'colorMeasure' "
+                                "(a measure that returns red below the target)")
+            objects = objects or None
             return [(key, pos, self.data_visual(t, roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort,
                                                 objects=objects, tooltip_page=spec.get("tooltipPage")))]
@@ -413,13 +465,17 @@ class Builder:
             return [(key, pos, self.data_visual(vtype, roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort, objects=objects))]
         if t == "combo":
+            lines = list(spec.get("lineValues", [])) + ([spec["target"]] if spec.get("target") else [])
             roles = {"Category": {"projections": [self.proj(spec["category"])]},
                      "Y": {"projections": [self.proj(m) for m in spec["values"]]},
-                     "Y2": {"projections": [self.proj(m) for m in spec["lineValues"]]}}
+                     "Y2": {"projections": [self.proj(m) for m in lines]}}
+            objects = self.target_series(spec["target"]) if spec.get("target") else {}
+            if spec.get("colorMeasure"):
+                objects["dataPoint"] = objects.get("dataPoint", []) + [self.colour_by(spec["colorMeasure"])]
             sort = (spec["category"], "Ascending") if spec.get("sort", "category") in ("asc", "category") else None
             return [(key, pos, self.data_visual("lineClusteredColumnComboChart", roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort,
-                                                tooltip_page=spec.get("tooltipPage")))]
+                                                objects=objects or None, tooltip_page=spec.get("tooltipPage")))]
         if t == "scatter":
             roles = {"Category": {"projections": [self.proj(spec["details"])]},
                      "X": {"projections": [self.proj(spec["x"])]}, "Y": {"projections": [self.proj(spec["y"])]}}
@@ -450,7 +506,18 @@ class Builder:
 
     def rows(self, page: dict, x0=CONTENT_X, y0=CONTENT_Y, width=CONTENT_W, height=CONTENT_H):
         placed = []
-        rows = page.get("rows", [])
+        rows = [dict(r) for r in page.get("rows", [])]
+        for r in rows:
+            if r.get("height") == "auto":
+                r["height"] = self.auto_height(r["visuals"])
+        fills = [r for r in rows if r.get("height") == "fill"]
+        if len(fills) > 1:
+            raise SpecError(f"page '{page['name']}': only one row can use \"height\": \"fill\"")
+        if fills:
+            fixed = sum(r["height"] for r in rows if r is not fills[0]) + GUTTER * (len(rows) - 1)
+            fills[0]["height"] = (height - fixed) // 4 * 4
+            if fills[0]["height"] < 120:
+                raise SpecError(f"page '{page['name']}': the 'fill' row would be {fills[0]['height']} px high")
         used = sum(r["height"] for r in rows) + GUTTER * max(len(rows) - 1, 0)
         if used > height:
             raise SpecError(f"page '{page['name']}': rows need {used} px, the content area has {height}")

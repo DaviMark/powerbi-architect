@@ -115,6 +115,34 @@ class TestLayoutEngine(unittest.TestCase):
         for t in ("pivotTable", "lineClusteredColumnComboChart", "scatterChart", "kpi"):
             self.assertIn("altText", json.dumps(by_type[t]["visualContainerObjects"]["general"]), t)
 
+    def test_target_line_colour_by_measure_and_auto_heights(self):
+        spec = {"app": "A", "measures": "_Medidas", "pages": [{"name": "P", "rows": [
+            {"height": 88, "visuals": [{"type": "kpi", "measure": "M", "label": "M"}]},
+            {"height": "fill", "split": [3, 2], "visuals": [
+                {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["M"], "target": "Meta",
+                 "title": "M por mês", "alt": "m"},
+                {"type": "clusteredBarChart", "category": "dm_x[X]", "values": ["M"], "colorMeasure": "Cor M",
+                 "title": "M por X", "alt": "m", "items": 6}]},
+            {"height": "auto", "visuals": [{"type": "clusteredBarChart", "category": "dm_y[Y]", "values": ["M"],
+                                            "title": "M por Y", "alt": "m", "items": 5}]}]}]}
+        files = self.build(spec)
+        vis = {v["visual"]["visualType"] + str(v["position"]["y"]): v for k, v in files.items() if k.endswith("visual.json")}
+        line = next(v for k, v in vis.items() if k.startswith("lineChart"))
+        self.assertEqual([p["field"]["Measure"]["Property"] for p in line["visual"]["query"]["queryState"]["Y"]["projections"]],
+                         ["M", "Meta"])
+        style = line["visual"]["objects"]["lineStyles"][0]
+        self.assertEqual((style["selector"]["metadata"], style["properties"]["lineStyle"]["expr"]["Literal"]["Value"]),
+                         ("_Medidas.Meta", "'dashed'"))
+        bars = sorted((v for k, v in vis.items() if k.startswith("clusteredBarChart")), key=lambda v: v["position"]["y"])
+        fill = bars[0]["visual"]["objects"]["dataPoint"][0]
+        self.assertEqual(fill["properties"]["fill"]["solid"]["color"]["expr"]["Measure"]["Property"], "Cor M")
+        self.assertEqual(fill["selector"]["data"][0]["dataViewWildcard"]["matchingOption"], 1)
+        self.assertEqual(bars[1]["position"]["height"], 52 + 32 * 5)                         # auto
+        self.assertEqual(bars[0]["position"]["height"], 616 - 88 - 212 - 32)                # fill takes the rest
+        with self.assertRaises(pbir_layout.SpecError):
+            self.build(self.spec(rows=[{"height": 248, "visuals": [
+                {"type": "clusteredBarChart", "category": "a[b]", "values": ["M"], "target": "T", "title": "t", "alt": "t"}]}]))
+
     def test_check_mode_writes_nothing(self):
         with tempfile.TemporaryDirectory() as d:
             r = run("pbir_layout.py", EXAMPLE / "layout.json", Path(d) / "Y.Report", "--check")
