@@ -71,6 +71,16 @@
 - Must: preferred by a blind grader who sees both previews as A and B, on general design criteria
   (hierarchy, alignment, readability, colour with meaning, answers the director's question)
 
+## E14 · Edits made by hand survive the next request (scored by tools)
+**Setup:** [`fixtures/E14-edicoes-manuais.md`](fixtures/E14-edicoes-manuais.md): the sales kit, then, after the agent's last
+edit, the user narrows and retitles a bar chart in Desktop, adds a chart of their own and changes a target measure.
+**Prompt:** "Adicione ao relatório uma página 'Clientes' com o ranking dos clientes por receita e uma tabela com receita, % margem e pedidos por cliente."
+- Must: the retitled chart keeps the user's title, width and position
+- Must: the chart the user added is still there
+- Must: the target measure keeps the user's value (0.32)
+- Must: the new page exists, with zero blockers and harmony ≥ 90
+- Should: the agent tells the user it noticed their edits
+
 ## E12 · Brand theme (design, scored by tools)
 **Prompt:** "Our brand colour is #FFB800. Create the Power BI theme for our reports as theme.json."
 - Must: valid against the official report theme schema

@@ -52,6 +52,58 @@ class TestPreview(unittest.TestCase):
             for text in ("Meta: R$ 18,6 mi", "<polygon", "border-radius:50%", ">Varejo</th>", "Saldo e vencido por mês"):
                 self.assertIn(text, html)
 
+    def test_target_line_and_bar_colours(self):
+        sys.path.insert(0, str(SCRIPTS))
+        import pbir_layout
+        import shutil
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "X.Report"
+            shutil.copytree(REPORT, report)
+            spec = {"app": "A", "measures": "_Medidas", "pages": [{"name": "P", "rows": [{"height": 248, "visuals": [
+                {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["Valor Vencido"],
+                 "target": "Valor Aberto", "title": "t", "alt": "t"},
+                {"type": "clusteredBarChart", "category": "dm_regional[Regional]", "values": ["Valor Vencido"],
+                 "colorMeasure": "Cor % Vencido", "title": "t", "alt": "t"}]}]}]}
+            pbir_layout.Builder(spec).build(report, force=True)
+            sample = json.loads((EXAMPLE / "preview-sample.json").read_text(encoding="utf-8"))
+            sample["colors"]["Cor % Vencido"] = ["#CE2C31", "#3E63DD"]
+            sp = Path(d) / "s.json"
+            sp.write_text(json.dumps(sample), encoding="utf-8")
+            out = Path(d) / "p.html"
+            self.assertEqual(run("preview_pbir.py", report, "--sample", sp, "--out", out).returncode, 0)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn('stroke-dasharray="4 3"', html)
+            self.assertIn("background:#CE2C31", html)
+
+    @unittest.skipUnless(__import__("preview_pbir").find_browser(), "needs Edge, Chrome or Chromium")
+    def test_critique_measures_the_rendered_page(self):
+        import pbir_layout
+        import shutil
+        clean = run("preview_pbir.py", REPORT, "--sample", EXAMPLE / "preview-sample.json", "--critique",
+                    "--out", Path(tempfile.gettempdir()) / "c.html")
+        self.assertEqual(clean.returncode, 0, clean.stdout)                # the example is clean
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "X.Report"
+            shutil.copytree(REPORT, report)
+            spec = {"app": "A", "measures": "_Medidas", "pages": [{"name": "P", "rows": [
+                {"height": 248, "split": [1, 1], "visuals": [
+                    {"type": "clusteredBarChart", "category": "dm_regional[Regional]", "values": ["Valor Vencido"],
+                     "title": "Um título longo demais que não cabe de jeito nenhum neste cartão, mesmo com toda a largura que ele tem", "alt": "a"},
+                    {"type": "tableEx", "columns": ["dm_cliente[Cliente]", "dm_cliente[Segmento]", "Valor Vencido",
+                                                    "% Vencido", "Atraso Médio (dias)", "Valor Aberto"],
+                     "title": "Tabela", "alt": "t"}]},
+                {"height": 248, "split": [2, 1], "visuals": [
+                    {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["Valor Vencido"],
+                     "title": "Linha", "alt": "l"},
+                    {"type": "clusteredColumnChart", "category": "ft_titulos[Faixa Atraso]",
+                     "values": ["Valor Vencido"], "title": "Colunas", "alt": "c"}]}]}]}
+            pbir_layout.Builder(spec).build(report, force=True)
+            r = run("preview_pbir.py", report, "--sample", EXAMPLE / "preview-sample.json", "--critique",
+                    "--out", Path(d) / "c.html")
+            self.assertEqual(r.returncode, 1, r.stdout)
+            for kind in ("[truncated]", "[clipped]", "[grid]"):
+                self.assertIn(kind, r.stdout)
+
     def test_overlay_and_calibration(self):
         with tempfile.TemporaryDirectory() as d:
             shots = Path(d) / "desktop"

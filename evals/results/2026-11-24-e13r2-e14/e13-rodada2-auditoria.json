@@ -1,0 +1,33 @@
+[
+  {
+    "rule": "PBI043",
+    "severity": "SUGGESTION",
+    "law": "8",
+    "where": ".",
+    "line": 0,
+    "message": "no README.md next to Entregas.pbip",
+    "bpa": []
+  },
+  {
+    "rule": "PBI034",
+    "severity": "SUGGESTION",
+    "law": "3",
+    "where": "Entregas.SemanticModel/definition/tables/dm_cidade.tmdl",
+    "line": 12,
+    "message": "'dm_cidade'[Cidade] is imported but never used (measure, visual, relationship, sort, hierarchy or RLS)",
+    "bpa": [
+      "UNNECESSARY_COLUMNS"
+    ]
+  },
+  {
+    "rule": "PBI034",
+    "severity": "SUGGESTION",
+    "law": "3",
+    "where": "Entregas.SemanticModel/definition/tables/dm_cidade.tmdl",
+    "line": 17,
+    "message": "'dm_cidade'[UF] is imported but never used (measure, visual, relationship, sort, hierarchy or RLS)",
+    "bpa": [
+      "UNNECESSARY_COLUMNS"
+    ]
+  }
+]

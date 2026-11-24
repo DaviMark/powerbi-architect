@@ -115,6 +115,41 @@ class TestLayoutEngine(unittest.TestCase):
         for t in ("pivotTable", "lineClusteredColumnComboChart", "scatterChart", "kpi"):
             self.assertIn("altText", json.dumps(by_type[t]["visualContainerObjects"]["general"]), t)
 
+    def test_target_line_colour_by_measure_and_auto_heights(self):
+        spec = {"app": "A", "measures": "_Medidas", "pages": [{"name": "P", "rows": [
+            {"height": 88, "visuals": [{"type": "kpi", "measure": "M", "label": "M"}]},
+            {"height": "fill", "split": [3, 2], "visuals": [
+                {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["M"], "target": "Meta",
+                 "title": "M por mês", "alt": "m"},
+                {"type": "clusteredBarChart", "category": "dm_x[X]", "values": ["M"], "colorMeasure": "Cor M",
+                 "title": "M por X", "alt": "m", "items": 6}]},
+            {"height": "auto", "visuals": [{"type": "clusteredBarChart", "category": "dm_y[Y]", "values": ["M"],
+                                            "title": "M por Y", "alt": "m", "items": 5}]}]}]}
+        files = self.build(spec)
+        vis = {v["visual"]["visualType"] + str(v["position"]["y"]): v for k, v in files.items() if k.endswith("visual.json")}
+        line = next(v for k, v in vis.items() if k.startswith("lineChart"))
+        self.assertEqual([p["field"]["Measure"]["Property"] for p in line["visual"]["query"]["queryState"]["Y"]["projections"]],
+                         ["M", "Meta"])
+        style = line["visual"]["objects"]["lineStyles"][0]
+        self.assertEqual((style["selector"]["metadata"], style["properties"]["lineStyle"]["expr"]["Literal"]["Value"]),
+                         ("_Medidas.Meta", "'dashed'"))
+        bars = sorted((v for k, v in vis.items() if k.startswith("clusteredBarChart")), key=lambda v: v["position"]["y"])
+        fill = bars[0]["visual"]["objects"]["dataPoint"][0]
+        self.assertEqual(fill["properties"]["fill"]["solid"]["color"]["expr"]["Measure"]["Property"], "Cor M")
+        self.assertEqual(fill["selector"]["data"][0]["dataViewWildcard"]["matchingOption"], 1)
+        self.assertEqual(bars[1]["position"]["height"], 52 + 32 * 5)                         # auto
+        self.assertEqual(bars[0]["position"]["height"], 616 - 88 - 212 - 32)                # fill takes the rest
+        with self.assertRaises(pbir_layout.SpecError):
+            self.build(self.spec(rows=[{"height": 248, "visuals": [
+                {"type": "clusteredBarChart", "category": "a[b]", "values": ["M"], "target": "T", "title": "t", "alt": "t"}]}]))
+
+    def test_gallery_builds_on_the_example_model(self):
+        spec = json.loads((ROOT / "docs" / "galeria" / "layout.json").read_text(encoding="utf-8"))
+        types = {v["visual"]["visualType"] for k, v in self.build(spec).items() if k.endswith("visual.json")}
+        for t in ("card", "kpi", "lineChart", "lineClusteredColumnComboChart", "clusteredBarChart",
+                  "clusteredColumnChart", "waterfallChart", "scatterChart", "tableEx", "pivotTable"):
+            self.assertIn(t, types)
+
     def test_check_mode_writes_nothing(self):
         with tempfile.TemporaryDirectory() as d:
             r = run("pbir_layout.py", EXAMPLE / "layout.json", Path(d) / "Y.Report", "--check")
@@ -127,13 +162,16 @@ class TestExtract(unittest.TestCase):
     def normalised(spec):
         spec = json.loads(json.dumps(spec))
         for page in spec["pages"]:
+            page.pop("id", None)
             for row in page.get("rows", []):
                 if len(set(row.get("split", [0]))) == 1:
                     row.pop("split", None)
                 for v in row["visuals"]:
-                    v.pop("key", None)
+                    for k in ("key", "id", "varId"):
+                        v.pop(k, None)
             for v in page.get("visuals", []):
-                v.pop("key", None)
+                for k in ("key", "id", "varId"):
+                    v.pop(k, None)
         return spec
 
     def test_round_trip_on_the_example(self):
@@ -161,6 +199,32 @@ class TestExtract(unittest.TestCase):
             after = audit_pbip.harmony(proj, audit_pbip.audit(proj))
             self.assertLess(before[0][2], 60, before)
             self.assertGreaterEqual(after[0][2], 90, after)
+
+    def test_extract_then_rebuild_lands_on_the_same_files(self):
+        """E14: extracting a report the user edited and rebuilding it must not copy their visuals."""
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "proj" / "ContasReceber.Report"
+            shutil.copytree(EXAMPLE, report.parent)
+            page = next(p for p in (report / "definition" / "pages").iterdir() if p.is_dir() and json.loads(
+                (p / "page.json").read_text(encoding="utf-8"))["displayName"] == "Clientes")
+            mine = page / "visuals" / "meuvisual0000000000a"
+            mine.mkdir()
+            (mine / "visual.json").write_text(json.dumps({
+                "name": "meuvisual0000000000a", "position": {"x": 232, "y": 80, "width": 400, "height": 248},
+                "visual": {"visualType": "clusteredBarChart", "query": {"queryState": {
+                    "Category": {"projections": [{"field": {"Column": {"Expression": {"SourceRef": {"Entity": "dm_cliente"}},
+                                                                       "Property": "Segmento"}}}]},
+                    "Y": {"projections": [{"field": {"Measure": {"Expression": {"SourceRef": {"Entity": "_Medidas"}},
+                                                                 "Property": "Valor Vencido"}}}]}}},
+                    "visualContainerObjects": {"title": [{"properties": {"text": {"expr": {"Literal": {"Value": "'Meu'"}}}}}],
+                                               "general": [{"properties": {"altText": {"expr": {"Literal": {"Value": "'m'"}}}}}]}}}),
+                encoding="utf-8")
+            before = sorted(p.relative_to(report).as_posix() for p in report.rglob("visual.json"))
+            spec, _ = pbir_layout.extract(report)
+            b = pbir_layout.Builder(spec)
+            b.build(report)
+            after = sorted(p.relative_to(report).as_posix() for p in report.rglob("visual.json"))
+            self.assertEqual(before, after)                       # no copies, nothing lost
 
     def test_cli(self):
         with tempfile.TemporaryDirectory() as d:

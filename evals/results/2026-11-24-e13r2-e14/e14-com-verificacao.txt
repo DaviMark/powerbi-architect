@@ -1,0 +1,10 @@
+{
+ "título do usuário mantido": true,
+ "largura e posição do usuário mantidas": true,
+ "visual criado pelo usuário mantido": true,
+ "meta 0.32 mantida": true,
+ "página Clientes criada": true,
+ "zero bloqueadores": true
+}
+Harmony: Visão Geral 82 · Margem 100 · Produtos 100 · Clientes 100 · Documentação 100
+achados: ['PBI018', 'PBI053', 'PBI069']

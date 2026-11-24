@@ -39,8 +39,13 @@ Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, wat
 (options: "columns", "highlight": {"column": <measure>, "colorMeasure": <measure>}), slicer ("field"), and
   matrix    {"rows": [fields], "columns": [fields], "values": [measures], "highlight": {...}}
   combo     {"category": field, "values": [column measures], "lineValues": [line measures]}
-  scatter   {"details": field, "x": measure, "y": measure, "size": measure}
+  scatter   {"details": field, "x": measure, "y": measure, "size": measure, "labels": true (≤ 12 points)}
   kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
+Chart craft: "target": m on lineChart and combo adds the target as a thin grey dashed line;
+combo puts the line on the columns' axis when it has a target ("sameAxis": true/false to choose);
+"colorMeasure": m on bar and column charts colours each bar from a measure that returns a hex (red below
+target, accent otherwise). Row "height": "auto" fits the content (bars: 52 + 32 per expected category,
+set "items": n on the visual); "fill" takes what is left of the 616 px.
 A field parameter is just a column: use its column as "category" or "rows" and put a slicer on it.
 Every data visual needs "alt" (alt text) and "title" or "titleMeasure" (kpi uses "label").
 Row heights plus 16 px gutters must fit the 616 px content area. --check validates without writing.
@@ -55,7 +60,9 @@ Build the spec into the same folder to restyle it (pages are rewritten: commit f
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
+import zlib
 import math
 from fractions import Fraction
 import json
@@ -66,6 +73,7 @@ from pathlib import Path
 
 SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition"
 INK, INK3, LINE, ACCENT = "#333333", "#757575", "#EBEBEB", "#3E63DD"
+TARGET = "#999999"   # target and reference series: visible, but quieter than the data
 PAGE_W, PAGE_H = 1280, 720
 CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H, GUTTER = 232, 80, 1024, 616, 16
 NAV_X, NAV_Y, NAV_ITEM = 8, 76, 32
@@ -83,6 +91,157 @@ def write_lf(path: Path, text: str) -> None:
 
 class SpecError(ValueError):
     pass
+
+
+# ---------------------------------------------------------------------- your edits survive a rebuild
+# The engine remembers what it wrote last time in <project>/.powerbi-architect/<Name>.Report.layout-lock.json.
+# On the next build every file is merged three ways, like git: base = what the engine wrote last time,
+# theirs = what is on disk now (your edits in Desktop or by hand), ours = what the spec produces now.
+# Your change wins wherever both sides changed the same property. Visuals and pages you added are left
+# alone, visuals you deleted stay deleted, and files you never touched follow the spec.
+MISSING = object()
+LOCK_VERSION = 1
+
+
+def lock_path(report: Path) -> Path:
+    return report.parent / ".powerbi-architect" / f"{report.name}.layout-lock.json"
+
+
+def pack(text: str) -> str:
+    return base64.b64encode(zlib.compress(text.encode("utf-8"), 9)).decode("ascii")
+
+
+def unpack(blob: str) -> str:
+    return zlib.decompress(base64.b64decode(blob)).decode("utf-8")
+
+
+def merge3(base, ours, theirs, path: str, conflicts: list):
+    """Three-way merge of JSON values; on a real conflict the value on disk (the user's) wins."""
+    if ours == theirs or theirs == base:
+        return ours
+    if ours == base:
+        return theirs
+    if all(isinstance(v, dict) for v in (base, ours, theirs) if v is not MISSING) and \
+            isinstance(ours, dict) and isinstance(theirs, dict):
+        b = base if isinstance(base, dict) else {}
+        out = {}
+        for k in list(theirs) + [k for k in ours if k not in theirs]:
+            v = merge3(b.get(k, MISSING), ours.get(k, MISSING), theirs.get(k, MISSING), f"{path}.{k}", conflicts)
+            if v is not MISSING:
+                out[k] = v
+        return out
+    if path.endswith(".pageOrder") and isinstance(ours, list) and isinstance(theirs, list):
+        kept = [p for p in theirs if p in ours]            # your order, minus pages the spec removed
+        return kept + [p for p in ours if p not in kept]    # plus pages the spec added, at the end
+    conflicts.append(path.lstrip("."))
+    return theirs
+
+
+class MergeResult:
+    def __init__(self):
+        self.written, self.kept, self.merged, self.removed, self.deleted_by_you = [], [], [], [], []
+        self.conflicts: dict[str, list[str]] = {}
+        self.fresh = False
+
+    def lines(self, report: Path) -> list[str]:
+        out = []
+        for rel in self.merged:
+            extra = f" (your value kept for {', '.join(self.conflicts[rel][:4])})" if self.conflicts.get(rel) else ""
+            out.append(f"merged your edits and the spec in {describe(report, rel)}{extra}")
+        out += [f"kept your version of {describe(report, rel)}" for rel in self.kept]
+        out += [f"left deleted, as you did: {rel}" for rel in self.deleted_by_you]
+        return out
+
+
+def describe(report: Path, rel: str) -> str:
+    """'Página › tipo "título"' for a visual, or the relative path."""
+    try:
+        data = json.loads((report / rel).read_text(encoding="utf-8-sig"))
+        page = json.loads((report / rel).parents[2].joinpath("page.json").read_text(encoding="utf-8-sig"))
+        vis = data.get("visual") or {}
+        title = _lit(_prop(vis.get("visualContainerObjects") or {}, "title", "text")) or ""
+        return f"{page.get('displayName', '?')} › {vis.get('visualType', '?')}" + (f' "{title}"' if title else "")
+    except (OSError, ValueError, AttributeError, IndexError):
+        return rel
+
+
+def merge_write(report: Path, files: dict[str, str], scope: str, force: bool = False) -> MergeResult:
+    """Write `files` under `report`, merging with what is on disk instead of overwriting it.
+
+    scope is the path prefix these files own ("definition/pages/" for pages): base entries under it that
+    the spec no longer produces are removed when you have not changed them.
+    """
+    res = MergeResult()
+    lp = lock_path(report)
+    lock = json.loads(lp.read_text(encoding="utf-8")) if lp.exists() else {}
+    try:
+        base_all = json.loads(unpack(lock["files"])) if lock.get("version") == LOCK_VERSION else {}
+    except (KeyError, ValueError, TypeError, zlib.error):
+        base_all = {}                                     # unreadable lock: behave like a first build
+    base = {k: v for k, v in base_all.items() if k.startswith(scope)}
+    fresh = force or not any((report / k).exists() for k in base)
+    if fresh:
+        res.fresh = True
+        if scope.endswith("/") and (report / scope).exists():
+            shutil.rmtree(report / scope)                 # first build (or --force): the spec owns the folder
+        base = {}
+
+    def load(text):
+        try:
+            return json.loads(text)
+        except ValueError:
+            return text
+
+    for rel in sorted(set(files) | set(base)):
+        target = report / rel
+        new = files.get(rel)
+        old = base.get(rel)
+        disk = target.read_text(encoding="utf-8-sig") if target.exists() else None
+        if new is not None:
+            if disk is None:
+                if old is None:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    write_lf(target, new)
+                    res.written.append(rel)
+                else:
+                    res.deleted_by_you.append(rel)
+                continue
+            n, d = load(new), load(disk)
+            if n == d:
+                continue
+            o = load(old) if old is not None else MISSING
+            if d == o:
+                write_lf(target, new)
+                res.written.append(rel)
+                continue
+            if n == o:
+                res.kept.append(rel)
+                continue
+            conflicts: list[str] = []
+            merged = merge3(o, n, d, "", conflicts)
+            if isinstance(merged, (dict, list)):
+                write_lf(target, json.dumps(merged, indent=2, ensure_ascii=False) + "\n")
+                res.merged.append(rel)
+                res.conflicts[rel] = conflicts
+            else:
+                res.kept.append(rel)
+        elif disk is not None:
+            if load(disk) == load(old):
+                target.unlink()
+                res.removed.append(rel)
+                for parent in target.parents:
+                    if parent == report or any(parent.iterdir()):
+                        break
+                    parent.rmdir()
+            else:
+                res.kept.append(rel)
+    kept_files = {**{k: v for k, v in base_all.items() if not k.startswith(scope)}, **files}
+    lock = {"about": "Written by pbir_layout.py: what it generated last time, so your manual edits survive the "
+                     "next build. Commit it with the report; do not edit it.",
+            "version": LOCK_VERSION, "files": pack(json.dumps(kept_files, sort_keys=True, ensure_ascii=False))}
+    lp.parent.mkdir(parents=True, exist_ok=True)
+    lp.write_text(json.dumps(lock, indent=1) + "\n", encoding="utf-8")
+    return res
 
 
 def hid(*parts: str) -> str:
@@ -104,10 +263,14 @@ def quote(s: str) -> str:
 class Builder:
     def __init__(self, spec: dict):
         self.spec = spec
+        self.current_page = ""
         self.measures = spec.get("measures", "_Medidas")
         self.measure_home = spec.get("measureHome", {})   # measures that live outside "measures"
         self.app = spec.get("app", "Relatório")
-        self.page_ids = {p["name"]: hid("page", p["name"]) for p in spec["pages"]}
+        # "id" pins a page or visual to an existing folder (set by --extract), so a rebuild lands on the
+        # same files instead of creating copies; otherwise ids are derived from the names.
+        self.page_ids = {p["name"]: p.get("id") or hid("page", p["name"]) for p in spec["pages"]}
+        self.ids: dict[tuple[str, str], str] = {}
         self.icons_used: set[str] = set()
 
     # ------------------------------------------------------------------ fields
@@ -200,6 +363,40 @@ class Builder:
         v["drillFilterOtherVisuals"] = True
         return v
 
+    # ------------------------------------------------------------------ chart craft
+    def target_series(self, measure: str) -> dict:
+        """The target as a thin grey dashed line without labels: context, not a second story."""
+        _, entity, prop = self.ref(measure)
+        sel = {"metadata": f"{entity}.{prop}"}
+        return {"dataPoint": [{"properties": {"fill": color(TARGET)}, "selector": sel}],
+                "lineStyles": [{"properties": {"lineStyle": lit("'dashed'"), "strokeWidth": lit("1D"),
+                                               "showMarker": lit("false")}, "selector": sel}],
+                "labels": [{"properties": {"showSeries": lit("false")}, "selector": sel}]}
+
+    def colour_by(self, measure: str) -> dict:
+        """Bar colour from a measure that returns a hex per category (e.g. red below the target)."""
+        return {"properties": {"fill": {"solid": {"color": self.measure_expr(measure)}}},
+                "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}
+
+    @staticmethod
+    def auto_height(visuals: list[dict]) -> int:
+        """Row height that fits its content: bars grow with the expected number of categories."""
+        need = 0
+        for v in visuals:
+            t, n = v.get("type"), v.get("items")
+            if t in ("kpi", "card"):
+                h = 88
+            elif t == "kpiTrend":
+                h = 120
+            elif t == "clusteredBarChart" and n:
+                h = 52 + 32 * n                         # title + 32 px per bar (24 bar + 8 gap)
+            elif t in ("tableEx", "matrix") and n:
+                h = 64 + 28 * min(n, 20)                # header + rows
+            else:
+                h = 248
+            need = max(need, max(h, 160) if t not in ("kpi", "card") else h)
+        return -(-need // 4) * 4
+
     # ------------------------------------------------------------------ components
     def component(self, spec: dict, pos):
         """Return [(key, pos, visual), ...] for one spec visual placed at pos."""
@@ -211,6 +408,10 @@ class Builder:
         first = (spec.get("measure") or spec.get("category") or spec.get("details")
                  or (spec.get("columns") or spec.get("rows") or [""])[0])
         key = spec.get("key") or f"{t}-{first}"
+        if spec.get("id"):
+            self.ids[(self.current_page, key)] = spec["id"]
+        if spec.get("varId"):
+            self.ids[(self.current_page, key + "-var")] = spec["varId"]
         if t in ("kpi", "card"):
             out = [(key, pos, self.data_visual("card", {"Values": {"projections": [self.proj(spec["measure"])]}},
                                                alt, title=spec.get("label") or spec.get("title")))]
@@ -224,17 +425,30 @@ class Builder:
             return out
         if t in CHARTS:
             cat_role = "Category"
+            values = list(spec["values"])
+            if spec.get("target") and t == "lineChart":
+                values.append(spec["target"])
             roles = {cat_role: {"projections": [self.proj(spec["category"])]},
-                     "Y": {"projections": [self.proj(m) for m in spec["values"]]}}
+                     "Y": {"projections": [self.proj(m) for m in values]}}
             sort = None
             if spec.get("sort") == "desc":
                 sort = (spec["values"][0], "Descending")
             elif spec.get("sort") in ("asc", "category"):
                 sort = (spec["category"], "Ascending")
-            objects = None
+            objects = {}
             if t == "waterfallChart" and spec.get("sentiment"):
                 s = spec["sentiment"]
                 objects = {"sentimentColors": [{"properties": {k + "Fill": color(v) for k, v in s.items()}}]}
+            if spec.get("target") and t == "lineChart":
+                objects.update(self.target_series(spec["target"]))
+            if spec.get("colorMeasure"):
+                if t not in ("clusteredBarChart", "clusteredColumnChart"):
+                    raise SpecError(f"'colorMeasure' works on bar and column charts, not {t}")
+                objects["dataPoint"] = [self.colour_by(spec["colorMeasure"])]
+            if spec.get("target") and t != "lineChart":
+                raise SpecError(f"'target' draws a dashed line on lineChart and combo; on {t} use 'colorMeasure' "
+                                "(a measure that returns red below the target)")
+            objects = objects or None
             return [(key, pos, self.data_visual(t, roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort,
                                                 objects=objects, tooltip_page=spec.get("tooltipPage")))]
@@ -260,20 +474,29 @@ class Builder:
             return [(key, pos, self.data_visual(vtype, roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort, objects=objects))]
         if t == "combo":
+            lines = list(spec.get("lineValues", [])) + ([spec["target"]] if spec.get("target") else [])
             roles = {"Category": {"projections": [self.proj(spec["category"])]},
                      "Y": {"projections": [self.proj(m) for m in spec["values"]]},
-                     "Y2": {"projections": [self.proj(m) for m in spec["lineValues"]]}}
+                     "Y2": {"projections": [self.proj(m) for m in lines]}}
+            objects = self.target_series(spec["target"]) if spec.get("target") else {}
+            if spec.get("sameAxis", bool(spec.get("target"))):
+                # One scale for columns and line: a target or last year must sit on the columns' axis.
+                objects["valueAxis"] = [{"properties": {"secShow": lit("false")}}]
+            if spec.get("colorMeasure"):
+                objects["dataPoint"] = objects.get("dataPoint", []) + [self.colour_by(spec["colorMeasure"])]
             sort = (spec["category"], "Ascending") if spec.get("sort", "category") in ("asc", "category") else None
             return [(key, pos, self.data_visual("lineClusteredColumnComboChart", roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort,
-                                                tooltip_page=spec.get("tooltipPage")))]
+                                                objects=objects or None, tooltip_page=spec.get("tooltipPage")))]
         if t == "scatter":
             roles = {"Category": {"projections": [self.proj(spec["details"])]},
                      "X": {"projections": [self.proj(spec["x"])]}, "Y": {"projections": [self.proj(spec["y"])]}}
             if spec.get("size"):
                 roles["Size"] = {"projections": [self.proj(spec["size"])]}
+            scatter_objects = {"categoryLabels": [{"properties": {"show": lit("true"), "fontSize": lit("9D")}}]} \
+                if spec.get("labels") else None
             return [(key, pos, self.data_visual("scatterChart", roles, alt, title=spec.get("title"),
-                                                title_measure=spec.get("titleMeasure"),
+                                                title_measure=spec.get("titleMeasure"), objects=scatter_objects,
                                                 tooltip_page=spec.get("tooltipPage")))]
         if t == "kpiTrend":
             roles = {"Indicator": {"projections": [self.proj(spec["measure"])]},
@@ -297,7 +520,18 @@ class Builder:
 
     def rows(self, page: dict, x0=CONTENT_X, y0=CONTENT_Y, width=CONTENT_W, height=CONTENT_H):
         placed = []
-        rows = page.get("rows", [])
+        rows = [dict(r) for r in page.get("rows", [])]
+        for r in rows:
+            if r.get("height") == "auto":
+                r["height"] = self.auto_height(r["visuals"])
+        fills = [r for r in rows if r.get("height") == "fill"]
+        if len(fills) > 1:
+            raise SpecError(f"page '{page['name']}': only one row can use \"height\": \"fill\"")
+        if fills:
+            fixed = sum(r["height"] for r in rows if r is not fills[0]) + GUTTER * (len(rows) - 1)
+            fills[0]["height"] = (height - fixed) // 4 * 4
+            if fills[0]["height"] < 120:
+                raise SpecError(f"page '{page['name']}': the 'fill' row would be {fills[0]['height']} px high")
         used = sum(r["height"] for r in rows) + GUTTER * max(len(rows) - 1, 0)
         if used > height:
             raise SpecError(f"page '{page['name']}': rows need {used} px, the content area has {height}")
@@ -359,6 +593,14 @@ class Builder:
                                                     "fontFamily": lit("'Segoe UI'")}}]})))
         return items + bar[::-1]
 
+    @staticmethod
+    def too_wide_for_phone(visual: dict) -> bool:
+        """Tables with more than 3 columns do not fit 304 px: the phone shows the summary, not the sheet."""
+        if visual.get("visualType") not in ("tableEx", "pivotTable"):
+            return False
+        qs = (visual.get("query") or {}).get("queryState") or {}
+        return sum(len(r.get("projections", [])) for k, r in qs.items() if k in ("Values", "Rows")) > 3
+
     def mobile(self, placed):
         """Stack the content visuals for the phone layout: slicers, KPIs, then the rest, full width."""
         out, y = {}, PHONE_MARGIN
@@ -368,7 +610,8 @@ class Builder:
                 and p[0] != "atualizado"]
         others = [p for p in placed if p not in slicers and p not in kpis and p[0] != "atualizado"
                   and not p[0].endswith("-var") and p[2].get("visualType") not in ("shape", "textbox", "image",
-                                                                                     "pageNavigator")]
+                                                                                     "pageNavigator")
+                  and not self.too_wide_for_phone(p[2])]
         for key, *_ in slicers:
             out[key] = (PHONE_MARGIN, y, inner, 40)
             y += 40 + PHONE_MARGIN
@@ -385,15 +628,15 @@ class Builder:
         return out
 
     # ------------------------------------------------------------------ pages
-    def build(self, report: Path, write: bool = True) -> list[str]:
-        pages_dir = report / "definition" / "pages"
+    def render(self) -> dict[str, str]:
+        """Every file the spec produces under the report folder: {relative path: JSON text}."""
+        files: dict[str, str] = {}
         visible = [p for p in self.spec["pages"] if p.get("kind", "page") == "page"]
-        written = []
-        if write and pages_dir.exists():
-            shutil.rmtree(pages_dir)
+        dump = lambda obj: json.dumps(obj, indent=2, ensure_ascii=False) + "\n"  # noqa: E731
         for page in self.spec["pages"]:
             kind = page.get("kind", "page")
             pid = self.page_ids[page["name"]]
+            self.current_page = page["name"]
             if kind == "tooltip":
                 vis = page.get("visuals", [])
                 if len(vis) != 1:
@@ -426,28 +669,27 @@ class Builder:
             keys = [k for k, *_ in placed]
             if len(keys) != len(set(keys)):
                 raise SpecError(f"page '{page['name']}': two visuals share a key; set 'key' on one of them")
-            if write:
-                (pages_dir / pid).mkdir(parents=True, exist_ok=True)
-                write_lf(pages_dir / pid / "page.json", json.dumps(pdata, indent=2, ensure_ascii=False) + "\n")
-                for i, (key, pos, visual) in enumerate(placed):
-                    vid = hid("visual", page["name"], key)
-                    vdir = pages_dir / pid / "visuals" / vid
-                    vdir.mkdir(parents=True, exist_ok=True)
-                    write_lf(vdir / "visual.json",
-                             json.dumps(self.container(vid, pos, i * 1000, visual), indent=2, ensure_ascii=False) + "\n")
-                    if key in mobile:
-                        x, y, w, h = mobile[key]
-                        write_lf(vdir / "mobile.json", json.dumps({
-                            "$schema": f"{SCHEMA}/visualContainerMobileState/1.0.0/schema.json",
-                            "position": {"x": x, "y": y, "z": i * 1000, "width": w, "height": h, "tabOrder": i * 1000}},
-                            indent=2) + "\n")
-            written.append(pid)
+            base = f"definition/pages/{pid}"
+            files[f"{base}/page.json"] = dump(pdata)
+            for i, (key, pos, visual) in enumerate(placed):
+                vid = self.ids.get((page["name"], key)) or hid("visual", page["name"], key)
+                files[f"{base}/visuals/{vid}/visual.json"] = dump(self.container(vid, pos, i * 1000, visual))
+                if key in mobile:
+                    x, y, w, h = mobile[key]
+                    files[f"{base}/visuals/{vid}/mobile.json"] = dump({
+                        "$schema": f"{SCHEMA}/visualContainerMobileState/1.0.0/schema.json",
+                        "position": {"x": x, "y": y, "z": i * 1000, "width": w, "height": h, "tabOrder": i * 1000}})
+        order = [self.page_ids[p["name"]] for p in self.spec["pages"]]
+        files["definition/pages/pages.json"] = dump({"$schema": f"{SCHEMA}/pagesMetadata/1.0.0/schema.json",
+                                                     "pageOrder": order, "activePageName": order[0]})
+        return files
+
+    def build(self, report: Path, write: bool = True, force: bool = False) -> list[str]:
+        """Write the pages. Files you changed by hand since the last build are kept (see merge_write)."""
+        files = self.render()
         if write:
-            order = [self.page_ids[p["name"]] for p in self.spec["pages"]]
-            write_lf(pages_dir / "pages.json", json.dumps({
-                "$schema": f"{SCHEMA}/pagesMetadata/1.0.0/schema.json", "pageOrder": order,
-                "activePageName": order[0]}, indent=2) + "\n")
-        return written
+            self.merge = merge_write(report, files, "definition/pages/", force=force)
+        return [self.page_ids[p["name"]] for p in self.spec["pages"]]
 
     def register_resources(self, report: Path, theme: Path | None):
         res = report / "StaticResources" / "RegisteredResources"
@@ -460,7 +702,8 @@ class Builder:
                          "useEnhancedTooltips": True}}
         items = []
         if theme:
-            shutil.copyfile(theme, res / theme.name)
+            merge_write(report, {f"StaticResources/RegisteredResources/{theme.name}":
+                                 theme.read_text(encoding="utf-8")}, f"StaticResources/RegisteredResources/{theme.name}")
             rj["themeCollection"] = {"customTheme": {"name": theme.name, "reportVersionAtImport": "5.59",
                                                      "type": "RegisteredResources"}}
             items.append({"name": theme.name, "path": theme.name, "type": "CustomTheme"})
@@ -471,13 +714,16 @@ class Builder:
             src = ICONS / f"{icon}.png"
             if not src.exists():
                 raise SpecError(f"icon '{icon}' not found in templates/icons")
-            shutil.copyfile(src, res / src.name)
+            if not (res / src.name).exists() or (res / src.name).read_bytes() != src.read_bytes():
+                shutil.copyfile(src, res / src.name)
             items.append({"name": src.name, "path": src.name, "type": "Image"})
         rj.setdefault("themeCollection", {})
         rj["resourcePackages"] = [p for p in rj.get("resourcePackages", []) if p["name"] != "RegisteredResources"]
         rj["resourcePackages"].append({"name": "RegisteredResources", "type": "RegisteredResources", "items": items})
         rj_path.parent.mkdir(parents=True, exist_ok=True)
-        write_lf(rj_path, json.dumps(rj, indent=2, ensure_ascii=False) + "\n")
+        current = json.loads(rj_path.read_text(encoding="utf-8-sig")) if rj_path.exists() else None
+        if current != rj:                    # an unchanged file keeps its bytes (line endings, formatting)
+            write_lf(rj_path, json.dumps(rj, indent=2, ensure_ascii=False) + "\n")
 
 
 # ---------------------------------------------------------------------- extract (restyle)
@@ -648,6 +894,8 @@ class Extractor:
         name = pdata.get("displayName", pdir.name)
         binding = (pdata.get("pageBinding") or {}).get("type")
         page: dict = {"name": name}
+        if pdir.name != hid("page", name):
+            page["id"] = pdir.name            # keep the folder: a rebuild must land on the same files
         items = []
         for f in sorted((pdir / "visuals").glob("*/visual.json")):
             c = json.loads(f.read_text(encoding="utf-8-sig"))
@@ -681,7 +929,7 @@ class Extractor:
                     m = self.roles(v, w)["Values"][0]
                     color_ = _prop(v.get("objects") or {}, "labels", "color") or {}
                     expr = (color_.get("solid") or {}).get("color", {}).get("expr", {})
-                    variations[host[2]] = (m, self.name(expr, w) if "Measure" in expr else None)
+                    variations[host[2]] = (m, self.name(expr, w) if "Measure" in expr else None, w.rsplit("/", 1)[-1])
         body = [(p, v, w) for p, v, w in body if not (v["visualType"] == "card" and self.chromeless(v))]
         loose_slicers = [(p, v, w) for p, v, w in body if v["visualType"] == "slicer"]
         body = [i for i in body if i not in loose_slicers]
@@ -735,10 +983,13 @@ class Extractor:
                 s = self.visual(v, w, page_names)
                 if not s:
                     continue
+                folder = w.rsplit("/", 1)[-1]
                 if s["type"] == "kpi" and w in variations:
-                    s["variation"], color_ = variations[w]
+                    s["variation"], color_, var_folder = variations[w]
                     if color_:
                         s["variationColor"] = color_
+                    s["_var"] = var_folder
+                s["_folder"] = folder
                 specs.append(s)
                 widths.append(p.get("width", 1))
             if not specs:
@@ -760,6 +1011,14 @@ class Extractor:
                 seen[k] = seen.get(k, 0) + 1
                 if seen[k] > 1:
                     sp["key"] = f"{k}-{seen[k]}"
+            for sp in specs:                       # pin to the existing folder when the name would differ
+                key = sp.get("key") or f"{sp['type']}-" + (sp.get("measure") or sp.get("category") or sp.get("details")
+                                                           or (sp.get("columns") or sp.get("rows") or [""])[0])
+                folder, var_folder = sp.pop("_folder"), sp.pop("_var", None)
+                if folder != hid("visual", page_name, key):
+                    sp["id"] = folder
+                if var_folder and var_folder != hid("visual", page_name, key + "-var"):
+                    sp["varId"] = var_folder
             rows.append(row)
         kpi_rows = [r for r in rows if all(v["type"] == "kpi" for v in r["visuals"])]
         free = CONTENT_H - GUTTER * max(len(rows) - 1, 0) - 88 * len(kpi_rows)
@@ -828,6 +1087,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, help="with --extract: file for the spec (default: stdout)")
     ap.add_argument("--theme", type=Path, help="theme JSON to register as the custom theme")
     ap.add_argument("--check", action="store_true", help="validate the spec without writing")
+    ap.add_argument("--force", action="store_true",
+                    help="rewrite every page from the spec, discarding edits made by hand since the last build")
     args = ap.parse_args(argv)
     for stream in (sys.stdin, sys.stdout, sys.stderr):   # Windows consoles default to a legacy code page
         if hasattr(stream, "reconfigure"):
@@ -855,13 +1116,24 @@ def main(argv: list[str] | None = None) -> int:
     try:
         spec = json.loads(args.spec.read_text(encoding="utf-8"))
         b = Builder(spec)
-        pages = b.build(args.report, write=not args.check)
+        had_pages = (args.report / "definition" / "pages").exists()
+        pages = b.build(args.report, write=not args.check, force=args.force)
         if not args.check:
             b.register_resources(args.report, args.theme)
     except (SpecError, KeyError, json.JSONDecodeError) as e:
         print(f"pbir_layout.py: error: {e}", file=sys.stderr)
         return 2
-    print(f"[ok] {len(pages)} page(s) {'checked' if args.check else 'written'}")
+    if args.check:
+        print(f"[ok] {len(pages)} page(s) checked")
+        return 0
+    m = b.merge
+    for line in m.lines(args.report):
+        print(f"- {line}")
+    if m.fresh and had_pages and not args.force:
+        print("- no layout lock yet: pages were rewritten from the spec. From now on, edits made by hand "
+              "(in Desktop or in the files) are kept on every rebuild")
+    print(f"[ok] {len(pages)} page(s): {len(m.written)} file(s) written, {len(m.removed)} removed, "
+          f"{len(m.kept) + len(m.merged)} with your edits kept · lock: {lock_path(args.report)}")
     return 0
 
 

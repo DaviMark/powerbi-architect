@@ -318,6 +318,18 @@
       "folder": "Cores"
     },
     {
+      "name": "Cor Barra Margem",
+      "description": "Cor das barras de margem: vermelho abaixo da meta, cor de destaque na meta ou acima.",
+      "expr": "IF ( [% Margem] < [Meta % Margem], \"#CE2C31\", \"#3E63DD\" )",
+      "folder": "Cores",
+      "sampleColor": [
+        "#3E63DD",
+        "#3E63DD",
+        "#CE2C31",
+        "#CE2C31"
+      ]
+    },
+    {
       "name": "Titulo Receita",
       "description": "Título do gráfico de receita mensal, com o total do período.",
       "expr": "\"Receita por mês: \" & FORMAT ( [Receita], \"R$ #,0\" ) & \" no período\"",
@@ -455,9 +467,10 @@
               "values": [
                 "% Margem"
               ],
-              "title": "Margem por segmento",
+              "title": "Margem por segmento: vermelho abaixo da meta de 30%",
               "sort": "desc",
-              "alt": "Margem por segmento de cliente"
+              "alt": "Margem por segmento de cliente, em vermelho quando abaixo da meta",
+              "colorMeasure": "Cor Barra Margem"
             }
           ]
         },

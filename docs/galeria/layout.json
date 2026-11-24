@@ -1,0 +1,206 @@
+{
+  "app": "Galeria",
+  "measures": "_Medidas",
+  "updated": "Texto Atualizacao",
+  "slicers": [
+    "dm_cliente[Segmento]",
+    "dm_regional[Regional]"
+  ],
+  "pages": [
+    {
+      "name": "Indicadores e tendências",
+      "icon": "layout-dashboard",
+      "rows": [
+        {
+          "height": 88,
+          "visuals": [
+            {
+              "type": "kpi",
+              "measure": "Valor Aberto",
+              "label": "Cartão com linha de contexto",
+              "variation": "Texto A Vencer"
+            },
+            {
+              "type": "kpi",
+              "measure": "% Vencido",
+              "label": "Cartão com distância da meta",
+              "variation": "Texto Var % Vencido",
+              "variationColor": "Cor Var % Vencido"
+            },
+            {
+              "type": "kpi",
+              "measure": "Atraso Médio (dias)",
+              "label": "Cartão com variação negativa",
+              "variation": "Texto Var Dias Atraso",
+              "variationColor": "Cor Var Dias Atraso"
+            }
+          ]
+        },
+        {
+          "height": 120,
+          "split": [
+            1,
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "kpiTrend",
+              "measure": "Valor Vencido",
+              "trend": "dm_calendario[Ano-Mês]",
+              "label": "KPI com tendência",
+              "alt": "Valor vencido com a tendência mensal"
+            },
+            {
+              "type": "kpiTrend",
+              "measure": "% Vencido",
+              "trend": "dm_calendario[Ano-Mês]",
+              "goal": "Meta % Vencido",
+              "label": "KPI com tendência e meta",
+              "alt": "Percentual vencido com tendência e meta"
+            },
+            {
+              "type": "kpiTrend",
+              "measure": "Valor Aberto",
+              "trend": "dm_calendario[Ano-Mês]",
+              "label": "Saldo em aberto",
+              "alt": "Saldo em aberto com a tendência mensal"
+            }
+          ]
+        },
+        {
+          "height": "fill",
+          "split": [
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "lineChart",
+              "category": "dm_calendario[Ano-Mês]",
+              "values": [
+                "% Vencido"
+              ],
+              "target": "Meta % Vencido",
+              "title": "Linha com a meta tracejada",
+              "sort": "category",
+              "alt": "Percentual vencido por mês com a meta de 15% tracejada"
+            },
+            {
+              "type": "combo",
+              "category": "dm_calendario[Ano-Mês]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "title": "Colunas e linha em eixos separados",
+              "alt": "Valor vencido por mês em colunas e atraso médio em linha, no eixo secundário",
+              "lineValues": [
+                "Atraso Médio (dias)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Comparações e detalhe",
+      "icon": "chart-bar",
+      "rows": [
+        {
+          "height": "auto",
+          "split": [
+            1,
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "clusteredBarChart",
+              "category": "dm_regional[Regional]",
+              "values": [
+                "% Vencido"
+              ],
+              "colorMeasure": "Cor % Vencido",
+              "items": 5,
+              "title": "Barras: vermelho acima da meta",
+              "sort": "desc",
+              "alt": "Percentual vencido por regional, em vermelho acima da meta"
+            },
+            {
+              "type": "clusteredColumnChart",
+              "category": "ft_titulos[Faixa Atraso]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "title": "Colunas em ordem natural",
+              "sort": "category",
+              "alt": "Valor vencido por faixa de atraso"
+            },
+            {
+              "type": "waterfallChart",
+              "category": "ft_titulos[Faixa Atraso]",
+              "values": [
+                "Valor Vencido"
+              ],
+              "title": "Cascata até o total",
+              "sort": "category",
+              "sentiment": {
+                "increase": "#CE2C31",
+                "decrease": "#00824D",
+                "total": "#666666"
+              },
+              "alt": "Cascata do vencido por faixa de atraso"
+            }
+          ]
+        },
+        {
+          "height": "fill",
+          "split": [
+            1,
+            1,
+            1
+          ],
+          "visuals": [
+            {
+              "type": "scatter",
+              "details": "dm_cliente[Cliente]",
+              "x": "Valor Aberto",
+              "y": "Atraso Médio (dias)",
+              "title": "Dispersão: atraso alto em cima",
+              "alt": "Clientes por saldo e atraso médio"
+            },
+            {
+              "type": "tableEx",
+              "title": "Tabela com um destaque",
+              "columns": [
+                "dm_regional[Regional]",
+                "Valor Vencido",
+                "% Vencido"
+              ],
+              "sortBy": "Valor Vencido desc",
+              "highlight": {
+                "column": "% Vencido",
+                "colorMeasure": "Cor % Vencido"
+              },
+              "alt": "Regionais com vencido e percentual vencido"
+            },
+            {
+              "type": "matrix",
+              "rows": [
+                "dm_regional[Regional]"
+              ],
+              "columns": [
+                "dm_cliente[Segmento]"
+              ],
+              "values": [
+                "Valor Vencido"
+              ],
+              "title": "Matriz: regional e segmento",
+              "alt": "Vencido por regional e segmento"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

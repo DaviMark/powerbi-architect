@@ -148,13 +148,15 @@ Limits enforced by the audit (`PBI047`): text boxes ≤ 14 pt, KPI values ≤ 24
   selection. No gradients, glow, shadows, 3D.
 - Contrast ≥ 4.5:1 for text, ≥ 3:1 for graphical objects. Don't rely on color alone — add labels/icons.
 - No brand theme yet? Start from [templates/theme/powerbi-architect-acessivel.json](../templates/theme/powerbi-architect-acessivel.json):
-  Twenty-inspired neutrals, 6 categorical colors (all ≥ 4.3:1 on white), status colors, Segoe UI, the
-  type scale above, styled navigator, cards, tables and slicers, no gridlines/axis titles/shadows.
-  Register it as `customTheme` (see [pbir.md](pbir.md) › Theme registration) and replace colors with the
-  brand's, keeping the contrast.
+  Twenty-inspired neutrals, 6 categorical colors (≥ 3:1 on white, distinguishable with protanopia,
+  deuteranopia and tritanopia), status colors, Segoe UI, the type scale, styled visuals, no gridlines.
+  Register it as `customTheme` ([pbir.md](pbir.md) › Theme registration). For a brand, run
+  `make_theme.py`, never hand-pick categorical colours: it keeps contrast and colour-blind safety
+  (`PBI065` flags palettes that clash).
 
 ## 7. Visual craft
-The theme sets these defaults; only override per visual with a reason.
+The theme sets these defaults; only override per visual with a reason. Recipe per visual, number
+formats, DAX techniques and the three-second review: [chart-craft.md](chart-craft.md).
 - **Bars**: start at zero; sort by value (except time/ordinal); data labels on, value axis off;
   horizontal bars for long category names.
 - **Lines**: time on X; ≤ 4 series; 2 px stroke, no markers (theme); label the last point; title from a
@@ -225,9 +227,10 @@ reason, nothing is louder than it needs to be, and the page feels inevitable.
 6. **Consistency across pages.** Same shell, same positions for the same things (filters always in the
    top bar, updated-at always top-right), same colours for the same meaning.
 7. **Words.** Titles, labels, measure names and empty states follow [copywriting.md](copywriting.md).
-8. **Run the audit** with `--min-harmony 90`: `PBI046`–`PBI058` catch oversized slicers, large fonts,
+8. **Run the audit** with `--min-harmony 90`: `PBI046`–`PBI064` catch oversized slicers, large fonts,
    off-grid visuals, extra slicers, mixed fonts, visuals outside the page, wrong tab order, low-contrast
-   text, generic or missing titles, axis titles and too many colours. Each page gets a harmony score
+   text, generic or missing titles, axis titles, too many colours, truncated titles, cramped tables,
+   dynamic titles about another visual, time down a bar chart, narrow KPI rows and charts too small to read. Each page gets a harmony score
    (100 minus 20 per blocker, 10 per important finding, 4 per suggestion); deliver at 90 or more.
 
 ## 12. Review ritual (before Gate 2)

@@ -6,6 +6,47 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 
 ## [Não publicado]
 ### Adicionado
+- **Suas edições no Desktop nunca se perdem.** O `pbir_layout.py` gera as páginas de novo com um merge em
+  três vias, como o git: visual movido, renomeado, criado ou apagado à mão fica como o usuário deixou, e
+  o resto segue a especificação. O motor guarda o que gerou em
+  `.powerbi-architect/<Nome>.Report.layout-lock.json`, e `--force` reescreve tudo.
+- **A IA percebe sozinha o que foi mudado à mão.** O `scripts/pbip_changes.py` compara o projeto com o
+  estado depois da última edição da IA e descreve as mudanças em termos de negócio. Ligado aos hooks
+  `SessionStart` e `UserPromptSubmit` do Claude Code, ele avisa a IA antes de cada pedido e mantém o
+  diário em `.powerbi-architect/alteracoes.md`.
+- Gráficos com meta tracejada (`target`), barras e colunas com cor por medida (`colorMeasure`), linhas
+  de altura automática (`"auto"`, com `items`) ou que ocupam o resto da página (`"fill"`). No gráfico
+  de colunas com linha, a meta fica no eixo das colunas.
+- Auditoria de diretor de arte, com as regras `PBI059` a `PBI064`: título que não cabe, tabela
+  apertada, título dinâmico sobre outro assunto, tempo no eixo vertical, cartões estreitos e gráfico
+  pequeno demais.
+- Paleta segura para daltonismo: o `make_theme.py` simula protanopia, deuteranopia e tritanopia e
+  escolhe tons Radix que continuam distinguíveis. A regra `PBI065` aponta temas cujas cores se
+  confundem.
+- Referência `chart-craft.md`, com a receita de acabamento de cada visual, formatos de número, técnicas
+  de DAX e a revisão de três segundos.
+- Galeria de componentes em `docs/galeria`, gerada por `tools/generate_gallery.py`.
+- **Crítica pixel a pixel** (`preview_pbir.py --critique`): mede a página renderizada no navegador e
+  aponta:
+  - texto cortado ou vazando, e valor que não cabe;
+  - texto colado na borda;
+  - tabela mais larga que o cartão;
+  - visuais sobrepostos;
+  - gutters irregulares, apertados ou largos demais;
+  - linhas de gráficos fora da mesma grade de colunas;
+  - cartões grandes demais para o conteúdo.
+
+  O `SKILL.md` exige criticar, corrigir e repetir até zerar antes de entregar.
+- Auditoria contra a "cara de dashboard genérico": cantos acima de 8 px (`PBI066`), sombras
+  (`PBI067`), gutters irregulares (`PBI068`) e visuais duplicados (`PBI069`).
+- Auditoria de números: média de percentual (`PBI070`), saldo somado no tempo (`PBI071`), formato
+  incoerente (`PBI072`). No SQL de origem: junção implícita ou sem chave (`PBI073`), NOLOCK (`PBI074`),
+  DISTINCT na fato (`PBI075`), SELECT * (`PBI076`) e função no WHERE (`PBI077`).
+- `scripts/reconcile.py`: compara os números do relatório com os da origem, linha a linha, com
+  tolerância, chaves faltantes e totais. Gera também a consulta DAX a exportar. A referência
+  `numbers.md` traz o roteiro da prova e as armadilhas de DAX, SQL e M.
+- Visuais customizados: seção de acabamento de visual nativo na referência `custom-visuals.md`.
+- Avaliações E13 (rodada 2) e E14, sobre edições manuais (`evals/results/2026-11-24-e13r2-e14`).
 - Padrão visual inspirado no Twenty, o CRM open source: estrutura de página com sidebar de 220 px e
   navegação de páginas, painel branco com cantos de 8 px e barra do topo de 56 px (caminho da página, data
   da carga e filtros compactos), com a posição de cada peça em `references/report-design.md`.
@@ -69,6 +110,10 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   `Atraso Médio (dias)`.
 - Linhas de texto sem moldura (variação do KPI, data da carga) não contam como visuais separados.
 ### Corrigido
+- Extrair e gerar de novo um relatório editado à mão duplicava os visuais criados pelo usuário; o
+  `--extract` agora fixa páginas e visuais nas pastas existentes (encontrado pela avaliação E14).
+- Tabelas com mais de 3 colunas não cabiam no layout de celular; agora ficam de fora dele.
+- A paleta padrão tinha dois laranjas iguais para quem tem protanopia (#D14E00 e #AD6200); trocada.
 - O calendário dos kits e do exemplo não cobria os meses mais antigos das tabelas fato; agora vai da
   primeira à última data da fato, em anos completos.
 - Os scripts voltam a rodar no Python 3.9 (`write_text` com `newline=` só existe a partir do 3.10).
