@@ -36,8 +36,11 @@ Spec (JSON):
 }
 
 Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, waterfallChart, tableEx
-(options: "columns", "highlight": {"column": <measure>, "colorMeasure": <measure>}), slicer ("field"), and
-  matrix    {"rows": [fields], "columns": [fields], "values": [measures], "highlight": {...}}
+(options: "columns", "sortBy": "<measure> desc", "top": n, "highlight": {"column": <measure>,
+"colorMeasure": <measure>}), slicer ("field"), and
+  matrix    {"rows": [fields], "columns": [fields], "values": [measures], "sortBy", "top", "highlight": {...}}
+"top": n writes Power BI's Top N visual filter (first column, ranked by the sortBy measure) and sizes an
+"auto" row for n rows: a table on a summary page shows the rows that fit, and its title says so.
   combo     {"category": field, "values": [column measures], "lineValues": [line measures]}
   scatter   {"details": field, "x": measure, "y": measure, "size": measure, "labels": true (≤ 12 points)}
   kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
@@ -45,7 +48,7 @@ Chart craft: "target": m on lineChart and combo adds the target as a thin grey d
 combo puts the line on the columns' axis when it has a target ("sameAxis": true/false to choose);
 "colorMeasure": m on bar and column charts colours each bar from a measure that returns a hex (red below
 target, accent otherwise). Row "height": "auto" fits the content (bars: 52 + 32 per expected category,
-set "items": n on the visual); "fill" takes what is left of the 616 px.
+set "items": n on the visual; tables: 64 + 28 per row); "fill" takes what is left of the 616 px.
 A field parameter is just a column: use its column as "category" or "rows" and put a slicer on it.
 Every data visual needs "alt" (alt text) and "title" or "titleMeasure" (kpi uses "label").
 Row heights plus 16 px gutters must fit the 616 px content area. --check validates without writing.
@@ -272,6 +275,7 @@ class Builder:
         self.page_ids = {p["name"]: p.get("id") or hid("page", p["name"]) for p in spec["pages"]}
         self.ids: dict[tuple[str, str], str] = {}
         self.icons_used: set[str] = set()
+        self.notes: list[str] = []                      # printed after the build: things to decide
 
     # ------------------------------------------------------------------ fields
     def ref(self, name: str):
@@ -295,9 +299,14 @@ class Builder:
     @staticmethod
     def container(vid, pos, z, visual):
         x, y, w, h = pos
-        return {"$schema": f"{SCHEMA}/visualContainer/1.1.0/schema.json", "name": vid,
-                "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": z},
-                "visual": visual}
+        visual = dict(visual)
+        filters = visual.pop("_filterConfig", None)          # visual-level filters live on the container
+        out = {"$schema": f"{SCHEMA}/visualContainer/1.1.0/schema.json", "name": vid,
+               "position": {"x": x, "y": y, "z": z, "width": w, "height": h, "tabOrder": z},
+               "visual": visual}
+        if filters:
+            out["filterConfig"] = filters
+        return out
 
     @staticmethod
     def textbox(*runs):
@@ -373,6 +382,28 @@ class Builder:
                                                "showMarker": lit("false")}, "selector": sel}],
                 "labels": [{"properties": {"showSeries": lit("false")}, "selector": sel}]}
 
+    def top_filter(self, column: str, measure: str, n: int, descending: bool) -> dict:
+        """Power BI's own Top N visual filter: the n rows of `column` with the highest (or lowest) `measure`."""
+        ck, ce, cp = self.ref(column)
+        mk, me, mp = self.ref(measure)
+        if ck != "Column" or mk != "Measure":
+            raise SpecError(f"'top' keeps the first column's top rows by a measure: first column '{column}', "
+                            f"sortBy '{measure}' must be a measure")
+        src = [{"Name": "c", "Entity": ce, "Type": 0}] + ([{"Name": "m", "Entity": me, "Type": 0}] if me != ce else [])
+        col = {"Column": {"Expression": {"SourceRef": {"Source": "c"}}, "Property": cp}}
+        query = {"Version": 2, "From": src,
+                 "Select": [{**col, "Name": "field"}],
+                 "OrderBy": [{"Direction": 2 if descending else 1,
+                              "Expression": {"Measure": {"Expression": {"SourceRef": {"Source": "m" if me != ce else "c"}},
+                                                         "Property": mp}}}],
+                 "Top": n}
+        return {"filters": [{"name": hid("top", column, measure, str(n)), "field": self.field(column), "type": "TopN",
+                             "filter": {"Version": 2,
+                                        "From": [{"Name": "subquery", "Expression": {"Subquery": {"Query": query}}, "Type": 2},
+                                                 {"Name": "c", "Entity": ce, "Type": 0}],
+                                        "Where": [{"Condition": {"In": {"Expressions": [col],
+                                                                        "Table": {"SourceRef": {"Source": "subquery"}}}}}]}}]}
+
     def colour_by(self, measure: str) -> dict:
         """Bar colour from a measure that returns a hex per category (e.g. red below the target)."""
         return {"properties": {"fill": {"solid": {"color": self.measure_expr(measure)}}},
@@ -383,7 +414,7 @@ class Builder:
         """Row height that fits its content: bars grow with the expected number of categories."""
         need = 0
         for v in visuals:
-            t, n = v.get("type"), v.get("items")
+            t, n = v.get("type"), v.get("items") or v.get("top")
             if t in ("kpi", "card"):
                 h = 88
             elif t == "kpiTrend":
@@ -471,8 +502,17 @@ class Builder:
                 objects = {"values": [{"properties": {"fontColor": {"solid": {"color": self.measure_expr(hl["colorMeasure"])}}},
                                        "selector": {"metadata": f"{entity}.{prop}"}}]}
             vtype = "tableEx" if t == "tableEx" else "pivotTable"
-            return [(key, pos, self.data_visual(vtype, roles, alt, title=spec.get("title"),
-                                                title_measure=spec.get("titleMeasure"), sort=sort, objects=objects))]
+            visual = self.data_visual(vtype, roles, alt, title=spec.get("title"),
+                                      title_measure=spec.get("titleMeasure"), sort=sort, objects=objects)
+            if spec.get("top") is not None:
+                n = spec["top"]
+                if not isinstance(n, int) or isinstance(n, bool) or n < 1:
+                    raise SpecError(f"'top' is the number of rows to keep, e.g. 8 (got {n!r})")
+                if not sort:
+                    raise SpecError("'top' needs 'sortBy': \"<measure> desc\" — the rows are the top N by that measure")
+                first = spec["columns"][0] if t == "tableEx" else spec["rows"][0]
+                visual["_filterConfig"] = self.top_filter(first, sort[0], n, sort[1] == "Descending")
+            return [(key, pos, visual)]
         if t == "combo":
             lines = list(spec.get("lineValues", [])) + ([spec["target"]] if spec.get("target") else [])
             roles = {"Category": {"projections": [self.proj(spec["category"])]},
@@ -544,6 +584,11 @@ class Builder:
             widths = self.split(width, r.get("split") or [1] * len(vis))
             x = x0
             for v, w in zip(vis, widths):
+                if v.get("type") in ("tableEx", "matrix") and h < 400 and not v.get("top") and not v.get("items"):
+                    fit = max((h - 64) // 28, 1)
+                    self.notes.append(f"{page['name']}: table '{v.get('title', '')}' has room for about {fit} rows. "
+                                      f"Unless the list is shorter for sure, set \"top\": {fit} with \"sortBy\": "
+                                      "\"<measure> desc\" and say it in the title, or give it its own page")
                 placed += self.component(v, (x, y, w, h))
                 x += w + GUTTER
             y += h + GUTTER
@@ -867,6 +912,17 @@ class Extractor:
             by, direction = self.sort(vis)
             if by:
                 out["sortBy"] = f"{by} {'desc' if direction == 'Descending' else 'asc'}"
+            for flt in (vis.get("_filterConfig") or {}).get("filters", []):
+                if flt.get("type") == "TopN":
+                    try:
+                        q = flt["filter"]["From"][0]["Expression"]["Subquery"]["Query"]
+                        n, order = q["Top"], q["OrderBy"][0]
+                    except (KeyError, IndexError, TypeError):
+                        continue
+                    out["top"] = n
+                    if not by:
+                        out["sortBy"] = f"{order['Expression']['Measure']['Property']} " \
+                                        f"{'desc' if order.get('Direction') == 2 else 'asc'}"
             for item in (vis.get("objects") or {}).get("values", []):
                 fc = (item.get("properties") or {}).get("fontColor") or {}
                 expr = (fc.get("solid") or {}).get("color", {}).get("expr", {})
@@ -910,6 +966,8 @@ class Extractor:
                     page["parent"] = runs[1].strip().rstrip("/").strip()
             if not vis or vis.get("visualType") in DECORATION:
                 continue
+            if c.get("filterConfig"):
+                vis = {**vis, "_filterConfig": c["filterConfig"]}
             items.append((c.get("position", {}), vis, f"{name}/{f.parent.name}"))
         top = [(p, v, w) for p, v, w in items if p.get("y", 0) + p.get("height", 0) <= CONTENT_Y - 8]
         body = [i for i in items if i not in top]
@@ -1124,11 +1182,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"pbir_layout.py: error: {e}", file=sys.stderr)
         return 2
     if args.check:
+        for note in b.notes:
+            print(f"- {note}")
         print(f"[ok] {len(pages)} page(s) checked")
         return 0
     m = b.merge
     for line in m.lines(args.report):
         print(f"- {line}")
+    for note in b.notes:
+        print(f"- {note}")
     if m.fresh and had_pages and not args.force:
         print("- no layout lock yet: pages were rewritten from the spec. From now on, edits made by hand "
               "(in Desktop or in the files) are kept on every rebuild")
