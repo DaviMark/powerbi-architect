@@ -182,7 +182,12 @@ IF ( MAX ( dm_calendario[Data] ) >= EOMONTH ( TODAY (), -1 ) + 1, "#3E63DD", "#B
 
 ## 5. The three-second review
 
-Look at each visual in the preview PNG and answer, in order. Fix the first "no" before moving on.
+**First, the whole page, as someone who has never seen it.** Glance at the PNG for five seconds, look
+away and answer: what is the main number, and is it good or bad? If you cannot, the hierarchy is wrong
+(the headline is too small, too many things compete, or the title does not conclude). Fix that before
+any visual.
+
+Then look at each visual and answer, in order. Fix the first "no" before moving on.
 
 1. Does the title say what to conclude, and does it fit?
 2. Is the eye drawn to one thing first (the accent), with everything else quieter?
@@ -192,3 +197,12 @@ Look at each visual in the preview PNG and answer, in order. Fix the first "no" 
 6. Would it still work for someone who cannot tell red from green (labels, ▲/▼, position)?
 7. Does it line up with its neighbours (same top, same height in the row, 16 px gutters)?
 8. Is there anything left to remove?
+
+**When reviewing someone else's report** (or reporting what is left to the user), sort the findings by
+effect, not by order of discovery, and say what already works so it is kept:
+
+| Level | Means | Example |
+|---|---|---|
+| Blocks the decision | the user cannot answer the page's question, or reads a wrong number | headline missing, wrong total, title about another visual |
+| Slows the user | the answer is there but takes effort | no labels, unsorted bars, 7 colours, legend lookups |
+| Finish | polish the user feels but cannot name | 2 px misalignment, uneven gutters, a vague title |

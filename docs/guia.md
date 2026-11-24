@@ -6,7 +6,7 @@ Tudo o que a skill faz, em detalhe. A apresentação curta está no [README](../
 
 A parte de design não é "deixar bonito". É começar pela **decisão** que a pessoa precisa tomar e
 trabalhar de trás para frente até o pixel; dizer **não** ao visual a mais, à cor a mais, ao filtro
-"só por garantia"; cuidar do detalhe que ninguém pediu — alinhamento, formato de número, estado vazio,
+"só por garantia"; cuidar do detalhe que ninguém pediu: alinhamento, formato de número, estado vazio,
 tooltip que explica. Arquétipos de página, sistema de layout, tipografia, cor, acessibilidade e um
 ritual de revisão estão em [`references/report-design.md`](../skills/powerbi-architect/references/report-design.md).
 
@@ -113,7 +113,7 @@ Quando o `.pbiviz` é mesmo necessário, a skill traz um **visual de referência
 ([`templates/pbiviz-bullet-kpi`](../skills/powerbi-architect/templates/pbiviz-bullet-kpi)) que **compila,
 passa no ESLint oficial e é empacotado pelo `pbiviz package` sem nenhum aviso de recurso recomendado**:
 eventos de renderização, landing page, seleção e multisseleção, menu de contexto, tooltips, highlights,
-localização (en-US/pt-BR), teclado, alto contraste, `allowInteractions` — e **sem acesso à rede**.
+localização (en-US/pt-BR), teclado, alto contraste, `allowInteractions`, e **sem acesso à rede**.
 O CI deste repositório reconstrói o pacote a cada mudança.
 
 ## Instalação
@@ -144,7 +144,7 @@ O instalador **copia a skill** para `.claude/skills/` (Claude Code, Cursor), `.g
 (GitHub Copilot) e `.agents/skills/` (Codex e outros). Depois **gera o grafo de conhecimento** do
 repositório (abaixo). Nada é baixado. Para só copiar arquivos, use `--no-graph` (bash) ou `-NoGraph`
 (PowerShell). Para gerar o grafo sem hooks, use `--no-hooks` ou `-NoHooks`.
-Depois é só pedir trabalho de Power BI — a IA carrega a skill sozinha (ou diga *"use a skill powerbi-architect"*).
+Depois é só pedir trabalho de Power BI. A IA carrega a skill sozinha (ou diga *"use a skill powerbi-architect"*).
 
 **Atualizar:** `git pull` na pasta clonada e depois `install.sh /caminho/do/repo --update` (ou
 `install.ps1 -Target C:\caminho\do\repo -Update`). Só as instalações mais antigas são trocadas. Para ver a

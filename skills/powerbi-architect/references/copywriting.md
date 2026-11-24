@@ -1,4 +1,4 @@
-# Copywriting — the words on the page
+# Copywriting: the words on the page
 
 Half of what makes a report feel designed is the text: titles, labels, numbers, empty states. Write in
 the user's language (examples below are Brazilian Portuguese, the most common case for this skill) and
@@ -46,6 +46,22 @@ One precision per measure everywhere. Units in the title or the label, never bot
 Neutral, precise, short. No exclamation marks, no emoji, no jargon (`YoY`, `MTD` only if the audience
 uses them), no blame (`clientes inadimplentes` → `clientes com parcela vencida`).
 
-## 6. Before delivering
+## 6. Words that sound machine-written
+Readers spot generated text in a second, and then stop trusting the numbers next to it. This applies to
+titles, alt text, KPI lines, the documentation page, the README and the delivery message.
+`audit_pbip.py` flags the first three, and emoji, in visual titles and alt text (PBI080).
+
+| Pattern | Instead |
+|---|---|
+| A dash joining two clauses: `Vencido — concentrado no Sul` | a colon, a comma or two sentences: `Vencido concentrado no Sul` |
+| Empty praise: `robusto`, `abrangente`, `poderoso`, `incrível`, `insights` | the property itself: `atualizado às 8h`, `com 312 clientes` |
+| Filler openers: `Além disso`, `Vale ressaltar`, `Vale destacar`, `É importante notar`, `Em resumo`, `Em suma` | start with the fact |
+| Lists of three by habit (`rápido, confiável e escalável`) | as many items as there are: two, four |
+| Bold or italics on every paragraph | bold marks structure (labels, key terms), not emphasis |
+| Sentences about the text itself: `Esta página mostra…`, `Aqui você encontra…` | say what it shows: `Vencido por regional` |
+| The same point said twice in different words | keep the one with the number |
+
+## 7. Before delivering
 Read only the words of each page from top to bottom: breadcrumb, KPI labels and lines, visual titles.
-They should tell the story on their own. Then check one measure name in a tooltip and one empty state.
+They should tell the story on their own. Then check one measure name in a tooltip and one empty state,
+and read the delivery text once against §6.

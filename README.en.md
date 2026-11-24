@@ -11,7 +11,7 @@
 
 Your AI can *write* DAX. This skill teaches it to **think like a principal Power BI engineer and a
 product designer**: import the minimum, model a star schema, keep Power Query at **one step**, document
-every metric, design pages that answer one question in three seconds — and build a custom visual
+every metric, design pages that answer one question in three seconds, and build a custom visual
 (`.pbiviz`) **only when no native visual fits**.
 
 Works with **GitHub Copilot, Claude Code, Cursor, OpenAI Codex, Gemini CLI** and any agent that
@@ -66,19 +66,19 @@ model edit is also audited; the agent hears about blockers or a page below harmo
 [references/graph.md](skills/powerbi-architect/references/graph.md).
 
 ## Inside
-- `SKILL.md` — eight laws, workflow with two human gates, visual decision tree.
-- `references/` — modeling, one-step Power Query (8 connectors), DAX, TMDL, PBIR, product-grade report
+- `SKILL.md`: eight laws, workflow with two human gates, visual decision tree.
+- `references/`: modeling, one-step Power Query (8 connectors), DAX, TMDL, PBIR, product-grade report
   design, visual selection, custom visuals, documentation page (INFO.VIEW), refactoring, performance,
   security, quality checklist.
-- `templates/pbiviz-bullet-kpi/` — a **verified** reference custom visual: type-checks, passes the
+- `templates/pbiviz-bullet-kpi/`: a **verified** reference custom visual: type-checks, passes the
   official ESLint config and packages with `pbiviz package` with no recommended feature missing
   (rendering events, landing page, selection, context menu, tooltips, highlights, localization,
   keyboard, high contrast, allowInteractions, no network). Rebuilt in CI.
-- `scripts/audit_pbip.py` — offline audit of any PBIP folder: rule codes with file and line, matching
+- `scripts/audit_pbip.py`: offline audit of any PBIP folder: rule codes with file and line, matching
   Tabular Editor Best Practice Analyzer IDs, `--json` / `--sarif`, suppressions
   ([rules, in Portuguese](docs/regras-auditoria.md)).
-- `templates/pbir-pages/` and `templates/theme/` — schema-validated PBIR pages and an accessible theme.
-- `examples/contas-a-receber/` — a complete PBIP project that follows every rule.
+- `templates/pbir-pages/` and `templates/theme/`: schema-validated PBIR pages and an accessible theme.
+- `examples/contas-a-receber/`: a complete PBIP project that follows every rule.
 
 Reports follow the look of Twenty, the open-source CRM: grey canvas, quiet sidebar with the page navigator,
 white panel with hairline borders, a thin top bar with breadcrumb and compact filters, one font family
@@ -92,7 +92,7 @@ The agent never lays out a report by eye: it describes pages as rows of visuals 
 tables, drill-through, tooltip and phone layouts); `scripts/preview_pbir.py` draws each page so the agent
 looks at it before delivering; `scripts/make_theme.py` builds a brand theme with checked contrast; and
 `scripts/audit_pbip.py` scores each page's harmony from 0 to 100 (deliver at 90+).
-- `scripts/pbi_graph.py` — offline knowledge graph + query/explain/impact/path (installed automatically).
+- `scripts/pbi_graph.py`: offline knowledge graph + query/explain/impact/path (installed automatically).
 
 Uses the Microsoft **Power BI Modeling MCP** when available (model edits + DAX validation).
 
