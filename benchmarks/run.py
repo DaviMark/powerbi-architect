@@ -13,7 +13,7 @@ Each version runs every scenario twice: once with the skill (the agent reads the
 use its scripts) and once without (the agent may not read this repository). The order alternates
 between conditions across scenarios. Every delivered report is checked against the same requirements by
 tools, and the agent's consumption (tokens, tool calls, time) is recorded per run. Results land in
-benchmarks/results/<version>/ and the page benchmarks/index.html compares every version measured so far.
+benchmarks/versoes/<version>/ and the page benchmarks/index.html compares every version measured so far.
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def version() -> str:
 
 
 def scenarios() -> list[dict]:
-    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted((BENCH / "scenarios").glob("*.json"))]
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted((BENCH / "cenarios").glob("*.json"))]
 
 
 # ---------------------------------------------------------------------- prepare
@@ -127,7 +127,7 @@ def prepare(out: Path) -> None:
 
 # ---------------------------------------------------------------------- record
 def results_dir(v: str | None = None) -> Path:
-    return BENCH / "results" / (v or version())
+    return BENCH / "versoes" / (v or version())
 
 
 def record(run: str, tokens: int, tools: int, seconds: float, model: str) -> None:
@@ -402,12 +402,12 @@ def write_version_readme(data: dict, d: Path) -> None:
 # ---------------------------------------------------------------------- report
 def report() -> None:
     versions = []
-    for f in sorted((BENCH / "results").glob("*/resultados.json"),
+    for f in sorted((BENCH / "versoes").glob("*/resultados.json"),
                     key=lambda p: [int(x) for x in re.findall(r"\d+", p.parent.name)]):
         versions.append(json.loads(f.read_text(encoding="utf-8")))
     if not versions:
         sys.exit("no results yet: run prepare, the runs, record and score first")
-    template = (BENCH / "template.html").read_text(encoding="utf-8")
+    template = (BENCH / "pagina.html").read_text(encoding="utf-8")
     page = template.replace("/*__DATA__*/null", json.dumps(versions, ensure_ascii=False))
     (BENCH / "index.html").write_text(page, encoding="utf-8")
     print(f"[ok] {BENCH / 'index.html'}: {len(versions)} version(s)")

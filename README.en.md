@@ -48,7 +48,10 @@ TMDL model, PBIR report, SQL loads, `ficha.toml`, docs. It writes `powerbi-graph
   columns and measures, broken visual fields, shared sources and divergent measures.
 - `wiki/<model>.md`: one card per model with tables, columns, DAX, relationships, pages and the fields
   each visual uses.
-- `graph.json` (GraphRAG-ready) and `graph.html` (interactive, offline).
+- `graph.json` (GraphRAG-ready) and `graph.html`, the **Power BI Explorer**: graph, star schema,
+  measure catalogue with DAX, page wireframes, theme and findings, offline. `pbi_graph.py view` opens it.
+
+![Power BI Explorer](docs/assets/explorer-grafo.png)
 
 The agent reads the report and the card instead of dozens of `*.tmdl`/`visual.json` files. On the
 small [example project](examples/contas-a-receber), ~18.9k tokens of source become a ~1k-token report and a

@@ -14,6 +14,7 @@ Python 3.9+ standard library only. Offline. Never reads data, only metadata.
     python pbi_graph.py impact  "<name>"                          what depends on it (change safety)
     python pbi_graph.py path    "<from>" "<to>"                   shortest link between two objects
     python pbi_graph.py stats
+    python pbi_graph.py view    [ROOT] [--no-open]                open the Power BI Explorer in the browser
     python pbi_graph.py install   [REPO] [--no-hooks] [--no-agents] [--commit-graph]
     python pbi_graph.py uninstall [REPO]
 
@@ -21,7 +22,8 @@ Outputs (default ROOT/powerbi-graph/):
     GRAPH_REPORT.md   one-page overview for the agent: models, hubs, communities, findings
     wiki/<model>.md   compact card per semantic model (replaces reading TMDL + PBIR)
     graph.json        nodes + edges (GraphRAG-ready)
-    graph.html        interactive, self-contained view (no network)
+    graph.html        Power BI Explorer: graph, star schema, measure catalogue, page wireframes,
+                      theme and findings in one self-contained page (no network)
     manifest.json     file fingerprints for `update`
 """
 
@@ -472,6 +474,7 @@ class Builder:
             elif ref.get("byConnection"):
                 self.g.nodes[rid]["dataset"] = "live connection (byConnection)"
         definition = rp / "definition"
+        self.report_theme(rp, rid)
         if (rp / "report.json").exists() and not definition.is_dir():
             self.g.nodes[rid]["format"] = "legacy report.json (not PBIR)"
             self.notes.append(f"{rel(rp, self.root)}: legacy report.json — save as PBIR to graph pages/visuals")
@@ -495,7 +498,8 @@ class Builder:
             proto = any("PROTÓTIPO" in read(v) for v in page.parent.glob("visuals/*/visual.json"))
             pid = self.g.node(f"{rid}/{page.parent.name}", "page", pdata.get("displayName", page.parent.name),
                               report=name, file=pr, order=idx, hidden=(pdata.get("visibility") == "HiddenInViewMode") or None,
-                              prototype=proto or None)
+                              prototype=proto or None, width=pdata.get("width"), height=pdata.get("height"),
+                              page_type=(pdata.get("pageBinding") or {}).get("type"))
             self.g.edge(rid, pid, "has_page")
             self.visual_fields(ctx, pid, pdata.get("filterConfig", {}), "filters")
             for vj in sorted(page.parent.glob("visuals/*/visual.json")):
@@ -510,13 +514,38 @@ class Builder:
                 title = self.visual_title(v)
                 vid = self.g.node(f"{pid}/{vj.parent.name}", "visual", f"{vtype}: {title}" if title else vtype,
                                   page=pdata.get("displayName"), report=name, file=vr, visual_type=vtype,
-                                  title=title, chromeless=ap.chromeless(v) or None)
+                                  title=title, chromeless=ap.chromeless(v) or None,
+                                  pos=[round((v.get("position") or {}).get(k, 0)) for k in ("x", "y", "width", "height")])
                 self.g.edge(pid, vid, "has_visual")
                 self.visual_fields(ctx, vid, vis.get("query", {}), "uses")
                 self.visual_fields(ctx, vid, v.get("filterConfig", {}), "filters")
                 self.visual_fields(ctx, vid, vis.get("objects", {}), "uses")
                 self.visual_fields(ctx, vid, v.get("visualContainerObjects", {}), "uses")
                 self.visual_fields(ctx, vid, vis.get("visualContainerObjects", {}), "uses")
+
+    def report_theme(self, rp: Path, rid: str) -> None:
+        """The report's visual identity: custom theme name, data colours, page and text colours, font."""
+        try:
+            rj = json.loads(read(rp / "definition" / "report.json"))
+            name = ((rj.get("themeCollection") or {}).get("customTheme") or {}).get("name")
+            if not name:
+                return
+            t = json.loads(read(rp / "StaticResources" / "RegisteredResources" / name))
+        except (ValueError, OSError):
+            return
+        styles = t.get("visualStyles") or {}
+
+        def style(vtype, obj, key):
+            for item in ((styles.get(vtype) or {}).get("*") or {}).get(obj, []):
+                v = item.get(key)
+                if v is not None:
+                    return (v.get("solid") or {}).get("color") if isinstance(v, dict) else v
+            return None
+        self.g.nodes[rid]["theme"] = {
+            "name": t.get("name") or name, "colors": (t.get("dataColors") or [])[:8],
+            "good": t.get("good"), "bad": t.get("bad"), "neutral": t.get("neutral"),
+            "foreground": t.get("foreground"), "background": style("page", "background", "color"),
+            "font": style("*", "title", "fontFamily") or ((t.get("textClasses") or {}).get("title") or {}).get("fontFace")}
 
     @staticmethod
     def visual_title(v: dict) -> str:
@@ -1001,18 +1030,39 @@ document.getElementById('q').oninput=e=>{const v=e.target.value.toLowerCase().no
 </script></body></html>"""
 
 
+EXPLORER = Path(__file__).resolve().parent.parent / "templates" / "graph" / "explorer.html"
+
+
 def write_html(g: dict, comm: dict, path: Path) -> None:
+    """graph.html: the Power BI Explorer (graph, star schema, measures, page wireframes, theme, findings) when
+    the skill's template is present, otherwise the plain graph view. Self-contained: opens offline."""
     nodes = list(g["nodes"].values())
-    if len(nodes) > 900:
+    if not EXPLORER.exists() and len(nodes) > 900:
         nodes = [n for n in nodes if n["kind"] not in {"column", "py_symbol"}]
     keep = {n["id"] for n in nodes}
-    data = {"nodes": [{"id": n["id"], "l": n["label"], "k": n["kind"], "c": comm.get(n["id"], 0), "f": loc(n),
-                       "x2": (n.get("description") or "") + ("\n\n" + n["expression"] if n.get("expression") else "")}
-                      for n in nodes],
-            "edges": [{"s": e["source"], "t": e["target"], "r": e["rel"]} for e in g["edges"]
-                      if e["source"] in keep and e["target"] in keep]}
+    extra = ("role", "model", "table", "folder", "format", "data_type", "key", "hidden", "mode", "pq_steps",
+             "visual_type", "page", "report", "title", "pos", "width", "height", "order", "page_type", "theme",
+             "chromeless", "auto_datetime", "value")
+    rows = []
+    for n in nodes:
+        row = {"id": n["id"], "l": n["label"], "k": n["kind"], "c": comm.get(n["id"], 0), "f": loc(n)}
+        if n.get("description"):
+            row["d"] = n["description"]
+        if n.get("expression"):
+            row["dax"] = n["expression"]
+        row.update({k: n[k] for k in extra if n.get(k) not in (None, "", [])})
+        if not EXPLORER.exists():
+            row["x2"] = (n.get("description") or "") + ("\n\n" + n["expression"] if n.get("expression") else "")
+        rows.append(row)
+    edges = []
+    for e in g["edges"]:
+        if e["source"] in keep and e["target"] in keep:
+            edges.append({"s": e["source"], "t": e["target"], "r": e["rel"], **({"card": e["cardinality"]} if e.get("cardinality") else {})})
+    data = {"meta": {"root": g.get("root", ""), "built": g.get("built", "")}, "nodes": rows, "edges": edges,
+            "findings": {k: [x for x in v if isinstance(x, str)] or v for k, v in (g.get("findings") or {}).items()}}
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    path.write_text(HTML.replace("__DATA__", blob), encoding="utf-8")
+    page = EXPLORER.read_text(encoding="utf-8") if EXPLORER.exists() else HTML
+    path.write_text(page.replace("__DATA__", blob, 1), encoding="utf-8")
 
 
 def scan_fingerprint(root: Path) -> dict:
@@ -1513,6 +1563,17 @@ def main(argv: list[str]) -> int:
         return install(Path(args[0] if args else "."), hooks=not no_hooks, agents=not no_agents, commit_graph=commit)
     if cmd == "uninstall":
         return uninstall(Path(args[0] if args else "."))
+    if cmd == "view":
+        root = Path(args[0]).resolve() if args else find_root(Path.cwd())
+        out = Path(out_opt).resolve() if out_opt else root / OUT_DIR
+        if needs_update(root, out):
+            build(root, out, quiet=True)
+        page = out / "graph.html"
+        print(f"[ok] {page}")
+        if not flag("--no-open"):
+            import webbrowser
+            webbrowser.open(page.as_uri())
+        return 0
     root = find_root(Path.cwd())
     out = Path(out_opt).resolve() if out_opt else root / OUT_DIR
     budget = int(opt("--budget", "1500"))

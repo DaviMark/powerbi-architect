@@ -2,262 +2,253 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Benchmark Power BI Architect</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Power BI Architect · Benchmark</title>
+<meta name="description" content="A mesma IA, os mesmos pedidos, com e sem a skill Power BI Architect. Requisitos conferidos por ferramenta, versão a versão.">
 <style>
-  :root {
-    --canvas: #F1F1F1; --panel: #FFFFFF; --line: #EBEBEB; --line-strong: #D6D6D6;
-    --ink: #333333; --ink-2: #666666; --ink-3: #757575;
-    --accent: #3E63DD; --accent-soft: #EEF2FD; --grey: #B8B8B8;
-    --good: #00824D; --bad: #CE2C31; --radius: 8px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --canvas: #141414; --panel: #1C1C1C; --line: #2A2A2A; --line-strong: #3A3A3A;
-      --ink: #EBEBEB; --ink-2: #B3B3B3; --ink-3: #9A9A9A; --accent: #7B97F0; --accent-soft: #1F2A4A;
-      --grey: #5C5C5C; --good: #3DD68C; --bad: #FF6369;
-    }
-  }
-  :root[data-theme="dark"] {
-    --canvas: #141414; --panel: #1C1C1C; --line: #2A2A2A; --line-strong: #3A3A3A;
-    --ink: #EBEBEB; --ink-2: #B3B3B3; --ink-3: #9A9A9A; --accent: #7B97F0; --accent-soft: #1F2A4A;
-    --grey: #5C5C5C; --good: #3DD68C; --bad: #FF6369;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--canvas); color: var(--ink);
-         font: 400 14px/1.5 Inter, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
-  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
-  .brand { display: flex; align-items: center; gap: 10px; color: var(--ink-2); font-weight: 500; }
-  .brand i { width: 16px; height: 16px; border-radius: 4px; background: var(--accent); display: inline-block; }
-  h1 { font-size: 28px; line-height: 1.2; font-weight: 600; margin: 8px 0 6px; letter-spacing: -0.01em; }
-  .lede { color: var(--ink-2); max-width: 680px; margin: 0; }
-  .picker { display: flex; align-items: center; gap: 8px; color: var(--ink-3); font-size: 13px; }
-  select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line-strong);
-           border-radius: 6px; padding: 6px 28px 6px 10px; }
-  .grid { display: grid; gap: 16px; }
-  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 14px; min-width: 0; }
-  .label { color: var(--ink-2); font-size: 12px; }
-  .value { font-size: 28px; font-weight: 600; line-height: 1.15; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
-  .value small { font-size: 14px; font-weight: 500; color: var(--ink-3); margin-left: 6px; }
-  .note { font-size: 12px; color: var(--ink-3); }
-  .up { color: var(--good); } .down { color: var(--bad); }
-  section { margin-top: 16px; }
-  h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
-  .sub { color: var(--ink-3); font-size: 12px; margin: 0 0 14px; }
-  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); margin-bottom: 12px; }
-  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .legend .c::before { background: var(--accent); } .legend .s::before { background: var(--grey); }
-  .req { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 6px 16px; align-items: center; }
-  .req .name { font-size: 13px; }
-  .req .name em { display: block; font-style: normal; color: var(--ink-3); font-size: 11px; line-height: 1.35; }
-  .pair { display: grid; gap: 6px; padding-right: 64px; }
-  .bar { height: 12px; border-radius: 2px; background: var(--line); position: relative; }
-  .bar b { position: absolute; inset: 0 auto 0 0; border-radius: 2px; }
-  .bar.c b { background: var(--accent); } .bar.s b { background: var(--grey); }
-  .bar span { position: absolute; top: 50%; transform: translateY(-50%); padding-left: 6px; font-size: 11px; line-height: 12px;
-              color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .two { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; font-weight: 500; color: var(--ink-2); font-size: 12px; padding: 8px; border-bottom: 1px solid var(--line); }
-  td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .dots { display: inline-flex; gap: 3px; vertical-align: middle; }
-  .dots i { width: 8px; height: 8px; border-radius: 2px; background: var(--line-strong); }
-  .dots i.ok { background: var(--accent); } .dots.s i.ok { background: var(--ink-3); }
-  .shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
-  .shots figure { margin: 0; min-width: 0; }
-  .shots img { width: 100%; border: 1px solid var(--line); border-radius: 6px; display: block; cursor: zoom-in; background: var(--canvas); }
-  .shots figcaption { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
-  .why { color: var(--ink-3); font-size: 12px; margin-top: 2px; }
-  .trend svg { width: 100%; height: 240px; display: block; }
-  .trend th, .trend td { white-space: nowrap; }
-  .method { color: var(--ink-2); font-size: 13px; }
-  .method li { margin: 4px 0; }
-  .scen { display: grid; gap: 16px; }
-  .scen .card h3 { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
-  .row-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
-  dialog { border: 0; padding: 0; border-radius: var(--radius); max-width: 96vw; background: transparent; }
-  dialog img { max-width: 96vw; max-height: 90vh; display: block; border-radius: var(--radius); }
-  dialog::backdrop { background: rgba(0, 0, 0, .6); }
-  footer { color: var(--ink-3); font-size: 12px; margin-top: 24px; }
-  a { color: var(--accent); }
-  @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .two { grid-template-columns: 1fr; } }
-  @media (max-width: 520px) { .trend svg, .trend .legend { display: none; } .kpis { grid-template-columns: 1fr; } .req { grid-template-columns: 1fr; } .shots { grid-template-columns: 1fr; } }
+:root{
+  --bg:#fbfbfd;--bg2:#f5f5f7;--card:#ffffff;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#86868b;--hair:rgba(0,0,0,.08);
+  --blue:#0071e3;--blue2:#e8f1fc;--grey:#d2d2d7;--green:#248a3d;--red:#d70015;--bar:rgba(251,251,253,.72);
+  --shadow:0 1px 1px rgba(0,0,0,.02),0 8px 28px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#000;--bg2:#0b0b0c;--card:#1c1c1e;--ink:#f5f5f7;--ink2:#a1a1a6;--ink3:#86868b;--hair:rgba(255,255,255,.1);
+  --blue:#2997ff;--blue2:#0b2540;--grey:#48484a;--green:#30d158;--red:#ff453a;--bar:rgba(22,22,23,.72);--shadow:none}}
+*{box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.47 var(--font);letter-spacing:-.022em}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+nav{position:sticky;top:0;z-index:10;height:52px;background:var(--bar);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair)}
+nav .in{max-width:1080px;margin:0 auto;height:100%;padding:0 22px;display:flex;align-items:center;gap:20px}
+nav .name{font-size:19px;font-weight:600;letter-spacing:-.02em}
+nav .grow{flex:1}
+nav a.plain{color:var(--ink);font-size:12px;letter-spacing:-.01em;opacity:.85}
+.seg{display:inline-flex;background:var(--bg2);border-radius:9px;padding:2px;gap:2px}
+.seg button{border:0;background:none;font:500 12px var(--font);color:var(--ink);padding:5px 12px;border-radius:7px;cursor:pointer;letter-spacing:-.01em}
+.seg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+.cta{background:var(--blue);color:#fff!important;border-radius:980px;padding:5px 14px;font-size:12px;font-weight:500}
+.cta:hover{text-decoration:none;filter:brightness(1.08)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+.hero{text-align:center;padding:96px 0 64px}
+.eyebrow{font-size:17px;font-weight:600;color:var(--blue);letter-spacing:-.01em;margin-bottom:10px}
+h1{font-size:clamp(40px,7vw,80px);line-height:1.05;letter-spacing:-.045em;font-weight:700;margin:0}
+h1 span{color:var(--ink3)}
+.lede{font-size:clamp(19px,2.2vw,24px);line-height:1.35;color:var(--ink2);max-width:720px;margin:22px auto 0;letter-spacing:-.02em;font-weight:400}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:8px 0 104px;border-top:1px solid var(--hair)}
+.stat{padding:36px 12px 0;text-align:center}
+.stat+.stat{border-left:1px solid var(--hair)}
+.stat .cap{font-size:14px;color:var(--ink2);margin-bottom:6px;letter-spacing:-.01em}
+.stat .big{font-size:clamp(44px,6vw,64px);font-weight:700;letter-spacing:-.045em;line-height:1}
+.stat .big small{font-size:.42em;font-weight:600;letter-spacing:-.02em;margin-left:2px}
+.stat .foot{font-size:14px;color:var(--ink3);margin-top:10px}
+.stat .foot b{color:var(--green);font-weight:600}
+section{padding:0 0 104px}
+h2{font-size:clamp(32px,4.4vw,48px);line-height:1.08;letter-spacing:-.035em;font-weight:700;margin:0 0 12px;text-align:center}
+.sub{font-size:19px;color:var(--ink2);text-align:center;max-width:640px;margin:0 auto 48px;line-height:1.4}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.col{background:var(--card);border-radius:28px;padding:40px 36px;box-shadow:var(--shadow)}
+.col h3{margin:0;font-size:24px;letter-spacing:-.03em;font-weight:600}
+.col .score{font-size:72px;font-weight:700;letter-spacing:-.05em;line-height:1;margin:18px 0 4px}
+.col .score small{font-size:28px;letter-spacing:-.03em}
+.col.skill .score{color:var(--blue)}
+.col.none .score{color:var(--ink3)}
+.col .of{color:var(--ink2);font-size:15px;margin-bottom:26px}
+.col ul{list-style:none;padding:0;margin:0}
+.col li{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--hair)}
+.mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;margin-top:1px}
+.mark svg{width:12px;height:12px;stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.mark.y{background:var(--blue)}.mark.y svg{stroke:#fff}
+.mark.p{background:var(--blue2)}.mark.p svg{stroke:var(--blue)}
+.mark.n{background:var(--bg2)}.mark.n svg{stroke:var(--ink3)}
+.col li b{display:block;font-size:15px;font-weight:600;letter-spacing:-.015em}
+.col li span{display:block;font-size:13px;color:var(--ink3);letter-spacing:-.005em;line-height:1.4;margin-top:1px}
+.col li em{font-style:normal;margin-left:auto;font-size:13px;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.center{text-align:center;margin-bottom:28px}
+.stage{background:var(--card);border-radius:28px;padding:28px;box-shadow:var(--shadow)}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.shot .lab{display:flex;justify-content:space-between;align-items:baseline;margin:0 4px 12px}
+.shot .lab b{font-size:17px;font-weight:600;letter-spacing:-.02em}
+.shot .lab span{font-size:13px;color:var(--ink3)}
+.shot img{width:100%;display:block;border-radius:14px;box-shadow:0 0 0 1px var(--hair),0 12px 32px rgba(0,0,0,.08);background:#fff}
+.shot img+img{margin-top:16px}
+.chart{background:var(--card);border-radius:28px;padding:36px 40px 28px;box-shadow:var(--shadow)}
+.legend{display:flex;gap:22px;justify-content:center;font-size:13px;color:var(--ink2);margin-top:12px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+svg text{fill:var(--ink3);font:12px var(--font);letter-spacing:-.01em}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.tile{background:var(--card);border-radius:24px;padding:28px;box-shadow:var(--shadow)}
+.tile .cap{font-size:14px;color:var(--ink2)}
+.tile .row{display:flex;align-items:baseline;justify-content:space-between;margin-top:18px}
+.tile .row b{font-size:15px;font-weight:600}
+.tile .row span{font-size:28px;font-weight:700;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.tile .row span small{font-size:14px;font-weight:600;color:var(--ink3);margin-left:3px}
+.track{height:6px;border-radius:3px;background:var(--bg2);margin-top:8px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:3px}
+.tile .note{margin-top:18px;font-size:13px;color:var(--ink3);line-height:1.4}
+table{width:100%;border-collapse:collapse;font-size:14px;letter-spacing:-.01em}
+th{text-align:left;font-weight:600;color:var(--ink3);font-size:12px;padding:0 12px 12px;letter-spacing:0}
+td{padding:16px 12px;border-top:1px solid var(--hair);vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:980px}
+.tag.ok{background:var(--blue2);color:var(--blue)}
+.tag.no{background:var(--bg2);color:var(--ink2)}
+td .why{font-size:13px;color:var(--ink3);line-height:1.45}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.steps div{border-top:2px solid var(--ink);padding-top:16px}
+.steps b{display:block;font-size:17px;letter-spacing:-.02em;margin-bottom:6px}
+.steps span{font-size:14px;color:var(--ink2);line-height:1.45;display:block}
+footer{border-top:1px solid var(--hair);background:var(--bg2)}
+footer .wrap{padding:22px;font-size:12px;color:var(--ink3);line-height:1.6}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+@media (max-width:860px){.compare,.shots,.trio{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.hero{padding:64px 0 44px}nav a.plain{display:none}}
+@media (max-width:560px){.stats{grid-template-columns:1fr}.stat+.stat{border-left:0;border-top:1px solid var(--hair)}.stat{padding:24px 0}.col{padding:28px 22px}.stage,.chart{padding:18px;border-radius:20px}.steps{grid-template-columns:1fr}nav .name{font-size:16px}section{padding-bottom:72px}}
 </style>
 </head>
 <body>
+<nav><div class="in">
+  <span class="name">Power BI Architect</span>
+  <span class="grow"></span>
+  <a class="plain" href="#comparar">Comparar</a><a class="plain" href="#entregas">Entregas</a><a class="plain" href="#metodo">Método</a>
+  <div class="seg" id="ver" role="tablist" aria-label="Versão"></div>
+  <a class="cta" href="https://github.com/DaviMark/powerbi-architect" target="_blank" rel="noopener">GitHub</a>
+</div></nav>
+
 <div class="wrap">
-  <header>
-    <div>
-      <div class="brand"><i></i>Power BI Architect · Benchmark</div>
-      <h1 id="headline">Com a skill e sem a skill</h1>
-      <p class="lede" id="lede"></p>
-    </div>
-    <label class="picker">Versão <select id="version"></select></label>
+  <header class="hero">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="h1"></h1>
+    <p class="lede" id="lede"></p>
   </header>
+  <div class="stats" id="stats"></div>
 
-  <div class="grid kpis" id="kpis"></div>
-
-  <section class="card">
-    <h2>Requisitos atendidos, um por um</h2>
-    <p class="sub">Execuções que atendem a cada requisito, conferido por ferramenta, sem opinião.</p>
-    <div class="legend"><span class="c">Com a skill</span><span class="s">Sem a skill</span></div>
-    <div class="req bars-wrap" id="reqs"></div>
+  <section id="comparar" class="reveal">
+    <h2>Sete requisitos. Conferidos por ferramenta.</h2>
+    <p class="sub">Cada entrega passa pelos mesmos testes: schemas da Microsoft, auditoria da skill e uma crítica pixel a pixel. Nada de opinião.</p>
+    <div class="compare" id="compare"></div>
   </section>
 
-  <section class="grid two" id="usage"></section>
-
-  <section>
-    <h2 style="margin-top:8px">Cenários</h2>
-    <p class="sub">Os mesmos pedidos para as duas condições. Imagens desenhadas pelo preview da skill a partir dos arquivos PBIR entregues, com os mesmos dados de amostra.</p>
-    <div class="scen" id="scenarios"></div>
+  <section id="entregas" class="reveal">
+    <h2>Veja o que foi entregue.</h2>
+    <p class="sub">As primeiras páginas de cada relatório, desenhadas com os mesmos dados de amostra.</p>
+    <div class="center"><div class="seg" id="scen"></div></div>
+    <div class="stage"><div class="shots" id="shots"></div></div>
   </section>
 
-  <section class="card trend">
-    <h2>Evolução por versão</h2>
-    <p class="sub">Percentual de requisitos atendidos em cada versão medida. Cada nova versão entra aqui, sempre comparada com a IA sem a skill.</p>
-    <div id="trend"></div>
+  <section class="reveal">
+    <h2>Melhor a cada versão.</h2>
+    <p class="sub">Quando uma conferência fica mais exigente, as entregas antigas são pontuadas de novo. Todas as versões, mesma régua.</p>
+    <div class="chart"><div id="trend"></div>
+      <div class="legend"><span><i style="background:var(--blue)"></i>Com a skill</span><span><i style="background:var(--grey)"></i>Sem a skill</span></div></div>
   </section>
 
-  <section class="card">
-    <h2>Como é medido</h2>
-    <ul class="method" id="method"></ul>
+  <section class="reveal">
+    <h2>O custo do cuidado.</h2>
+    <p class="sub">Com a skill, a IA audita e corrige o próprio trabalho antes de entregar. Isso aparece no consumo.</p>
+    <div class="trio" id="usage"></div>
   </section>
 
-  <footer id="footer"></footer>
+  <section class="reveal">
+    <h2>Execução por execução.</h2>
+    <p class="sub">Tudo o que foi medido, inclusive o que não saiu a favor da skill.</p>
+    <div class="stage" style="overflow:auto"><table id="runs"></table></div>
+  </section>
+
+  <section id="metodo" class="reveal">
+    <h2>Como é medido.</h2>
+    <p class="sub">Toda versão nova passa pelo mesmo teste, em poucos minutos.</p>
+    <div class="steps">
+      <div><b>Os mesmos pedidos</b><span>Criar um relatório a partir de um modelo e reestilizar um relatório amador.</span></div>
+      <div><b>Com e sem a skill</b><span>O mesmo modelo de IA nas duas condições. A ordem alterna entre os cenários.</span></div>
+      <div><b>Sete requisitos</b><span>Abre sem erro, zero bloqueadores, harmonia, acessibilidade, pixel a pixel, pedido atendido e números seguros.</span></div>
+      <div><b>A mesma régua</b><span>Uma conferência nova vale para todas as versões: as entregas guardadas são pontuadas outra vez.</span></div>
+    </div>
+  </section>
 </div>
-<dialog id="zoom"><img alt=""></dialog>
+<footer><div class="wrap" id="footer"></div></footer>
+
 <script>
-const DATA = [{"versao": "1.3.0", "data": "2026-11-24", "modelo": ["Claude Sonnet 5.5"], "requisitos": [{"id": "abre", "nome": "Abre sem erro", "descricao": "JSON válido nos schemas da Microsoft e todo campo usado pelos visuais existe no modelo"}, {"id": "bloqueadores", "nome": "Zero bloqueadores", "descricao": "Nenhum achado bloqueador na auditoria"}, {"id": "harmonia", "nome": "Harmonia ≥ 90", "descricao": "Todas as páginas com nota de harmonia de 90 ou mais"}, {"id": "acessivel", "nome": "Acessível", "descricao": "Todo visual de dados com título e texto alternativo; texto com contraste ≥ 4,5:1"}, {"id": "pixel", "nome": "Pixel a pixel", "descricao": "Nenhum achado da crítica do preview: texto cortado, sobreposição, gutters, grade"}, {"id": "pedido", "nome": "Pedido atendido", "descricao": "As páginas pedidas existem e nenhuma informação do relatório anterior sumiu"}, {"id": "numeros", "nome": "Números seguros", "descricao": "Nenhum padrão de DAX ou SQL que devolve número errado (PBI032, PBI070–PBI077)"}], "resumo": {"com": {"execucoes": 2, "requisitos_atendidos": 13, "requisitos_avaliados": 14, "entregas_completas": 1, "harmonia_media": 100.0, "achados_medios": 2.5, "tokens_medios": 92431.0, "ferramentas_medias": 11.0, "segundos_medios": 47.2, "por_requisito": {"abre": 2, "bloqueadores": 2, "harmonia": 2, "acessivel": 2, "pixel": 1, "pedido": 2, "numeros": 2}}, "sem": {"execucoes": 2, "requisitos_atendidos": 6, "requisitos_avaliados": 14, "entregas_completas": 0, "harmonia_media": 43.0, "achados_medios": 20.5, "tokens_medios": 76980.5, "ferramentas_medias": 4.0, "segundos_medios": 37.5, "por_requisito": {"abre": 1, "bloqueadores": 0, "harmonia": 0, "acessivel": 1, "pixel": 0, "pedido": 2, "numeros": 2}}}, "execucoes": [{"requisitos": {"abre": [true, ""], "bloqueadores": [true, ""], "harmonia": [true, ""], "acessivel": [true, ""], "pixel": [true, ""], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 100.0, "paginas": 3, "achados": {"BLOCKER": 0, "IMPORTANT": 0, "SUGGESTION": 3}, "critica": 0, "regras": ["PBI034", "PBI043"]}, "critica_detalhe": [], "run": "s1-logistica-com", "cenario": "s1-logistica", "nome": "Logística: relatório a partir do modelo", "condicao": "com", "consumo": {"ferramentas": 10, "modelo": "Claude Sonnet 5.5", "segundos": 48.2, "tokens": 95105}, "imagens": ["s1-logistica-com-p1.png", "s1-logistica-com-p2.png"], "atendidos": 7, "avaliados": 7}, {"requisitos": {"abre": [false, "1 erro(s) de schema"], "bloqueadores": [false, "1 bloqueador(es)"], "harmonia": [false, "Visão Geral 0, Transportadoras 20"], "acessivel": [false, "PBI019, PBI056"], "pixel": [false, "2 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 10.0, "paginas": 2, "achados": {"BLOCKER": 1, "IMPORTANT": 15, "SUGGESTION": 19}, "critica": 2, "regras": ["PBI006", "PBI019", "PBI034", "PBI043", "PBI046", "PBI048", "PBI056", "PBI068"]}, "critica_detalhe": ["Transportadoras › : [uneven] gutters of 20, 25 px on one page — use one", "Visão Geral › : [uneven] gutters of 15, 20 px on one page — use one"], "run": "s1-logistica-sem", "cenario": "s1-logistica", "nome": "Logística: relatório a partir do modelo", "condicao": "sem", "consumo": {"ferramentas": 4, "modelo": "Claude Sonnet 5.5", "segundos": 46.1, "tokens": 75917}, "imagens": ["s1-logistica-sem-p1.png", "s1-logistica-sem-p2.png"], "atendidos": 2, "avaliados": 7}, {"requisitos": {"abre": [true, ""], "bloqueadores": [true, ""], "harmonia": [true, ""], "acessivel": [true, ""], "pixel": [false, "1 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 100.0, "paginas": 2, "achados": {"BLOCKER": 0, "IMPORTANT": 0, "SUGGESTION": 2}, "critica": 1, "regras": ["PBI034", "PBI043"]}, "critica_detalhe": ["Visão Geral › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"], "run": "s2-reestilizar-com", "cenario": "s2-reestilizar", "nome": "Relatório amador: deixar profissional sem perder informação", "condicao": "com", "consumo": {"ferramentas": 12, "modelo": "Claude Sonnet 5.5", "segundos": 46.1, "tokens": 89757}, "imagens": ["s2-reestilizar-com-p1.png", "s2-reestilizar-com-p2.png"], "atendidos": 6, "avaliados": 7}, {"requisitos": {"abre": [true, ""], "bloqueadores": [false, "1 bloqueador(es)"], "harmonia": [false, "Painel de Cobrança 76"], "acessivel": [true, ""], "pixel": [false, "1 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 76.0, "paginas": 1, "achados": {"BLOCKER": 1, "IMPORTANT": 2, "SUGGESTION": 3}, "critica": 1, "regras": ["PBI006", "PBI034", "PBI043", "PBI046", "PBI047", "PBI053"]}, "critica_detalhe": ["Painel de Cobrança › tableEx: [rows] 8 of 14 rows do not fit (room for 6) — keep the rows that fit (\"top\": 6 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"], "run": "s2-reestilizar-sem", "cenario": "s2-reestilizar", "nome": "Relatório amador: deixar profissional sem perder informação", "condicao": "sem", "consumo": {"ferramentas": 4, "modelo": "Claude Sonnet 5.5", "segundos": 29.0, "tokens": 78044}, "imagens": ["s2-reestilizar-sem-p1.png"], "atendidos": 4, "avaliados": 7}]}, {"versao": "1.4.0", "data": "2026-11-24", "modelo": ["Claude Sonnet 5.5"], "requisitos": [{"id": "abre", "nome": "Abre sem erro", "descricao": "JSON válido nos schemas da Microsoft e todo campo usado pelos visuais existe no modelo"}, {"id": "bloqueadores", "nome": "Zero bloqueadores", "descricao": "Nenhum achado bloqueador na auditoria"}, {"id": "harmonia", "nome": "Harmonia ≥ 90", "descricao": "Todas as páginas com nota de harmonia de 90 ou mais"}, {"id": "acessivel", "nome": "Acessível", "descricao": "Todo visual de dados com título e texto alternativo; texto com contraste ≥ 4,5:1"}, {"id": "pixel", "nome": "Pixel a pixel", "descricao": "Nenhum achado da crítica do preview: texto cortado, sobreposição, gutters, grade"}, {"id": "pedido", "nome": "Pedido atendido", "descricao": "As páginas pedidas existem e nenhuma informação do relatório anterior sumiu"}, {"id": "numeros", "nome": "Números seguros", "descricao": "Nenhum padrão de DAX ou SQL que devolve número errado (PBI032, PBI070–PBI077)"}], "resumo": {"com": {"execucoes": 2, "requisitos_atendidos": 14, "requisitos_avaliados": 14, "entregas_completas": 2, "harmonia_media": 100.0, "achados_medios": 2.0, "tokens_medios": 96098.0, "ferramentas_medias": 12.0, "segundos_medios": 59.2, "por_requisito": {"abre": 2, "bloqueadores": 2, "harmonia": 2, "acessivel": 2, "pixel": 2, "pedido": 2, "numeros": 2}}, "sem": {"execucoes": 2, "requisitos_atendidos": 4, "requisitos_avaliados": 14, "entregas_completas": 0, "harmonia_media": 6.0, "achados_medios": 24.5, "tokens_medios": 76183.0, "ferramentas_medias": 4.5, "segundos_medios": 31.4, "por_requisito": {"abre": 0, "bloqueadores": 0, "harmonia": 0, "acessivel": 0, "pixel": 0, "pedido": 2, "numeros": 2}}}, "execucoes": [{"requisitos": {"abre": [true, ""], "bloqueadores": [true, ""], "harmonia": [true, ""], "acessivel": [true, ""], "pixel": [true, ""], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 100.0, "paginas": 3, "achados": {"BLOCKER": 0, "IMPORTANT": 0, "SUGGESTION": 2}, "critica": 0, "regras": ["PBI034", "PBI043"]}, "critica_detalhe": [], "run": "s1-logistica-com", "cenario": "s1-logistica", "nome": "Logística: relatório a partir do modelo", "condicao": "com", "consumo": {"ferramentas": 11, "modelo": "Claude Sonnet 5.5", "segundos": 56.0, "tokens": 92142}, "imagens": ["s1-logistica-com-p1.png", "s1-logistica-com-p2.png"], "atendidos": 7, "avaliados": 7}, {"requisitos": {"abre": [false, "2 erro(s) de schema"], "bloqueadores": [false, "1 bloqueador(es)"], "harmonia": [false, "Visão Geral 0, Transportadoras 16"], "acessivel": [false, "PBI019, PBI056"], "pixel": [false, "1 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 8.0, "paginas": 2, "achados": {"BLOCKER": 1, "IMPORTANT": 15, "SUGGESTION": 18}, "critica": 1, "regras": ["PBI006", "PBI019", "PBI034", "PBI043", "PBI046", "PBI047", "PBI048", "PBI056", "PBI068"]}, "critica_detalhe": ["Visão Geral › : [uneven] gutters of 15, 20 px on one page — use one"], "run": "s1-logistica-sem", "cenario": "s1-logistica", "nome": "Logística: relatório a partir do modelo", "condicao": "sem", "consumo": {"ferramentas": 5, "modelo": "Claude Sonnet 5.5", "segundos": 34.1, "tokens": 73441}, "imagens": ["s1-logistica-sem-p1.png", "s1-logistica-sem-p2.png"], "atendidos": 2, "avaliados": 7}, {"requisitos": {"abre": [false, "9 erro(s) de schema"], "bloqueadores": [false, "1 bloqueador(es)"], "harmonia": [false, "Painel de Cobrança 4"], "acessivel": [false, "PBI019, PBI056"], "pixel": [false, "1 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 4.0, "paginas": 1, "achados": {"BLOCKER": 1, "IMPORTANT": 8, "SUGGESTION": 6}, "critica": 1, "regras": ["PBI006", "PBI019", "PBI034", "PBI043", "PBI047", "PBI056"]}, "critica_detalhe": ["Painel de Cobrança › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"], "run": "s2-reestilizar-sem", "cenario": "s2-reestilizar", "nome": "Relatório amador: deixar profissional sem perder informação", "condicao": "sem", "consumo": {"ferramentas": 4, "modelo": "Claude Sonnet 5.5", "segundos": 28.7, "tokens": 78925}, "imagens": ["s2-reestilizar-sem-p1.png"], "atendidos": 2, "avaliados": 7}, {"requisitos": {"abre": [true, ""], "bloqueadores": [true, ""], "harmonia": [true, ""], "acessivel": [true, ""], "pixel": [true, ""], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 100.0, "paginas": 3, "achados": {"BLOCKER": 0, "IMPORTANT": 0, "SUGGESTION": 2}, "critica": 0, "regras": ["PBI034", "PBI043"]}, "critica_detalhe": [], "run": "s2-reestilizar-com", "cenario": "s2-reestilizar", "nome": "Relatório amador: deixar profissional sem perder informação", "condicao": "com", "consumo": {"ferramentas": 13, "modelo": "Claude Sonnet 5.5", "segundos": 62.4, "tokens": 100054}, "imagens": ["s2-reestilizar-com-p1.png", "s2-reestilizar-com-p2.png"], "atendidos": 7, "avaliados": 7}]}];
+const DATA = [{"versao": "1.3.0", "data": "2026-11-24", "modelo": ["Claude Sonnet 5.5"], "requisitos": [{"id": "abre", "nome": "Abre sem erro", "descricao": "JSON válido nos schemas da Microsoft e todo campo usado pelos visuais existe no modelo"}, {"id": "bloqueadores", "nome": "Zero bloqueadores", "descricao": "Nenhum achado bloqueador na auditoria"}, {"id": "harmonia", "nome": "Harmonia ≥ 90", "descricao": "Todas as páginas com nota de harmonia de 90 ou mais"}, {"id": "acessivel", "nome": "Acessível", "descricao": "Todo visual de dados com título e texto alternativo; texto com contraste ≥ 4,5:1"}, {"id": "pixel", "nome": "Pixel a pixel", "descricao": "Nenhum achado da crítica do preview: texto cortado, sobreposição, gutters, grade"}, {"id": "pedido", "nome": "Pedido atendido", "descricao": "As páginas pedidas existem e nenhuma informação do relatório anterior sumiu"}, {"id": "numeros", "nome": "Números seguros", "descricao": "Nenhum padrão de DAX ou SQL que devolve número errado (PBI032, PBI070–PBI077)"}], "resumo": {"com": {"execucoes": 2, "requisitos_atendidos": 13, "requisitos_avaliados": 14, "entregas_completas": 1, "harmonia_media": 99.3, "achados_medios": 3.0, "tokens_medios": 92431.0, "ferramentas_medias": 11.0, "segundos_medios": 47.2, "por_requisito": {"abre": 2, "bloqueadores": 2, "harmonia": 2, "acessivel": 2, "pixel": 1, "pedido": 2, "numeros": 2}}, "sem": {"execucoes": 2, "requisitos_atendidos": 6, "requisitos_avaliados": 14, "entregas_completas": 0, "harmonia_media": 42.0, "achados_medios": 21.0, "tokens_medios": 76980.5, "ferramentas_medias": 4.0, "segundos_medios": 37.5, "por_requisito": {"abre": 1, "bloqueadores": 0, "harmonia": 0, "acessivel": 1, "pixel": 0, "pedido": 2, "numeros": 2}}}, "execucoes": [{"requisitos": {"abre": [true, ""], "bloqueadores": [true, ""], "harmonia": [true, ""], "acessivel": [true, ""], "pixel": [true, ""], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 98.7, "paginas": 3, "achados": {"BLOCKER": 0, "IMPORTANT": 0, "SUGGESTION": 4}, "critica": 0, "regras": ["PBI034", "PBI043", "PBI079"]}, "critica_detalhe": [], "run": "s1-logistica-com", "cenario": "s1-logistica", "nome": "Logística: relatório a partir do modelo", "condicao": "com", "consumo": {"ferramentas": 10, "modelo": "Claude Sonnet 5.5", "segundos": 48.2, "tokens": 95105}, "imagens": ["s1-logistica-com-p1.png", "s1-logistica-com-p2.png"], "atendidos": 7, "avaliados": 7}, {"requisitos": {"abre": [false, "1 erro(s) de schema"], "bloqueadores": [false, "1 bloqueador(es)"], "harmonia": [false, "Visão Geral 0, Transportadoras 16"], "acessivel": [false, "PBI019, PBI056"], "pixel": [false, "3 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 8.0, "paginas": 2, "achados": {"BLOCKER": 1, "IMPORTANT": 15, "SUGGESTION": 20}, "critica": 3, "regras": ["PBI006", "PBI019", "PBI034", "PBI043", "PBI046", "PBI048", "PBI056", "PBI068", "PBI079"]}, "critica_detalhe": ["Transportadoras › : [uneven] gutters of 20, 25 px on one page — use one", "Visão Geral › : [uneven] gutters of 15, 20 px on one page — use one", "Visão Geral › barChart: [sparse] 5 bars with 96 px each (32 is enough) — the card is 510 px for 212 px of bars: make the row \"height\": \"auto\" with \"items\": 5"], "run": "s1-logistica-sem", "cenario": "s1-logistica", "nome": "Logística: relatório a partir do modelo", "condicao": "sem", "consumo": {"ferramentas": 4, "modelo": "Claude Sonnet 5.5", "segundos": 46.1, "tokens": 75917}, "imagens": ["s1-logistica-sem-p1.png", "s1-logistica-sem-p2.png"], "atendidos": 2, "avaliados": 7}, {"requisitos": {"abre": [true, ""], "bloqueadores": [true, ""], "harmonia": [true, ""], "acessivel": [true, ""], "pixel": [false, "1 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 100.0, "paginas": 2, "achados": {"BLOCKER": 0, "IMPORTANT": 0, "SUGGESTION": 2}, "critica": 1, "regras": ["PBI034", "PBI043"]}, "critica_detalhe": ["Visão Geral › tableEx: [rows] 10 of 14 rows do not fit (room for 4) — keep the rows that fit (\"top\": 4 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"], "run": "s2-reestilizar-com", "cenario": "s2-reestilizar", "nome": "Relatório amador: deixar profissional sem perder informação", "condicao": "com", "consumo": {"ferramentas": 12, "modelo": "Claude Sonnet 5.5", "segundos": 46.1, "tokens": 89757}, "imagens": ["s2-reestilizar-com-p1.png", "s2-reestilizar-com-p2.png"], "atendidos": 6, "avaliados": 7}, {"requisitos": {"abre": [true, ""], "bloqueadores": [false, "1 bloqueador(es)"], "harmonia": [false, "Painel de Cobrança 76"], "acessivel": [true, ""], "pixel": [false, "1 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 76.0, "paginas": 1, "achados": {"BLOCKER": 1, "IMPORTANT": 2, "SUGGESTION": 3}, "critica": 1, "regras": ["PBI006", "PBI034", "PBI043", "PBI046", "PBI047", "PBI053"]}, "critica_detalhe": ["Painel de Cobrança › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"], "run": "s2-reestilizar-sem", "cenario": "s2-reestilizar", "nome": "Relatório amador: deixar profissional sem perder informação", "condicao": "sem", "consumo": {"ferramentas": 4, "modelo": "Claude Sonnet 5.5", "segundos": 29.0, "tokens": 78044}, "imagens": ["s2-reestilizar-sem-p1.png"], "atendidos": 4, "avaliados": 7}]}, {"versao": "1.4.0", "data": "2026-11-24", "modelo": ["Claude Sonnet 5.5"], "requisitos": [{"id": "abre", "nome": "Abre sem erro", "descricao": "JSON válido nos schemas da Microsoft e todo campo usado pelos visuais existe no modelo"}, {"id": "bloqueadores", "nome": "Zero bloqueadores", "descricao": "Nenhum achado bloqueador na auditoria"}, {"id": "harmonia", "nome": "Harmonia ≥ 90", "descricao": "Todas as páginas com nota de harmonia de 90 ou mais"}, {"id": "acessivel", "nome": "Acessível", "descricao": "Todo visual de dados com título e texto alternativo; texto com contraste ≥ 4,5:1"}, {"id": "pixel", "nome": "Pixel a pixel", "descricao": "Nenhum achado da crítica do preview: texto cortado, sobreposição, gutters, grade"}, {"id": "pedido", "nome": "Pedido atendido", "descricao": "As páginas pedidas existem e nenhuma informação do relatório anterior sumiu"}, {"id": "numeros", "nome": "Números seguros", "descricao": "Nenhum padrão de DAX ou SQL que devolve número errado (PBI032, PBI070–PBI077)"}], "resumo": {"com": {"execucoes": 2, "requisitos_atendidos": 14, "requisitos_avaliados": 14, "entregas_completas": 2, "harmonia_media": 98.0, "achados_medios": 3.5, "tokens_medios": 96098.0, "ferramentas_medias": 12.0, "segundos_medios": 59.2, "por_requisito": {"abre": 2, "bloqueadores": 2, "harmonia": 2, "acessivel": 2, "pixel": 2, "pedido": 2, "numeros": 2}}, "sem": {"execucoes": 2, "requisitos_atendidos": 4, "requisitos_avaliados": 14, "entregas_completas": 0, "harmonia_media": 5.0, "achados_medios": 25.0, "tokens_medios": 76183.0, "ferramentas_medias": 4.5, "segundos_medios": 31.4, "por_requisito": {"abre": 0, "bloqueadores": 0, "harmonia": 0, "acessivel": 0, "pixel": 0, "pedido": 2, "numeros": 2}}}, "execucoes": [{"requisitos": {"abre": [true, ""], "bloqueadores": [true, ""], "harmonia": [true, ""], "acessivel": [true, ""], "pixel": [true, ""], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 96.0, "paginas": 3, "achados": {"BLOCKER": 0, "IMPORTANT": 0, "SUGGESTION": 5}, "critica": 0, "regras": ["PBI034", "PBI043", "PBI079"]}, "critica_detalhe": [], "run": "s1-logistica-com", "cenario": "s1-logistica", "nome": "Logística: relatório a partir do modelo", "condicao": "com", "consumo": {"ferramentas": 11, "modelo": "Claude Sonnet 5.5", "segundos": 56.0, "tokens": 92142}, "imagens": ["s1-logistica-com-p1.png", "s1-logistica-com-p2.png"], "atendidos": 7, "avaliados": 7}, {"requisitos": {"abre": [false, "2 erro(s) de schema"], "bloqueadores": [false, "1 bloqueador(es)"], "harmonia": [false, "Visão Geral 0, Transportadoras 12"], "acessivel": [false, "PBI019, PBI056"], "pixel": [false, "2 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 6.0, "paginas": 2, "achados": {"BLOCKER": 1, "IMPORTANT": 15, "SUGGESTION": 19}, "critica": 2, "regras": ["PBI006", "PBI019", "PBI034", "PBI043", "PBI046", "PBI047", "PBI048", "PBI056", "PBI068", "PBI079"]}, "critica_detalhe": ["Visão Geral › : [uneven] gutters of 15, 20 px on one page — use one", "Visão Geral › barChart: [sparse] 5 bars with 94 px each (32 is enough) — the card is 500 px for 212 px of bars: make the row \"height\": \"auto\" with \"items\": 5"], "run": "s1-logistica-sem", "cenario": "s1-logistica", "nome": "Logística: relatório a partir do modelo", "condicao": "sem", "consumo": {"ferramentas": 5, "modelo": "Claude Sonnet 5.5", "segundos": 34.1, "tokens": 73441}, "imagens": ["s1-logistica-sem-p1.png", "s1-logistica-sem-p2.png"], "atendidos": 2, "avaliados": 7}, {"requisitos": {"abre": [false, "9 erro(s) de schema"], "bloqueadores": [false, "1 bloqueador(es)"], "harmonia": [false, "Painel de Cobrança 4"], "acessivel": [false, "PBI019, PBI056"], "pixel": [false, "1 achado(s)"], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 4.0, "paginas": 1, "achados": {"BLOCKER": 1, "IMPORTANT": 8, "SUGGESTION": 6}, "critica": 1, "regras": ["PBI006", "PBI019", "PBI034", "PBI043", "PBI047", "PBI056"]}, "critica_detalhe": ["Painel de Cobrança › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"], "run": "s2-reestilizar-sem", "cenario": "s2-reestilizar", "nome": "Relatório amador: deixar profissional sem perder informação", "condicao": "sem", "consumo": {"ferramentas": 4, "modelo": "Claude Sonnet 5.5", "segundos": 28.7, "tokens": 78925}, "imagens": ["s2-reestilizar-sem-p1.png"], "atendidos": 2, "avaliados": 7}, {"requisitos": {"abre": [true, ""], "bloqueadores": [true, ""], "harmonia": [true, ""], "acessivel": [true, ""], "pixel": [true, ""], "pedido": [true, ""], "numeros": [true, ""]}, "metricas": {"harmonia_media": 100.0, "paginas": 3, "achados": {"BLOCKER": 0, "IMPORTANT": 0, "SUGGESTION": 2}, "critica": 0, "regras": ["PBI034", "PBI043"]}, "critica_detalhe": [], "run": "s2-reestilizar-com", "cenario": "s2-reestilizar", "nome": "Relatório amador: deixar profissional sem perder informação", "condicao": "com", "consumo": {"ferramentas": 13, "modelo": "Claude Sonnet 5.5", "segundos": 62.4, "tokens": 100054}, "imagens": ["s2-reestilizar-com-p1.png", "s2-reestilizar-com-p2.png"], "atendidos": 7, "avaliados": 7}]}];
 const $ = s => document.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const fmt = (n, d = 0) => n == null ? "—" : Number(n).toLocaleString("pt-BR", {maximumFractionDigits: d, minimumFractionDigits: d});
-const pct = r => r.requisitos_avaliados ? 100 * r.requisitos_atendidos / r.requisitos_avaliados : 0;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = x => x.requisitos_avaliados ? 100 * x.requisitos_atendidos / x.requisitos_avaliados : 0;
+const n0 = v => v == null ? "—" : Math.round(v).toLocaleString("pt-BR");
+const mil = v => v == null ? "—" : Math.round(v / 1000).toLocaleString("pt-BR");
+const dt = s => { if (!s) return ""; const [y, m, d] = s.split("-"); return `${+d} de ${["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"][m - 1]} de ${y}`; };
+const CHECK = '<svg viewBox="0 0 12 12"><path d="M2.5 6.2 5 8.6l4.6-5.2"/></svg>';
+const DASH = '<svg viewBox="0 0 12 12"><path d="M3 6h6"/></svg>';
+const HALF = '<svg viewBox="0 0 12 12"><path d="M3 6h6"/></svg>';
+let cur = DATA.length - 1, scen = null;
 
-function kpi(label, value, unit, note, cls = "") {
-  return `<div class="card"><div class="label">${esc(label)}</div><div class="value">${value}<small>${esc(unit)}</small></div>
-          <div class="note ${cls}">${note}</div></div>`;
+function render() {
+  const v = DATA[cur], prev = DATA[cur - 1], c = v.resumo.com, s = v.resumo.sem, P = Math.round(pct(c)), Q = Math.round(pct(s));
+  $("#ver").innerHTML = DATA.map((x, i) => `<button role="tab" aria-selected="${i === cur}" class="${i === cur ? "on" : ""}" data-i="${i}">${esc(x.versao)}</button>`).join("");
+  $("#eyebrow").textContent = `Benchmark · versão ${v.versao}`;
+  $("#h1").innerHTML = `A mesma IA.<br><span>Outro relatório.</span>`;
+  $("#lede").textContent = `${(v.modelo || []).join(", ") || "O mesmo modelo de IA"} recebeu os mesmos pedidos duas vezes: com a skill e sem ela. Com a skill, cumpriu ${P}% dos requisitos. Sem ela, ${Q}%.`;
+  const gain = P - Q, pg = prev ? Math.round(pct(prev.resumo.com)) : null;
+  $("#stats").innerHTML = [
+    ["Requisitos cumpridos", P, "%", `<b>+${gain} pontos</b> sobre a IA sem a skill`],
+    ["Entregas completas", c.entregas_completas, `/${c.execucoes}`, `${s.entregas_completas} de ${s.execucoes} sem a skill`],
+    ["Harmonia das páginas", n0(c.harmonia_media), "", `${n0(s.harmonia_media)} sem a skill, de 100`]]
+    .map(([cap, big, unit, foot]) => `<div class="stat"><div class="cap">${cap}</div><div class="big">${big}<small>${unit}</small></div><div class="foot">${foot}</div></div>`).join("");
+  const item = (r, x) => { const k = x.por_requisito[r.id], n = x.execucoes, cls = k === n ? "y" : k ? "p" : "n";
+    return `<li><span class="mark ${cls}">${k === n ? CHECK : k ? HALF : DASH}</span><div><b>${esc(r.nome)}</b><span>${esc(r.descricao)}</span></div><em>${k} de ${n}</em></li>`; };
+  $("#compare").innerHTML = [["skill", "Com a skill", c, P], ["none", "Sem a skill", s, Q]].map(([cls, t, x, p]) =>
+    `<div class="col ${cls}"><h3>${t}</h3><div class="score">${p}<small>%</small></div><div class="of">${x.requisitos_atendidos} de ${x.requisitos_avaliados} requisitos em ${x.execucoes} entregas</div>
+     <ul>${v.requisitos.map(r => item(r, x)).join("")}</ul></div>`).join("");
+  const scenarios = [...new Map(v.execucoes.map(x => [x.cenario, x.nome.split(":")[0]])).entries()];
+  if (!scen || !scenarios.some(x => x[0] === scen)) scen = scenarios[0][0];
+  $("#scen").innerHTML = scenarios.map(([id, nome]) => `<button class="${id === scen ? "on" : ""}" data-s="${esc(id)}">${esc(nome)}</button>`).join("");
+  shots(v);
+  $("#trend").innerHTML = trend();
+  const tile = (cap, key, unit, fmt, note) => { const a = c[key], b = s[key], mx = Math.max(a || 0, b || 0) || 1;
+    return `<div class="tile"><div class="cap">${cap}</div>
+      ${[["Com a skill", a, "var(--blue)"], ["Sem a skill", b, "var(--grey)"]].map(([l, x, col]) =>
+        `<div class="row"><b>${l}</b><span>${fmt(x)}<small>${unit}</small></span></div><div class="track"><i style="width:${100 * (x || 0) / mx}%;background:${col}"></i></div>`).join("")}
+      <div class="note">${note}</div></div>`; };
+  const ratio = c.tokens_medios && s.tokens_medios ? (c.tokens_medios / s.tokens_medios).toLocaleString("pt-BR", {maximumFractionDigits: 1}) : "—";
+  $("#usage").innerHTML = tile("Tokens por execução", "tokens_medios", "mil", mil, `${ratio}× o consumo sem a skill.`) +
+    tile("Chamadas de ferramenta", "ferramentas_medias", "", n0, "Auditoria, preview e correções.") +
+    tile("Tempo por execução", "segundos_medios", "s", n0, "Ainda em menos de dois minutos.");
+  const names = Object.fromEntries(v.requisitos.map(r => [r.id, r.nome]));
+  $("#runs").innerHTML = `<tr><th>Cenário</th><th>Condição</th><th class="n">Requisitos</th><th class="n">Harmonia</th><th class="n">Tokens</th><th>O que faltou</th></tr>` +
+    v.execucoes.map(x => { const miss = Object.entries(x.requisitos).filter(([, r]) => r[0] === false), ok = x.atendidos === x.avaliados;
+      return `<tr><td>${esc(x.nome.split(":")[0])}</td><td>${x.condicao === "com" ? "Com a skill" : "Sem a skill"}</td>
+        <td class="n"><span class="tag ${ok ? "ok" : "no"}">${x.atendidos} de ${x.avaliados}</span></td><td class="n">${n0(x.metricas.harmonia_media)}</td>
+        <td class="n">${n0((x.consumo || {}).tokens)}</td>
+        <td><div class="why">${miss.length ? miss.map(([k, r]) => `${esc(names[k] || k)}${r[1] ? ": " + esc(r[1]) : ""}`).join("<br>") : "Nada."}</div></td></tr>`; }).join("");
+  $("#footer").innerHTML = `Medido em ${dt(v.data)}. Uma execução por cenário e condição; diferenças pequenas podem ser acaso.
+    Os relatórios não foram abertos no Power BI Desktop: as imagens vêm do preview da skill.
+    Dados: <a href="versoes/${encodeURIComponent(v.versao)}/resultados.json">resultados.json</a> ·
+    <a href="https://github.com/DaviMark/powerbi-architect/tree/main/benchmarks">Como medir uma versão nova</a>`;
 }
-
-function render(v) {
-  const c = v.resumo.com, s = v.resumo.sem;
-  $("#headline").textContent = `Versão ${v.versao}: com a skill e sem a skill`;
-  $("#lede").textContent = `${c.execucoes} execuções com a skill e ${s.execucoes} sem, nos mesmos ${v.execucoes.length / 2} cenários, ` +
-    `com ${v.modelo.join(", ") || "o mesmo modelo de IA"}. Medido em ${new Date(v.data + "T12:00").toLocaleDateString("pt-BR")}.`;
-  const dpp = pct(c) - pct(s);
-  const tok = c.tokens_medios && s.tokens_medios ? c.tokens_medios / s.tokens_medios : null;
-  $("#kpis").innerHTML =
-    kpi("Requisitos atendidos com a skill", fmt(pct(c)), "%",
-        `${dpp >= 0 ? "▲" : "▼"} ${fmt(Math.abs(dpp))} p.p. contra ${fmt(pct(s))}% sem a skill`, dpp >= 0 ? "up" : "down") +
-    kpi("Entregas que atendem a tudo", `${c.entregas_completas}`, `de ${c.execucoes}`,
-        `${s.entregas_completas} de ${s.execucoes} sem a skill`) +
-    kpi("Harmonia média das páginas", fmt(c.harmonia_media), "de 100",
-        `${fmt(s.harmonia_media)} sem a skill`, c.harmonia_media >= s.harmonia_media ? "up" : "down") +
-    kpi("Tokens por execução", fmt((c.tokens_medios || 0) / 1000, 0), "mil",
-        tok ? `${fmt(tok, 1)}× o consumo sem a skill (${fmt((s.tokens_medios || 0) / 1000)} mil)` : "consumo não registrado");
-
-  const n = Math.max(c.execucoes, 1);
-  $("#reqs").innerHTML = v.requisitos.map(r => {
-    const a = c.por_requisito[r.id], b = s.por_requisito[r.id];
-    return `<div class="name">${esc(r.nome)}<em>${esc(r.descricao)}</em></div>
-      <div class="pair">
-        <div class="bar c"><b style="width:${100 * a / n}%"></b><span style="left:${100 * a / n}%">${a} de ${n}</span></div>
-        <div class="bar s"><b style="width:${100 * b / n}%"></b><span style="left:${100 * b / n}%">${b} de ${n}</span></div>
-      </div>`;
-  }).join("");
-
-  const pair = (title, key, unit, d = 0, scale = 1) => {
-    const a = c[key], b = s[key], m = Math.max(a || 0, b || 0) || 1;
-    return `<div class="card"><h2>${esc(title)}</h2><p class="sub">Média por execução</p>
-      <div class="pair">
-        <div class="bar c"><b style="width:${100 * (a || 0) / m}%"></b><span style="left:${100 * (a || 0) / m}%">${fmt((a || 0) / scale, d)} ${unit}</span></div>
-        <div class="bar s"><b style="width:${100 * (b || 0) / m}%"></b><span style="left:${100 * (b || 0) / m}%">${fmt((b || 0) / scale, d)} ${unit}</span></div>
-      </div><div class="note" style="margin-top:10px">Azul: com a skill · cinza: sem a skill</div></div>`;
-  };
-  $("#usage").innerHTML = pair("Tokens", "tokens_medios", "mil", 0, 1000) +
-    pair("Chamadas de ferramenta", "ferramentas_medias", "", 0) + pair("Tempo", "segundos_medios", "s", 0);
-
-  const base = `results/${encodeURIComponent(v.versao)}/imagens/`;
-  const ids = [...new Set(v.execucoes.map(x => x.cenario))];
-  $("#scenarios").innerHTML = ids.map(id => {
-    const rc = v.execucoes.find(x => x.cenario === id && x.condicao === "com");
-    const rs = v.execucoes.find(x => x.cenario === id && x.condicao === "sem");
-    const dots = (r, cls) => `<span class="dots ${cls}">${Object.values(r.requisitos).map(q =>
-      `<i class="${q[0] ? "ok" : ""}" title="${q[0] === null ? "não avaliado" : q[0] ? "atendido" : esc(q[1] || "não atendido")}"></i>`).join("")}</span>`;
-    const why = r => Object.entries(r.requisitos).filter(([, q]) => q[0] === false)
-      .map(([k, q]) => `${esc(v.requisitos.find(x => x.id === k).nome)}${q[1] ? ": " + esc(q[1]) : ""}`).join(" · ");
-    const shot = (r, cap) => r.imagens && r.imagens.length
-      ? `<figure><img loading="lazy" src="${base}${esc(r.imagens[0])}" alt="Primeira página entregue ${cap}"><figcaption>${cap}</figcaption></figure>`
-      : `<figure><div class="note">sem imagem</div></figure>`;
-    const line = (r, label, cls) => `<div class="row-meta"><strong style="color:var(--ink)">${label}</strong>
-        ${dots(r, cls)} <span>${r.atendidos} de ${r.avaliados} requisitos</span>
-        <span>harmonia ${fmt(r.metricas.harmonia_media)}</span>
-        <span>${r.consumo ? fmt(r.consumo.tokens / 1000) + " mil tokens" : ""}</span></div>
-        ${why(r) ? `<div class="why">${why(r)}</div>` : ""}`;
-    return `<div class="card"><h3>${esc(rc.nome)}</h3>${line(rc, "Com a skill", "c")}${line(rs, "Sem a skill", "s")}
-      <div class="shots">${shot(rc, "com a skill")}${shot(rs, "sem a skill")}</div></div>`;
-  }).join("");
-  document.querySelectorAll(".shots img").forEach(img => img.addEventListener("click", () => {
-    $("#zoom img").src = img.src; $("#zoom").showModal();
-  }));
+function shots(v) {
+  const base = `versoes/${encodeURIComponent(v.versao)}/imagens/`, runs = v.execucoes.filter(x => x.cenario === scen);
+  $("#shots").innerHTML = [["com", "Com a skill"], ["sem", "Sem a skill"]].map(([k, t]) => { const r = runs.find(x => x.condicao === k); if (!r) return "";
+    return `<div class="shot"><div class="lab"><b>${t}</b><span>${r.atendidos} de ${r.avaliados} requisitos</span></div>
+      ${(r.imagens || []).map((im, i) => `<img loading="lazy" src="${base}${esc(im)}" alt="Página ${i + 1} do relatório entregue ${t.toLowerCase()}">`).join("") || `<p class="sub">A entrega não pôde ser desenhada.</p>`}</div>`; }).join("");
 }
-
 function trend() {
-  const W = 1000, H = 240, L = 48, R = 16, T = 32, B = 32, P = 48, n = DATA.length;
-  const x = i => n === 1 ? (L + W - R) / 2 : L + P + i * (W - L - R - 2 * P) / (n - 1);
-  const y = p => T + (100 - p) * (H - T - B) / 100;
-  const series = (cond, color) => {
-    const pts = DATA.map((v, i) => [x(i), y(pct(v.resumo[cond]))]);
-    return `<polyline fill="none" stroke="${color}" stroke-width="2" points="${pts.map(p => p.join(",")).join(" ")}"/>` +
-      pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${color}"/><text x="${p[0]}" y="${p[1] - 10}" text-anchor="middle"
-        font-size="12" fill="currentColor">${fmt(pct(DATA[i].resumo[cond]))}%</text>`).join("");
-  };
-  const grid = [0, 50, 100].map(p => `<line x1="${L}" x2="${W - R}" y1="${y(p)}" y2="${y(p)}" stroke="var(--line)"/>
-    <text x="${L - 8}" y="${y(p) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)">${p}%</text>`).join("");
-  const labels = DATA.map((v, i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="12" fill="var(--ink-2)">v${esc(v.versao)}</text>`).join("");
-  $("#trend").innerHTML = `<div class="legend"><span class="c">Com a skill</span><span class="s">Sem a skill</span></div>
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Percentual de requisitos atendidos por versão" style="color:var(--ink-2)">
-    ${grid}${series("sem", "var(--grey)")}${series("com", "var(--accent)")}${labels}</svg>` +
-    (n === 1 ? `<p class="note">Primeira versão medida. A próxima entra neste gráfico ao lado desta.</p>` : versionTable());
+  const W = 960, H = 300, L = 44, R = 24, T = 28, B = 36, n = DATA.length;
+  const x = i => n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1), y = p => T + (H - T - B) * (1 - p / 100);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Requisitos cumpridos por versão, com e sem a skill">`;
+  [0, 50, 100].forEach(t => s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--hair)"/><text x="${L - 12}" y="${y(t) + 4}" text-anchor="end">${t}%</text>`);
+  DATA.forEach((d, i) => s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" style="${i === cur ? "fill:var(--ink);font-weight:600" : ""}">${esc(d.versao)}</text>`);
+  [["com", "var(--blue)"], ["sem", "var(--grey)"]].forEach(([k, col]) => {
+    const pts = DATA.map((d, i) => `${x(i)},${y(pct(d.resumo[k]))}`).join(" ");
+    s += `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+    DATA.forEach((d, i) => { const p = Math.round(pct(d.resumo[k]));
+      s += `<circle cx="${x(i)}" cy="${y(p)}" r="${i === cur ? 6 : 4.5}" fill="${col}"/>
+        <text x="${x(i)}" y="${y(p) + (k === "com" ? -14 : 24)}" text-anchor="middle" style="fill:${k === "com" ? "var(--ink)" : "var(--ink3)"};font-size:14px;font-weight:600">${p}%</text>`; });
+  });
+  return s + "</svg>";
 }
-
-function versionTable() {
-  const pp = d => d === null ? "—" : `<span class="${d > 0 ? "up" : d < 0 ? "down" : ""}">${d > 0 ? "+" : ""}${fmt(d)} p.p.</span>`;
-  const rows = DATA.map((v, i) => {
-    const c = v.resumo.com, s = v.resumo.sem, prev = i ? pct(DATA[i - 1].resumo.com) : null;
-    return `<tr><td>v${esc(v.versao)}</td><td class="num">${fmt(pct(c))}%</td><td class="num">${fmt(pct(s))}%</td>
-      <td class="num">${pp(pct(c) - pct(s))}</td><td class="num">${prev === null ? "primeira medição" : pp(pct(c) - prev)}</td>
-      <td class="num">${c.entregas_completas} de ${c.execucoes}</td>
-      <td class="num">${c.tokens_medios ? fmt(c.tokens_medios / 1000) + " mil" : "—"}</td></tr>`;
-  }).join("");
-  return `<div style="overflow-x:auto;margin-top:16px"><table><tr><th>Versão</th><th class="num">Com a skill</th>
-    <th class="num">Sem a skill</th><th class="num">Ganho da skill</th><th class="num">Contra a versão anterior</th>
-    <th class="num">Entregas completas</th><th class="num">Tokens com a skill</th></tr>${rows}</table></div>`;
-}
-
-function method(v) {
-  const items = [
-    "Cada versão roda os mesmos cenários duas vezes: uma com a skill (a IA lê o SKILL.md e pode usar os scripts) e outra sem (a IA não pode abrir o repositório). A ordem entre as condições alterna de um cenário para o outro.",
-    "Dois cenários: um relatório novo a partir de um modelo de logística que a skill não traz, e um relatório amador para reestilizar sem perder informação.",
-    ...v.requisitos.map(r => `<strong>${esc(r.nome)}</strong>: ${esc(r.descricao)}.`),
-    "Consumo: tokens, chamadas de ferramenta e tempo de cada execução, como o agente informa ao terminar. A média é por condição.",
-    "Limites: uma execução por cenário e condição; os relatórios não foram abertos no Power BI Desktop; as imagens vêm do preview da skill.",
-  ];
-  $("#method").innerHTML = items.map(i => `<li>${i}</li>`).join("");
-  $("#footer").innerHTML = `Dados: <a href="results/${encodeURIComponent(v.versao)}/resultados.json">resultados.json</a> ·
-    gerado por <code>benchmarks/run.py report</code>`;
-}
-
-const sel = $("#version");
-DATA.forEach((v, i) => sel.insertAdjacentHTML("beforeend", `<option value="${i}">v${esc(v.versao)}</option>`));
-sel.value = DATA.length - 1;
-const show = () => { const v = DATA[sel.value]; render(v); method(v); };
-sel.addEventListener("change", show);
-show(); trend();
+$("#ver").onclick = e => { const b = e.target.closest("[data-i]"); if (b) { cur = +b.dataset.i; render(); } };
+$("#scen").onclick = e => { const b = e.target.closest("[data-s]"); if (b) { scen = b.dataset.s; shots(DATA[cur]); $("#scen").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.s === scen)); } };
+render();
+const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), {threshold: .12}) : null;
+document.querySelectorAll(".reveal").forEach(el => io ? io.observe(el) : el.classList.add("in"));
 </script>
 </body>
 </html>

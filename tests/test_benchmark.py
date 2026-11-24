@@ -34,7 +34,7 @@ class TestScenarios(unittest.TestCase):
 
     def test_every_measured_version_keeps_its_deliveries(self):
         """`score --versao` re-checks earlier versions from the archive: it must be complete."""
-        for res in sorted((ROOT / "benchmarks" / "results").glob("*/resultados.json")):
+        for res in sorted((ROOT / "benchmarks" / "versoes").glob("*/resultados.json")):
             d = res.parent
             with self.subTest(d.name):
                 runs = json.loads((d / "execucoes.json").read_text(encoding="utf-8"))
@@ -44,7 +44,7 @@ class TestScenarios(unittest.TestCase):
                     self.assertTrue((d / "amostras" / f"{r['cenario']}.json").exists())
 
     def test_the_page_template_has_the_data_slot(self):
-        self.assertIn("/*__DATA__*/null", (ROOT / "benchmarks" / "template.html").read_text(encoding="utf-8"))
+        self.assertIn("/*__DATA__*/null", (ROOT / "benchmarks" / "pagina.html").read_text(encoding="utf-8"))
 
 
 class TestStartingProjects(unittest.TestCase):

@@ -59,6 +59,33 @@ class TestCli(unittest.TestCase):
         self.assertTrue({str(n) for n in range(1, 9)} <= covered, "every law needs at least one rule")
 
 
+class TestTargetsAndTitles(unittest.TestCase):
+    def test_a_measure_with_a_target_shown_without_it(self):
+        visual = {"visualType": "lineChart", "query": {"queryState": {"Y": {"projections": [
+            {"field": {"Measure": {"Expression": {"SourceRef": {"Entity": "_M"}}, "Property": "% No Prazo"}}}]}}}}
+        measures = {"% No Prazo": "", "Meta % No Prazo": "0.95", "Entregas": ""}
+        self.assertIn("Meta % No Prazo", ap.target_review(visual, measures))
+        visual["query"]["queryState"]["Y"]["projections"].append(
+            {"field": {"Measure": {"Expression": {"SourceRef": {"Entity": "_M"}}, "Property": "Meta % No Prazo"}}})
+        self.assertIsNone(ap.target_review(visual, measures))             # the target is drawn
+        self.assertIsNone(ap.target_of("Entregas", measures))
+
+    def test_a_dynamic_title_reused_on_another_visual(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proj = copy_example(tmp)
+            titled = [f for f in proj.rglob("visual.json") if '"Measure"' in json.dumps(
+                (json.loads(f.read_text(encoding="utf-8")).get("visual") or {}).get("visualContainerObjects", {}).get("title", ""))]
+            charts = [f for f in proj.rglob("visual.json") if json.loads(f.read_text(encoding="utf-8")).get("visual", {})
+                      .get("visualType") == "clusteredBarChart"]
+            self.assertTrue(titled and charts)
+            title = json.loads(titled[0].read_text(encoding="utf-8"))["visual"]["visualContainerObjects"]["title"]
+            bar = json.loads(charts[0].read_text(encoding="utf-8"))
+            bar["visual"].setdefault("visualContainerObjects", {})["title"] = title
+            charts[0].write_text(json.dumps(bar), encoding="utf-8")
+            rules = [i["rule"] for i in ap.audit(proj)]
+            self.assertIn("PBI078", rules)
+
+
 class TestDocs(unittest.TestCase):
     def test_every_rule_is_documented(self):
         doc = (ROOT / "docs" / "regras-auditoria.md").read_text(encoding="utf-8")

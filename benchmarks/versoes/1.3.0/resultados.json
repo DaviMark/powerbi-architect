@@ -47,8 +47,8 @@
       "requisitos_atendidos": 13,
       "requisitos_avaliados": 14,
       "entregas_completas": 1,
-      "harmonia_media": 100.0,
-      "achados_medios": 2.5,
+      "harmonia_media": 99.3,
+      "achados_medios": 3.0,
       "tokens_medios": 92431.0,
       "ferramentas_medias": 11.0,
       "segundos_medios": 47.2,
@@ -67,8 +67,8 @@
       "requisitos_atendidos": 6,
       "requisitos_avaliados": 14,
       "entregas_completas": 0,
-      "harmonia_media": 43.0,
-      "achados_medios": 20.5,
+      "harmonia_media": 42.0,
+      "achados_medios": 21.0,
       "tokens_medios": 76980.5,
       "ferramentas_medias": 4.0,
       "segundos_medios": 37.5,
@@ -116,17 +116,18 @@
         ]
       },
       "metricas": {
-        "harmonia_media": 100.0,
+        "harmonia_media": 98.7,
         "paginas": 3,
         "achados": {
           "BLOCKER": 0,
           "IMPORTANT": 0,
-          "SUGGESTION": 3
+          "SUGGESTION": 4
         },
         "critica": 0,
         "regras": [
           "PBI034",
-          "PBI043"
+          "PBI043",
+          "PBI079"
         ]
       },
       "critica_detalhe": [],
@@ -159,7 +160,7 @@
         ],
         "harmonia": [
           false,
-          "Visão Geral 0, Transportadoras 20"
+          "Visão Geral 0, Transportadoras 16"
         ],
         "acessivel": [
           false,
@@ -167,7 +168,7 @@
         ],
         "pixel": [
           false,
-          "2 achado(s)"
+          "3 achado(s)"
         ],
         "pedido": [
           true,
@@ -179,14 +180,14 @@
         ]
       },
       "metricas": {
-        "harmonia_media": 10.0,
+        "harmonia_media": 8.0,
         "paginas": 2,
         "achados": {
           "BLOCKER": 1,
           "IMPORTANT": 15,
-          "SUGGESTION": 19
+          "SUGGESTION": 20
         },
-        "critica": 2,
+        "critica": 3,
         "regras": [
           "PBI006",
           "PBI019",
@@ -195,12 +196,14 @@
           "PBI046",
           "PBI048",
           "PBI056",
-          "PBI068"
+          "PBI068",
+          "PBI079"
         ]
       },
       "critica_detalhe": [
         "Transportadoras › : [uneven] gutters of 20, 25 px on one page — use one",
-        "Visão Geral › : [uneven] gutters of 15, 20 px on one page — use one"
+        "Visão Geral › : [uneven] gutters of 15, 20 px on one page — use one",
+        "Visão Geral › barChart: [sparse] 5 bars with 96 px each (32 is enough) — the card is 510 px for 212 px of bars: make the row \"height\": \"auto\" with \"items\": 5"
       ],
       "run": "s1-logistica-sem",
       "cenario": "s1-logistica",
@@ -265,7 +268,7 @@
         ]
       },
       "critica_detalhe": [
-        "Visão Geral › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
+        "Visão Geral › tableEx: [rows] 10 of 14 rows do not fit (room for 4) — keep the rows that fit (\"top\": 4 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
       ],
       "run": "s2-reestilizar-com",
       "cenario": "s2-reestilizar",
@@ -334,7 +337,7 @@
         ]
       },
       "critica_detalhe": [
-        "Painel de Cobrança › tableEx: [rows] 8 of 14 rows do not fit (room for 6) — keep the rows that fit (\"top\": 6 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
+        "Painel de Cobrança › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
       ],
       "run": "s2-reestilizar-sem",
       "cenario": "s2-reestilizar",

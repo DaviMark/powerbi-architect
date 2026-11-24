@@ -29,7 +29,7 @@ Not graphed (reported in `GRAPH_REPORT.md`): `model.bim` models and legacy `repo
 | `GRAPH_REPORT.md` | first read: dashboards, models, hubs, communities, findings, suggested questions |
 | `wiki/<model>.md` | model card: tables + columns (`UNUSED` flagged), relationships, measures with DAX and usage counts, pages → visuals → fields |
 | `graph.json` | full graph (nodes, edges, communities, findings), GraphRAG-ready |
-| `graph.html` | interactive view for humans (self-contained, offline) |
+| `graph.html` | Power BI Explorer for humans: graph, star schema, measure catalogue, page wireframes, theme, findings (offline; `pbi_graph.py view` opens it) |
 | `manifest.json` | fingerprints used by `update` |
 
 ## Commands
