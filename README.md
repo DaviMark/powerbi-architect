@@ -93,6 +93,8 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
 |---|---|
 | ![Página Diagnóstico com cascata, barras e tabela](docs/assets/exemplo-diagnostico.png) | ![Layout de celular da Visão Geral](docs/assets/exemplo-celular.png) |
 
+Todos os visuais que o motor monta estão na [galeria de componentes](docs/galeria/README.md).
+
 ### Suas edições no Desktop nunca se perdem
 
 Você pode mexer no projeto à vontade no Power BI Desktop ou nos arquivos, entre um pedido e outro, sem

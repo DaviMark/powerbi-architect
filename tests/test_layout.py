@@ -143,6 +143,13 @@ class TestLayoutEngine(unittest.TestCase):
             self.build(self.spec(rows=[{"height": 248, "visuals": [
                 {"type": "clusteredBarChart", "category": "a[b]", "values": ["M"], "target": "T", "title": "t", "alt": "t"}]}]))
 
+    def test_gallery_builds_on_the_example_model(self):
+        spec = json.loads((ROOT / "docs" / "galeria" / "layout.json").read_text(encoding="utf-8"))
+        types = {v["visual"]["visualType"] for k, v in self.build(spec).items() if k.endswith("visual.json")}
+        for t in ("card", "kpi", "lineChart", "lineClusteredColumnComboChart", "clusteredBarChart",
+                  "clusteredColumnChart", "waterfallChart", "scatterChart", "tableEx", "pivotTable"):
+            self.assertIn(t, types)
+
     def test_check_mode_writes_nothing(self):
         with tempfile.TemporaryDirectory() as d:
             r = run("pbir_layout.py", EXAMPLE / "layout.json", Path(d) / "Y.Report", "--check")
