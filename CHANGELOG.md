@@ -19,6 +19,12 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   guardar a posição dos visuais, o tamanho das páginas e as cores do tema.
 - `preview_pbir.py --png-scale 2` para imagens nítidas; `tools/screenshot.py` captura páginas locais.
 ### Mudado
+- **Linguagem visual nova dos relatórios.** Canvas `#F5F5F7`, cartões brancos sem contorno e sem o
+  painel em volta, tinta `#1D1D1F`, azul `#2F6FEB` com paleta segura para daltonismo, barras finas
+  (espaçamento interno de 55% nas barras e 40% nas colunas), grade clara só nas tendências e cascata em
+  verde, vermelho e cinza suaves. Vale para o tema, os kits e o exemplo.
+- O preview lê o espaçamento das barras do tema e não desenha o que o Power BI não desenha (área sob
+  a linha, marcador no último ponto).
 - **Preview com cara de Power BI.** Eixo de valores com grade, meses no eixo, números no formato da
   amostra (R$ 3,1 mi, 91,4%), tabelas com valores em vez de barras cinza e tendências suaves.
 - **Benchmark reorganizado:** `cenarios/`, `versoes/<x.y.z>/` e `pagina.html`. A página publicada foi

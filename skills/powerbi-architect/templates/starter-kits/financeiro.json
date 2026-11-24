@@ -384,9 +384,9 @@
               "title": "Da receita bruta ao EBITDA",
               "sort": "category",
               "sentiment": {
-                "increase": "#00824D",
-                "decrease": "#CE2C31",
-                "total": "#666666"
+                "increase": "#2E9E6B",
+                "decrease": "#E5484D",
+                "total": "#8E8E93"
               },
               "alt": "Cascata da DRE da receita bruta ao EBITDA"
             }

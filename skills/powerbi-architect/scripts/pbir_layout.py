@@ -8,7 +8,7 @@ Python 3.9+ standard library only. Offline. Writes only inside the <Name>.Report
 
 You describe each page as rows of visuals; the script computes every position on the 4 px grid and
 writes the app shell of references/report-design.md §0 (sidebar with icons and page navigator, white
-panel, top bar with breadcrumb, "updated at" and compact slicers), KPI cards with a variation line,
+canvas, top bar with breadcrumb, "updated at" and compact slicers, borderless white cards), KPI cards with a variation line,
 charts, tables with one conditional colour, drill-through pages with a back arrow, tooltip pages and a
 phone layout (mobile.json, stacked). Misalignment becomes impossible: you never type a coordinate.
 
@@ -76,7 +76,7 @@ import sys
 from pathlib import Path
 
 SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition"
-INK, INK3, LINE, ACCENT = "#333333", "#757575", "#EBEBEB", "#3E63DD"
+INK, INK3, LINE, ACCENT = "#1D1D1F", "#6E6E73", "#E8E8ED", "#2F6FEB"
 TARGET = "#999999"   # target and reference series: visible, but quieter than the data
 ALERT = "#CE2C31"    # bars on the wrong side of their target
 PAGE_W, PAGE_H = 1280, 720
@@ -626,13 +626,11 @@ class Builder:
         if len(slicers) > 2:
             raise SpecError(f"page '{name}': at most 2 slicers in the top bar")
         items = [
-            ("painel", (220, 12, 1048, 696), self.shape("#FFFFFF", panel=True)),
-            ("marca", (16, 20, 16, 16), self.shape(ACCENT, rounded=True)),
+            ("marca", (16, 20, 16, 16), self.shape(self.accent, rounded=True)),
             ("app", (40, 16, 172, 24), self.textbox(self.run(self.app, 10, INK, semibold=True))),
             ("secao", (8, 52, 204, 24), self.textbox(self.run(self.spec.get("navLabel", "Páginas"), 9, INK3))),
             ("navegacao", (NAV_X, NAV_Y, 204, NAV_ITEM * len(visible_pages)),
              {"visualType": "pageNavigator", "drillFilterOtherVisuals": True}),
-            ("linha", (220, 68, 1048, 1), self.shape(LINE)),
         ]
         for i, p in enumerate(visible_pages):
             if p.get("icon"):
