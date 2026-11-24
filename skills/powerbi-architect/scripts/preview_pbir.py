@@ -297,6 +297,26 @@ class Preview:
             inner = title + self.chart(vtype, roles, objs, w, h)
         return f'<div class="v" style="{";".join(css)}">{inner}</div>'
 
+    def target_of(self, objs: dict) -> str | None:
+        """Measure drawn as a dashed target line (lineStyles with lineStyle 'dashed' on one series)."""
+        for item in objs.get("lineStyles", []):
+            if lit((item.get("properties") or {}).get("lineStyle")) == "dashed":
+                meta = (item.get("selector") or {}).get("metadata", "")
+                return meta.split(".", 1)[-1] if meta else None
+        return None
+
+    def bar_colours(self, objs: dict, n: int) -> list[str]:
+        """Accent for every bar, or the sample colours of a colour measure (one per bar, or one for all)."""
+        for item in objs.get("dataPoint", []):
+            if (item.get("selector") or {}).get("data"):
+                m = measure_name(((item.get("properties") or {}).get("fill") or {}).get("solid", {}).get("color"))
+                c = self.sample.get("colors", {}).get(m) if m else None
+                if isinstance(c, list):
+                    return (c * n)[:n]
+                if isinstance(c, str):
+                    return [c] * n
+        return [self.accent] * n
+
     def chart(self, vtype: str, roles: dict, objs: dict, w: float, h: float) -> str:
         cat = (roles.get("Category") or [None])[0]
         m = (roles.get("Y") or [None])[0]
@@ -328,31 +348,45 @@ class Preview:
         if kind == "lineclusteredcolumncombochart":
             labels = self.labels(cat, 12) or [""] * 12
             cols_v = self.series(m, len(labels), [6, 7, 6.5, 8, 7.5, 9, 8.5, 9.5, 9, 10, 9.8, 11])
-            line_v = self.series((roles.get("Y2") or [None])[0], len(labels),
-                                 [4, 4.2, 4.1, 4.6, 4.4, 5, 4.8, 5.3, 5.1, 5.6, 5.4, 6])
-            peak = max(cols_v + line_v) or 1
+            target = self.target_of(objs)
+            lines = [x for x in roles.get("Y2", []) if x != target]
+            line_v = self.series(lines[0] if lines else None, len(labels),
+                                 [4, 4.2, 4.1, 4.6, 4.4, 5, 4.8, 5.3, 5.1, 5.6, 5.4, 6]) if lines else []
+            target_v = (self.sample.get("series", {}).get(target) or [max(cols_v) * 0.85] * len(labels)) if target else []
+            peak = max(cols_v + line_v + list(target_v)) or 1
             n = len(labels)
+            fills = self.bar_colours(objs, n)
             bars = "".join(f'<rect x="{i * 100 / n + 100 / n * 0.2:.1f}" y="{66 - 60 * v / peak:.1f}" '
-                           f'width="{100 / n * 0.6:.1f}" height="{60 * v / peak:.1f}" fill="{self.accent}"/>'
+                           f'width="{100 / n * 0.6:.1f}" height="{60 * v / peak:.1f}" fill="{fills[i]}"/>'
                            for i, v in enumerate(cols_v))
-            pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(line_v))
-            line = self.ink2
+            svg = bars
+            if line_v:
+                pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(line_v))
+                svg += (f'<polyline points="{pts}" fill="none" stroke="{self.ink2}" stroke-width="2" '
+                        f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/>')
+            if target_v:
+                pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(target_v))
+                svg += (f'<polyline points="{pts}" fill="none" stroke="#999999" stroke-width="1.5" '
+                        f'stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>')
             return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
-                    f'padding:{CAL["chart_padding"]};box-sizing:border-box">{bars}<polyline points="{pts}" fill="none" stroke="{line}" stroke-width="2" '
-                    f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
-        n = 5 if "bar" in kind or "column" in kind or kind == "waterfallchart" else 12
+                    f'padding:{CAL["chart_padding"]};box-sizing:border-box">{svg}</svg>')
+        n = (min(len(self.labels(cat, 10)) or 5, 10) if "bar" in kind or "column" in kind or kind == "waterfallchart"
+             else 12)
         labels = self.labels(cat, n) or [""] * n
         vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
         peak = max(vals) or 1
         lab = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2}"
         if "bar" in kind:
+            slot = (body_h + 20) / max(len(labels), 1)      # bars share the plot height, as in Power BI
+            thick = min(max(slot * 0.62, 8), 28)
+            fills = self.bar_colours(objs, len(labels))
             rows = "".join(
-                f'<div style="display:flex;align-items:center;margin:6px 0">'
+                f'<div style="display:flex;align-items:center;height:{slot:.1f}px">'
                 f'<div style="flex:none;width:96px;{lab};white-space:nowrap;overflow:hidden">{html.escape(l)}</div>'
-                f'<div style="height:{max(body_h / 9, 10):.0f}px;width:{70 * v / peak:.0f}%;background:{self.accent};'
+                f'<div style="height:{thick:.0f}px;width:{70 * v / peak:.0f}%;background:{fills[i]};'
                 f'border-radius:2px"></div><span style="{lab};margin-left:6px">{v:g}</span></div>'
-                for l, v in zip(labels, vals))
-            return f'<div style="padding:{CAL["chart_padding"]}">{rows}</div>'
+                for i, (l, v) in enumerate(zip(labels, vals)))
+            return f'<div style="padding:4px 12px 0">{rows}</div>'
         if "column" in kind or kind == "waterfallchart":
             waterfall = kind == "waterfallchart"
             sent = {k: self.color(prop(objs, "sentimentColors", k + "Fill"))
@@ -367,13 +401,14 @@ class Preview:
                     steps.append((l, v, 0.0, v, "column"))
             if waterfall:
                 steps.append(("Total", level, 0.0, level, "total"))
+            col_fills = self.bar_colours(objs, len(steps))
             ends = [x for st in steps for x in st[2:4]] + [0.0]
             lo, hi = min(ends), max(ends)
             plot = body_h - 40                     # room for the value and category labels
             scale = plot / ((hi - lo) or 1)
             cols = []
             for l, v, a, b, k in steps:
-                fill = self.accent if k == "column" else (sent.get(k) or {"total": "#666666"}.get(k, self.accent))
+                fill = col_fills[len(cols)] if k == "column" else (sent.get(k) or {"total": "#666666"}.get(k, self.accent))
                 top = (hi - max(a, b)) * scale
                 cols.append(f'<div style="flex:1;margin:0 6px;position:relative;height:{plot + 18:.0f}px">'
                             f'<div style="position:absolute;left:0;right:0;top:{top - 16:.0f}px;{lab};'
@@ -384,14 +419,26 @@ class Preview:
                             f'overflow:hidden;height:18px">{html.escape(l)}</div></div>')
             return (f'<div style="display:flex;align-items:flex-end;height:{body_h}px;padding:24px 12px 0;'
                     f'box-sizing:border-box">{"".join(cols)}</div>')
-        low = min(vals)                            # line axes fit the data, like Power BI's auto range
+        target = self.target_of(objs)
+        series = [vals]
+        palette = [self.accent] + list((self.theme.get("dataColors") or [])[1:]) + ["#666666"]
+        for extra in [x for x in roles.get("Y", [])[1:] if x != target]:
+            series.append(self.series(extra, len(vals), [v * 0.7 for v in vals]))
+        target_v = (self.sample.get("series", {}).get(target) or [max(vals) * 0.9] * len(vals))[:len(vals)] \
+            if target else []
+        everything = [v for sr in series for v in sr] + list(target_v)
+        peak, low = max(everything) or 1, min(everything)     # line axes fit the data, like Power BI
         low = 0 if low > 0 and low < peak * 0.5 else low
-        pts = " ".join(f"{i * 100 / (len(vals) - 1 or 1):.1f},{62 - 52 * (v - low) / ((peak - low) or 1):.1f}"
-                       for i, v in enumerate(vals))
+        xy = lambda sr: " ".join(f"{i * 100 / (len(sr) - 1 or 1):.1f},{62 - 52 * (v - low) / ((peak - low) or 1):.1f}"  # noqa: E731
+                                 for i, v in enumerate(sr))
         sw = num(self.style("lineChart", "lineStyles", "strokeWidth", 2), 2)
+        svg = "".join(f'<polyline points="{xy(sr)}" fill="none" stroke="{palette[i % len(palette)]}" stroke-width="{sw}" '
+                      f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' for i, sr in enumerate(series))
+        if target_v:
+            svg += (f'<polyline points="{xy(target_v)}" fill="none" stroke="#999999" stroke-width="1.5" '
+                    f'stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>')
         return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
-                f'padding:{CAL["chart_padding"]};box-sizing:border-box"><polyline points="{pts}" fill="none" stroke="{self.accent}" stroke-width="{sw}" '
-                f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
+                f'padding:{CAL["chart_padding"]};box-sizing:border-box">{svg}</svg>')
 
     # ------------------------------------------------------------------ pages
     def render(self, mobile: bool = False, overlays: list[Path] | None = None) -> str:

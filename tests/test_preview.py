@@ -52,6 +52,29 @@ class TestPreview(unittest.TestCase):
             for text in ("Meta: R$ 18,6 mi", "<polygon", "border-radius:50%", ">Varejo</th>", "Saldo e vencido por mês"):
                 self.assertIn(text, html)
 
+    def test_target_line_and_bar_colours(self):
+        sys.path.insert(0, str(SCRIPTS))
+        import pbir_layout
+        import shutil
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "X.Report"
+            shutil.copytree(REPORT, report)
+            spec = {"app": "A", "measures": "_Medidas", "pages": [{"name": "P", "rows": [{"height": 248, "visuals": [
+                {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["Valor Vencido"],
+                 "target": "Valor Aberto", "title": "t", "alt": "t"},
+                {"type": "clusteredBarChart", "category": "dm_regional[Regional]", "values": ["Valor Vencido"],
+                 "colorMeasure": "Cor % Vencido", "title": "t", "alt": "t"}]}]}]}
+            pbir_layout.Builder(spec).build(report, force=True)
+            sample = json.loads((EXAMPLE / "preview-sample.json").read_text(encoding="utf-8"))
+            sample["colors"]["Cor % Vencido"] = ["#CE2C31", "#3E63DD"]
+            sp = Path(d) / "s.json"
+            sp.write_text(json.dumps(sample), encoding="utf-8")
+            out = Path(d) / "p.html"
+            self.assertEqual(run("preview_pbir.py", report, "--sample", sp, "--out", out).returncode, 0)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn('stroke-dasharray="4 3"', html)
+            self.assertIn("background:#CE2C31", html)
+
     def test_overlay_and_calibration(self):
         with tempfile.TemporaryDirectory() as d:
             shots = Path(d) / "desktop"
