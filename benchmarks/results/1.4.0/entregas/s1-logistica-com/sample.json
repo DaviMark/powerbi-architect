@@ -1,0 +1,4 @@
+{"fields":{"dm_transportadora[Transportadora]":["Rápido Sul","TransLog","Veloz","Correios","JadLog","Total Express","Braspress","Mercúrio"],
+"dm_transportadora[Modal]":["Rodoviário","Rodoviário","Aéreo","Rodoviário","Rodoviário","Aéreo","Rodoviário","Rodoviário"],
+"dm_cidade[Região]":["Sudeste","Sul","Nordeste","Centro-Oeste","Norte"],
+"dm_cidade[UF]":["SP","MG","RJ","PR","RS","BA","PE","GO","SC","CE","DF","PA"]}}

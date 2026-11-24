@@ -1,0 +1,11 @@
+/// Servidor SQL Server do data warehouse (troque pelo seu ao abrir o exemplo).
+expression Servidor = "localhost" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	queryGroup: Parametros
+
+	annotation PBI_ResultType = Text
+
+/// Banco de dados do data warehouse.
+expression Banco = "dw_exemplo" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	queryGroup: Parametros
+
+	annotation PBI_ResultType = Text

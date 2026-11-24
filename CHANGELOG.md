@@ -5,14 +5,33 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
+
+## [1.4.0] — 2026-11-24
 ### Adicionado
+- **Tabelas que cabem na página.** O `pbir_layout.py` aceita `"top": n` em tabela e matriz. A opção grava o
+  filtro Top N nativo do Power BI, na primeira coluna e pela medida de `sortBy`, e uma linha `"auto"`
+  ganha a altura exata dessas linhas. O `--extract` lê o filtro de volta, então reestilizar não o perde.
+- A crítica do preview conta as linhas de tabela que não cabem (`[rows]`) e diz quantas cabem, com a
+  correção pronta. Tabelas de página inteira podem rolar, como no Power BI, e não são cobradas. O
+  preview respeita o filtro Top N.
+- Ao montar a página, o `pbir_layout.py` avisa quando uma tabela baixa não tem `top` e diz quantas
+  linhas cabem nela.
+- O `SKILL.md` pede dados de amostra com contagens reais (15 ou mais clientes ou produtos) e proíbe
+  descartar um achado da crítica como "só a amostra". No primeiro benchmark da 1.4.0, a IA com a skill
+  fez as duas coisas e entregou tabelas que não cabiam.
 - **Benchmark por versão** em `benchmarks/`. A cada versão, a mesma IA recebe dois pedidos com a skill e
   os mesmos dois sem ela: um relatório novo a partir de um modelo de logística e um relatório amador
   para reestilizar. O `benchmarks/run.py` prepara as pastas, registra o consumo e
   confere sete requisitos por ferramenta: abre sem erro, zero bloqueadores, harmonia, acessibilidade,
   crítica pixel a pixel, pedido atendido e números seguros. Ele também gera `benchmarks/index.html`, que
-  compara a skill com a IA sem a skill em cada versão e mostra a evolução entre versões. Na versão
-  1.3.0, com a skill, a IA atendeu 93% dos requisitos, contra 43% sem ela.
+  compara a skill com a IA sem a skill em cada versão e mostra a evolução entre versões. As entregas
+  ficam guardadas com os resultados, e `score --versao` confere de novo uma versão anterior com as
+  conferências atuais, para todas as versões serem medidas com a mesma régua. Com a skill,
+  a IA atendeu 93% dos requisitos na 1.3.0 e 100% na 1.4.0; sem ela, 43% e 29%.
+- A página do benchmark é publicada no GitHub Pages a cada mudança em `benchmarks/` na `main`:
+  <https://davimark.github.io/powerbi-architect/>.
+### Corrigido
+- O preview com `--mobile` grava `page-N-mobile.png` e não apaga mais as imagens do desktop.
 
 ## [1.3.0] — 2026-11-24
 ### Adicionado

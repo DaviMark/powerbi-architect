@@ -73,7 +73,8 @@
   .shots img { width: 100%; border: 1px solid var(--line); border-radius: 6px; display: block; cursor: zoom-in; background: var(--canvas); }
   .shots figcaption { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
   .why { color: var(--ink-3); font-size: 12px; margin-top: 2px; }
-  .trend svg { width: 100%; height: 220px; display: block; }
+  .trend svg { width: 100%; height: 240px; display: block; }
+  .trend th, .trend td { white-space: nowrap; }
   .method { color: var(--ink-2); font-size: 13px; }
   .method li { margin: 4px 0; }
   .scen { display: grid; gap: 16px; }
@@ -85,7 +86,7 @@
   footer { color: var(--ink-3); font-size: 12px; margin-top: 24px; }
   a { color: var(--accent); }
   @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .two { grid-template-columns: 1fr; } }
-  @media (max-width: 520px) { .kpis { grid-template-columns: 1fr; } .req { grid-template-columns: 1fr; } .shots { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .trend svg, .trend .legend { display: none; } .kpis { grid-template-columns: 1fr; } .req { grid-template-columns: 1fr; } .shots { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -206,8 +207,8 @@ function render(v) {
 }
 
 function trend() {
-  const W = 1000, H = 220, L = 44, R = 16, T = 16, B = 32, n = DATA.length;
-  const x = i => n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1);
+  const W = 1000, H = 240, L = 48, R = 16, T = 32, B = 32, P = 48, n = DATA.length;
+  const x = i => n === 1 ? (L + W - R) / 2 : L + P + i * (W - L - R - 2 * P) / (n - 1);
   const y = p => T + (100 - p) * (H - T - B) / 100;
   const series = (cond, color) => {
     const pts = DATA.map((v, i) => [x(i), y(pct(v.resumo[cond]))]);

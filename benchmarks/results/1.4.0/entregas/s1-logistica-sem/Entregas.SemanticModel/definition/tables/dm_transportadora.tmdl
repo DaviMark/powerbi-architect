@@ -1,0 +1,28 @@
+/// Transportadoras contratadas.
+/// Grão: 1 linha por transportadora · Fonte: dw.vw_dim_transportadora · Conexão: dw
+table dm_transportadora
+
+	column id_transportadora
+		dataType: int64
+		isKey
+		isHidden
+		summarizeBy: none
+		sourceColumn: id_transportadora
+
+	column Transportadora
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Transportadora
+
+	column Modal
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Modal
+
+	partition dm_transportadora = m
+		mode: import
+		source =
+				let
+				    Fonte = Value.NativeQuery(Sql.Database(Servidor, Banco), "SELECT t.id_transportadora, t.nome AS [Transportadora], t.modal AS [Modal] FROM dw.vw_dim_transportadora AS t", null, [EnableFolding = true])
+				in
+				    Fonte

@@ -1,0 +1,22 @@
+[
+  {
+    "run": "s1-logistica-com",
+    "cenario": "s1-logistica",
+    "condicao": "com"
+  },
+  {
+    "run": "s1-logistica-sem",
+    "cenario": "s1-logistica",
+    "condicao": "sem"
+  },
+  {
+    "run": "s2-reestilizar-sem",
+    "cenario": "s2-reestilizar",
+    "condicao": "sem"
+  },
+  {
+    "run": "s2-reestilizar-com",
+    "cenario": "s2-reestilizar",
+    "condicao": "com"
+  }
+]

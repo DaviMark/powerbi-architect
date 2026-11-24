@@ -7,26 +7,30 @@ todo. As entregas são conferidas pelos mesmos requisitos, sempre por ferramenta
 - **na versão Y**, a comparação é a skill Y contra a IA sem a skill;
 - **entre versões**, a página mostra quanto cada versão melhorou (ou piorou) nos mesmos critérios.
 
-![Painel do benchmark da versão 1.3.0](painel.png)
+**Veja a página publicada: <https://davimark.github.io/powerbi-architect/>**
 
-## Versão 1.3.0, medida em 24/11/2026
+![Painel do benchmark](painel.png)
 
-Com Claude Sonnet 5.5 nas duas condições, 2 execuções com a skill e 2 sem:
+## Resultados por versão
 
-| | Com a skill | Sem a skill |
-|---|---|---|
-| Requisitos atendidos | **13 de 14 (93%)** | 6 de 14 (43%) |
-| Entregas que atendem a tudo | **1 de 2** | 0 de 2 |
-| Abrem sem erro | **2 de 2** | 1 de 2 |
-| Harmonia média das páginas | **100** | 43 |
-| Tokens por execução (média) | 92 mil | 77 mil |
-| Tempo por execução (média) | 47 s | 38 s |
+Claude Sonnet 5.5 nas duas condições, 2 execuções com a skill e 2 sem em cada versão:
 
-Com a skill, a IA gasta cerca de 1,2 vez mais tokens e um pouco mais de tempo, porque roda a auditoria e
-a crítica do preview e corrige o que encontram. Sem a skill, o relatório de logística nem abriria no
-Power BI Desktop (erro de schema). A entrega com a skill que não atende a tudo é a reestilização: a
-tabela de clientes tem mais linhas do que cabem no visual. Detalhes
-por execução: [`results/1.3.0/README.md`](results/1.3.0/README.md).
+| Versão | Com a skill | Sem a skill | Ganho da skill | Contra a versão anterior | Entregas completas com a skill | Tokens com a skill |
+|---|---|---|---|---|---|---|
+| [1.3.0](results/1.3.0/README.md) | 93% (13 de 14) | 43% (6 de 14) | +50 p.p. | primeira medição | 1 de 2 | 92 mil |
+| [1.4.0](results/1.4.0/README.md) | **100% (14 de 14)** | 29% (4 de 14) | **+71 p.p.** | **+7 p.p.** | **2 de 2** | 96 mil |
+
+A 1.4.0 fecha o único requisito que a 1.3.0 deixava aberto: a tabela de clientes da reestilização
+mostrava 14 linhas num espaço para 5. Agora a IA com a skill limita a tabela aos 5 maiores com o filtro
+Top N do Power BI, diz isso no título e leva a lista completa para uma página própria. Com a skill, a IA
+gasta cerca de 1,3 vez mais tokens que sem ela, porque audita e corrige o próprio trabalho. Sem a skill,
+as entregas da 1.4.0 nem abririam no Power BI Desktop (erros de schema). Uma versão é sempre comparada
+com a IA sem a skill da mesma rodada, e as duas versões foram pontuadas com as mesmas conferências.
+
+A primeira medição da 1.4.0 deu 12 de 14 com a skill: a IA montou dados de amostra com poucos clientes
+e, em outra execução, descartou um achado da crítica como "só a amostra". O `SKILL.md` passou a proibir
+as duas coisas, o motor de layout passou a avisar sobre tabelas sem `top`, e as 4 execuções da 1.4.0
+rodaram de novo. Os números acima são dessa segunda rodada.
 
 **Abra [`index.html`](index.html)** para ver os números e as imagens. Os dados de cada versão ficam em
 [`results/<versão>/`](results), com um resumo em Markdown, o `resultados.json`, o `consumo.json` e as
