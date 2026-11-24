@@ -1,0 +1,75 @@
+{
+  "app": "Entregas",
+  "measures": "_Medidas",
+  "updated": "Texto Atualizacao",
+  "slicers": ["dm_calendario[Ano]"],
+  "pages": [
+    {
+      "name": "Visão Geral",
+      "icon": "layout-dashboard",
+      "rows": [
+        {"height": 88, "visuals": [
+          {"type": "kpi", "measure": "Entregas", "label": "Entregas", "variation": "Texto Entregas"},
+          {"type": "kpi", "measure": "% No Prazo", "label": "Entregas no prazo",
+           "variation": "Texto Var % No Prazo", "variationColor": "Cor % No Prazo"},
+          {"type": "kpi", "measure": "Atraso Médio (dias)", "label": "Atraso médio em dias", "variation": "Texto Atraso"},
+          {"type": "kpi", "measure": "Custo Frete", "label": "Custo de frete", "variation": "Texto Frete"}
+        ]},
+        {"height": 248, "split": [2, 1], "visuals": [
+          {"type": "lineChart", "category": "dm_calendario[Ano-Mês]", "values": ["% No Prazo"],
+           "target": "Meta % No Prazo", "titleMeasure": "Titulo % No Prazo", "sort": "category",
+           "alt": "Percentual de entregas no prazo por mês, com a meta tracejada"},
+          {"type": "clusteredBarChart", "category": "dm_cidade[Região]", "values": ["% No Prazo"],
+           "key": "prazo-regiao", "title": "Entregas no prazo por região", "sort": "desc",
+           "alt": "Percentual de entregas no prazo por região de destino, da maior para a menor"}
+        ]},
+        {"height": 248, "split": [1, 1], "visuals": [
+          {"type": "clusteredColumnChart", "category": "ft_entregas[Status]", "values": ["Entregas"],
+           "title": "Entregas por situação", "sort": "desc",
+           "alt": "Quantidade de entregas por situação: entregue, em rota e devolvida"},
+          {"type": "clusteredBarChart", "category": "dm_cidade[Região]", "values": ["% Devolução"],
+           "key": "devolucao-regiao", "title": "Devoluções por região", "sort": "desc",
+           "alt": "Percentual de devoluções por região de destino, da maior para a menor"}
+        ]}
+      ]
+    },
+    {
+      "name": "Transportadoras",
+      "icon": "chart-bar",
+      "slicers": ["dm_transportadora[Modal]"],
+      "rows": [
+        {"height": 300, "split": [1, 1], "visuals": [
+          {"type": "clusteredBarChart", "category": "dm_transportadora[Transportadora]", "values": ["% No Prazo"],
+           "title": "Entregas no prazo por transportadora", "sort": "desc",
+           "alt": "Percentual de entregas no prazo por transportadora, da maior para a menor"},
+          {"type": "scatter", "details": "dm_transportadora[Transportadora]", "x": "Frete por Kg", "y": "% No Prazo",
+           "size": "Entregas", "title": "Custo por quilo contra entregas no prazo",
+           "alt": "Dispersão das transportadoras: frete por quilo no eixo horizontal, percentual no prazo no vertical"}
+        ]},
+        {"height": 300, "visuals": [
+          {"type": "tableEx", "title": "Comparativo das transportadoras",
+           "columns": ["dm_transportadora[Transportadora]", "dm_transportadora[Modal]", "Entregas", "% No Prazo",
+                       "Atraso Médio (dias)", "% Devolução", "Custo Frete", "Frete por Kg"],
+           "sortBy": "% No Prazo desc", "highlight": {"column": "% No Prazo", "colorMeasure": "Cor % No Prazo"},
+           "alt": "Tabela com entregas, percentual no prazo, atraso médio, devoluções e custo de frete por transportadora"}
+        ]}
+      ]
+    },
+    {
+      "name": "Documentação",
+      "icon": "file-description",
+      "slicers": [],
+      "rows": [
+        {"height": 616, "split": [3, 2], "visuals": [
+          {"type": "tableEx", "key": "medidas", "title": "Medidas",
+           "columns": ["_Documentacao[Pasta]", "_Documentacao[Medida]", "_Documentacao[Descrição]",
+                       "_Documentacao[Expressão DAX]"],
+           "alt": "Catálogo de medidas com pasta, descrição e expressão DAX"},
+          {"type": "tableEx", "key": "cargas", "title": "Cargas",
+           "columns": ["_Cargas[Tabela]", "_Cargas[Descrição]", "_Cargas[Armazenamento]", "_Cargas[Última Carga]"],
+           "alt": "Tabelas carregadas e data da última carga"}
+        ]}
+      ]
+    }
+  ]
+}
