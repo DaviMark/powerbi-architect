@@ -60,6 +60,26 @@ class TestSkill(unittest.TestCase):
                     broken.append(f"{md.relative_to(ROOT)} -> {target}")
         self.assertEqual(broken, [])
 
+    def test_front_page_prose_does_not_read_as_generated(self):
+        """The texts people read first follow references/copywriting.md §6. Quoted tool output is exempt."""
+        sys.path.insert(0, str(SKILL / "scripts"))
+        from audit_pbip import machine_text
+        pages = [ROOT / "README.md", ROOT / "README.en.md", ROOT / "docs" / "guia.md",
+                 ROOT / "benchmarks" / "README.md", ROOT / "tests" / "README.md", SKILL / "SKILL.md"]
+        found = []
+        for page in pages:
+            in_code = False
+            for n, line in enumerate(page.read_text(encoding="utf-8").splitlines(), 1):
+                if line.lstrip().startswith("```"):
+                    in_code = not in_code
+                if in_code or line.lstrip().startswith(("|", "<")):
+                    continue
+                prose = re.sub(r'"[^"]*"|`[^`]*`', "", line)
+                why = machine_text(prose)
+                if why:
+                    found.append(f"{page.relative_to(ROOT)}:{n}: {why}")
+        self.assertEqual(found, [])
+
     def test_no_secrets_or_data(self):
         bad = [p for p in ROOT.rglob("*") if p.suffix.lower() in {".pbix", ".abf", ".pem", ".pfx"}]
         self.assertEqual(bad, [])

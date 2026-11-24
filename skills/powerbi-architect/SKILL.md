@@ -73,7 +73,7 @@ Never skip the two human gates. Numbers are right only when `scripts/reconcile.p
 **Common domain** (sales, finance, HR, inventory)? After Gate 1 start from a kit:
 `python scripts/new_project.py <kit> <Folder> [--primary "#hex"]` (`--list` for kits); adapt it to the design.
 
-## 3. Modeling — quick reference
+## 3. Modeling: quick reference
 
 - **Grain** is a sentence ("1 row per invoice line"), written before any column list.
 - Numbers you aggregate → fact; things you filter or group by → dimension (a lone low-cardinality
@@ -98,7 +98,7 @@ Question → comparison? (ranking · trend · part-to-whole · distribution · c
 
 Mapping: [references/visual-selection.md](references/visual-selection.md).
 
-## 5. DAX — the short version
+## 5. DAX: the short version
 
 ```tmdl
 	/// Business definition in one sentence (this text appears in the Documentation page).
@@ -112,7 +112,7 @@ no `IFERROR` · time intelligence over the marked date table · dynamic titles a
 that only re-labels another. Patterns: [references/dax.md](references/dax.md). Calculation groups, field
 parameters, visual calculations, DAX functions: [references/semantic-features.md](references/semantic-features.md).
 
-## 6. Report design — the short version
+## 6. Report design: the short version
 
 Start from the decision the person must make and work back to the pixels. Remove until it breaks.
 
