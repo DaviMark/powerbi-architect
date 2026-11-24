@@ -46,8 +46,9 @@ Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, wat
   kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
 Chart craft: "target": m on lineChart and combo adds the target as a thin grey dashed line;
 combo puts the line on the columns' axis when it has a target ("sameAxis": true/false to choose);
-"colorMeasure": m on bar and column charts colours each bar from a measure that returns a hex (red below
-target, accent otherwise). Row "height": "auto" fits the content (bars: 52 + 32 per expected category,
+"target": m on bar and column charts paints the bars below the target red and the rest in the accent
+("higherIsBetter": false flips it, "belowColor" changes the red); "colorMeasure": m colours each bar from a
+measure that returns a hex instead. Row "height": "auto" fits the content (bars: 52 + 32 per expected category,
 set "items": n on the visual; tables: 64 + 28 per row); "fill" takes what is left of the 616 px.
 A field parameter is just a column: use its column as "category" or "rows" and put a slicer on it.
 Every data visual needs "alt" (alt text) and "title" or "titleMeasure" (kpi uses "label").
@@ -77,6 +78,7 @@ from pathlib import Path
 SCHEMA = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition"
 INK, INK3, LINE, ACCENT = "#333333", "#757575", "#EBEBEB", "#3E63DD"
 TARGET = "#999999"   # target and reference series: visible, but quieter than the data
+ALERT = "#CE2C31"    # bars on the wrong side of their target
 PAGE_W, PAGE_H = 1280, 720
 CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H, GUTTER = 232, 80, 1024, 616, 16
 NAV_X, NAV_Y, NAV_ITEM = 8, 76, 32
@@ -270,6 +272,7 @@ class Builder:
         self.measures = spec.get("measures", "_Medidas")
         self.measure_home = spec.get("measureHome", {})   # measures that live outside "measures"
         self.app = spec.get("app", "Relatório")
+        self.accent = spec.get("accent", ACCENT)          # main data colour; --theme sets it from dataColors[0]
         # "id" pins a page or visual to an existing folder (set by --extract), so a rebuild lands on the
         # same files instead of creating copies; otherwise ids are derived from the names.
         self.page_ids = {p["name"]: p.get("id") or hid("page", p["name"]) for p in spec["pages"]}
@@ -409,6 +412,18 @@ class Builder:
         return {"properties": {"fill": {"solid": {"color": self.measure_expr(measure)}}},
                 "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}
 
+    def colour_by_target(self, measure: str, target: str, below: str = ALERT, higher_is_better: bool = True) -> dict:
+        """Bars on the wrong side of the target in `below` (red), the others in the accent: Power BI's
+        rule-based conditional colour, written as a Conditional expression (no extra DAX measure)."""
+        kind = 3 if higher_is_better else 1          # LessThan / GreaterThan the target
+        rule = {"Conditional": {
+            "Cases": [{"Condition": {"Comparison": {"ComparisonKind": kind, "Left": self.field(measure),
+                                                    "Right": self.field(target)}},
+                       "Value": {"Literal": {"Value": f"'{below}'"}}}],
+            "DefaultValue": {"Literal": {"Value": f"'{self.accent}'"}}}}
+        return {"properties": {"fill": {"solid": {"color": {"expr": rule}}}},
+                "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}
+
     @staticmethod
     def auto_height(visuals: list[dict]) -> int:
         """Row height that fits its content: bars grow with the expected number of categories."""
@@ -476,9 +491,13 @@ class Builder:
                 if t not in ("clusteredBarChart", "clusteredColumnChart"):
                     raise SpecError(f"'colorMeasure' works on bar and column charts, not {t}")
                 objects["dataPoint"] = [self.colour_by(spec["colorMeasure"])]
-            if spec.get("target") and t != "lineChart":
-                raise SpecError(f"'target' draws a dashed line on lineChart and combo; on {t} use 'colorMeasure' "
-                                "(a measure that returns red below the target)")
+            elif spec.get("target") and t in ("clusteredBarChart", "clusteredColumnChart"):
+                # Bars cannot carry a dashed line: the target colours the bars that miss it instead.
+                objects["dataPoint"] = [self.colour_by_target(spec["values"][0], spec["target"],
+                                                              spec.get("belowColor", ALERT),
+                                                              spec.get("higherIsBetter", True))]
+            elif spec.get("target") and t != "lineChart":
+                raise SpecError(f"'target' works on lineChart, combo, bar and column charts, not {t}")
             objects = objects or None
             return [(key, pos, self.data_visual(t, roles, alt, title=spec.get("title"),
                                                 title_measure=spec.get("titleMeasure"), sort=sort,
@@ -589,6 +608,12 @@ class Builder:
                     self.notes.append(f"{page['name']}: table '{v.get('title', '')}' has room for about {fit} rows. "
                                       f"Unless the list is shorter for sure, set \"top\": {fit} with \"sortBy\": "
                                       "\"<measure> desc\" and say it in the title, or give it its own page")
+                if v.get("type") == "clusteredBarChart" and v.get("items"):
+                    need = self.auto_height([v])
+                    if h > need + 64:
+                        self.notes.append(f"{page['name']}: bar chart '{v.get('title', '')}' shows {v['items']} bars in "
+                                          f"{h} px; {need} px fit them. Make the row \"height\": \"auto\" or put "
+                                          "a visual under it, so the card has no empty band")
                 placed += self.component(v, (x, y, w, h))
                 x += w + GUTTER
             y += h + GUTTER
@@ -894,6 +919,23 @@ class Extractor:
                     props = sc[0].get("properties", {})
                     out["sentiment"] = {k[:-4]: _lit(v["solid"]["color"]) for k, v in props.items()
                                         if k.endswith("Fill") and _lit(v["solid"]["color"])}
+            objs = vis.get("objects") or {}
+            for item in objs.get("lineStyles", []):            # dashed series = the target line
+                if _lit((item.get("properties") or {}).get("lineStyle")) == "dashed":
+                    name = ((item.get("selector") or {}).get("metadata") or "").split(".", 1)[-1]
+                    if name in out["values"]:
+                        out["values"] = [x for x in out["values"] if x != name]
+                        out["target"] = name
+            for item in objs.get("dataPoint", []):             # bars coloured against a target
+                c = ((item.get("properties") or {}).get("fill") or {}).get("solid", {}).get("color", {})
+                cases = (((c.get("expr") or {}).get("Conditional") or {}).get("Cases") or [{}])
+                cmp_ = ((cases[0].get("Condition") or {}).get("Comparison") or {})
+                if "Measure" in (cmp_.get("Right") or {}):
+                    out["target"] = self.name(cmp_["Right"], where)
+                    if cmp_.get("ComparisonKind") == 1:
+                        out["higherIsBetter"] = False
+                elif "Measure" in (c.get("expr") or {}):
+                    out["colorMeasure"] = self.name(c["expr"], where)
         elif t in ("lineClusteredColumnComboChart", "lineStackedColumnComboChart"):
             out = {"type": "combo", "category": r["Category"][0], "values": r.get("Y", []),
                    "lineValues": r.get("Y2", [])}
@@ -1174,6 +1216,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         spec = json.loads(args.spec.read_text(encoding="utf-8"))
         b = Builder(spec)
+        if args.theme and args.theme.exists() and "accent" not in spec:
+            b.accent = (json.loads(args.theme.read_text(encoding="utf-8-sig")).get("dataColors") or [ACCENT])[0]
         had_pages = (args.report / "definition" / "pages").exists()
         pages = b.build(args.report, write=not args.check, force=args.force)
         if not args.check:

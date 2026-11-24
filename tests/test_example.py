@@ -33,6 +33,20 @@ class TestExampleGraph(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
+    def test_explorer_page_carries_model_pages_and_theme(self):
+        page = (self.repo / "powerbi-graph" / "graph.html").read_text(encoding="utf-8")
+        self.assertIn("Power BI Explorer", page)
+        self.assertNotIn("__DATA__", page)
+        data = json.loads(re.search(r"const G = (\{.*?\});\n", page, re.S).group(1))
+        kinds = {n["k"] for n in data["nodes"]}
+        self.assertTrue({"table", "measure", "page", "visual"} <= kinds)
+        self.assertTrue(any(n.get("pos") for n in data["nodes"] if n["k"] == "visual"))      # wireframes
+        self.assertTrue(any(n.get("theme") for n in data["nodes"] if n["k"] == "report"))    # identity
+        self.assertTrue(any(e.get("card") for e in data["edges"]))                          # cardinality
+        r = graph(self.repo, "view", "--no-open")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("graph.html", r.stdout)
+
     def test_example_has_no_findings(self):
         findings = self.report.split("## Findings", 1)[1].split("##", 1)[0]
         self.assertIn("none", findings)

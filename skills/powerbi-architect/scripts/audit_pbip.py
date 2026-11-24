@@ -423,6 +423,8 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI067": ("SUGGESTION", "6", "Shadow or glow on a visual", ()),
     "PBI068": ("SUGGESTION", "6", "Uneven, cramped or loose gutters between visuals", ()),
     "PBI069": ("SUGGESTION", "1", "Two visuals that show the same thing", ()),
+    "PBI078": ("IMPORTANT", "1", "Dynamic title reused on visuals that show different things", ()),
+    "PBI079": ("SUGGESTION", "6", "Measure with a target shown without it (no target line, no colour)", ()),
     # Numbers that come out wrong without any error message.
     "PBI070": ("IMPORTANT", "5", "Average of a percentage (wrong in every total)", ()),
     "PBI071": ("IMPORTANT", "5", "Balance or stock summed over time", ()),
@@ -784,6 +786,41 @@ def projections(visual: dict) -> dict[str, list[tuple[str, str, str]]]:
     return out
 
 
+TARGET_NAME = re.compile(r"\b(?:meta|target|objetivo|alvo|goal|or[cç]ado|budget)\b", re.I)
+TARGET_VISUALS = {"lineChart", "areaChart", "clusteredBarChart", "clusteredColumnChart", "barChart", "columnChart",
+                  "lineClusteredColumnComboChart", "lineStackedColumnComboChart"}
+
+
+def target_of(measure: str, measures) -> str | None:
+    """The model's target for a measure, by name: 'Meta % No Prazo' is the target of '% No Prazo'."""
+    for name in measures:
+        if name != measure and TARGET_NAME.search(name) and \
+                TARGET_NAME.sub("", name).strip(" -_:").lower() == measure.lower():
+            return name
+    return None
+
+
+def target_review(visual: dict, measures) -> str | None:
+    """A trend or ranking of a measure that has a target, drawn without the target: the reader cannot
+    tell good from bad. Lines take the target as a dashed series; bars take it as their colour."""
+    if visual.get("visualType") not in TARGET_VISUALS:
+        return None
+    roles = projections(visual)
+    shown = {p for r in roles.values() for k, _, p in r if k == "Measure"}
+    for item in (visual.get("objects") or {}).get("dataPoint", []):
+        fill = _json.dumps((item.get("properties") or {}).get("fill") or {})
+        if '"Measure"' in fill or '"Conditional"' in fill:
+            return None
+    for m in sorted(shown):
+        goal = target_of(m, measures)
+        if goal and goal not in shown:
+            line = "line" in visual.get("visualType", "").lower()
+            how = (f'add [{goal}] as a grey dashed series ("target": "{goal}" in the layout spec)' if line else
+                   f'colour the bars below [{goal}] ("target": "{goal}" in the layout spec)')
+            return f"shows [{m}] but not its target [{goal}] — {how}"
+    return None
+
+
 def dax_refs(expr: str) -> set[str]:
     return set(re.findall(r"\[([^\]]+)\]", strip_dax(expr or "")))
 
@@ -1026,6 +1063,7 @@ def audit(root: Path, config: dict | None = None) -> list:
             except ValueError:
                 add("PBI004", rel(rj), "invalid JSON")
         report_families: set[str] = set()
+        title_uses: dict[str, list] = {}
         for theme_file, pair in theme_colour_clashes(rep):
             add("PBI065", rel(theme_file), pair)
         for pj in sorted(rep.glob("definition/pages/*/page.json")):
@@ -1130,6 +1168,14 @@ def audit(root: Path, config: dict | None = None) -> list:
                     add("PBI040", rel(vj), f"{vtype} on page '{display}' — ≤ 3 slices, otherwise a sorted bar")
                 for rule, msg in design_review(v, w, h, literal, page_w, measure_dax, time_columns):
                     add(rule, where_v, f"{vtype} on page '{display}': {msg}")
+                missing_goal = target_review(v, measure_dax)
+                if missing_goal:
+                    add("PBI079", where_v, f"{vtype} on page '{display}' {missing_goal}")
+                t_measure = ((title_text.get("expr") or {}).get("Measure") or {}).get("Property") \
+                    if isinstance(title_text, dict) else None
+                if t_measure:
+                    about = tuple(sorted(f"{e}[{p_}]" for r_ in roles_.values() for k_, e, p_ in r_ if k_ != "Measure"))
+                    title_uses.setdefault(t_measure, []).append((where_v, display, vtype, about))
                 if vtype in BIG_NUMBER_VISUALS:
                     cards.append((y, w, where_v))
             if data_visuals > 8:
@@ -1157,6 +1203,14 @@ def audit(root: Path, config: dict | None = None) -> list:
             if slicers > 2:
                 add("PBI050", rel(pj), f"page '{display}' has {slicers} slicers — keep ≤ 2 on the page, "
                                        "move the rest to the filter pane")
+        for t_measure, uses in title_uses.items():
+            first = uses[0]
+            for where_u, page_u, vtype_u, about in uses[1:]:
+                if about != first[3]:
+                    add("PBI078", where_u, f"{vtype_u} on page '{page_u}' takes its title from [{t_measure}], "
+                                           f"which already titles the {first[2]} on page '{first[1]}' about "
+                                           f"{', '.join(first[3]) or 'a total'}; this one shows "
+                                           f"{', '.join(about) or 'a total'} — give it its own title")
         if not DOC_PAGES & set(names):
             add("PBI006", rel(rep), "no Documentation page (Documentação/Documentation)")
         odd = sorted(f for f in report_families if f in UGLY_FONTS or f not in PRO_FONTS)

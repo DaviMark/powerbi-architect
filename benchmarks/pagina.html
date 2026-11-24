@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Power BI Architect · Benchmark</title>
+<meta name="description" content="A mesma IA, os mesmos pedidos, com e sem a skill Power BI Architect. Requisitos conferidos por ferramenta, versão a versão.">
+<style>
+:root{
+  --bg:#fbfbfd;--bg2:#f5f5f7;--card:#ffffff;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#86868b;--hair:rgba(0,0,0,.08);
+  --blue:#0071e3;--blue2:#e8f1fc;--grey:#d2d2d7;--green:#248a3d;--red:#d70015;--bar:rgba(251,251,253,.72);
+  --shadow:0 1px 1px rgba(0,0,0,.02),0 8px 28px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#000;--bg2:#0b0b0c;--card:#1c1c1e;--ink:#f5f5f7;--ink2:#a1a1a6;--ink3:#86868b;--hair:rgba(255,255,255,.1);
+  --blue:#2997ff;--blue2:#0b2540;--grey:#48484a;--green:#30d158;--red:#ff453a;--bar:rgba(22,22,23,.72);--shadow:none}}
+*{box-sizing:border-box}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.47 var(--font);letter-spacing:-.022em}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+nav{position:sticky;top:0;z-index:10;height:52px;background:var(--bar);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair)}
+nav .in{max-width:1080px;margin:0 auto;height:100%;padding:0 22px;display:flex;align-items:center;gap:20px}
+nav .name{font-size:19px;font-weight:600;letter-spacing:-.02em}
+nav .grow{flex:1}
+nav a.plain{color:var(--ink);font-size:12px;letter-spacing:-.01em;opacity:.85}
+.seg{display:inline-flex;background:var(--bg2);border-radius:9px;padding:2px;gap:2px}
+.seg button{border:0;background:none;font:500 12px var(--font);color:var(--ink);padding:5px 12px;border-radius:7px;cursor:pointer;letter-spacing:-.01em}
+.seg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+.cta{background:var(--blue);color:#fff!important;border-radius:980px;padding:5px 14px;font-size:12px;font-weight:500}
+.cta:hover{text-decoration:none;filter:brightness(1.08)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+.hero{text-align:center;padding:96px 0 64px}
+.eyebrow{font-size:17px;font-weight:600;color:var(--blue);letter-spacing:-.01em;margin-bottom:10px}
+h1{font-size:clamp(40px,7vw,80px);line-height:1.05;letter-spacing:-.045em;font-weight:700;margin:0}
+h1 span{color:var(--ink3)}
+.lede{font-size:clamp(19px,2.2vw,24px);line-height:1.35;color:var(--ink2);max-width:720px;margin:22px auto 0;letter-spacing:-.02em;font-weight:400}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:8px 0 104px;border-top:1px solid var(--hair)}
+.stat{padding:36px 12px 0;text-align:center}
+.stat+.stat{border-left:1px solid var(--hair)}
+.stat .cap{font-size:14px;color:var(--ink2);margin-bottom:6px;letter-spacing:-.01em}
+.stat .big{font-size:clamp(44px,6vw,64px);font-weight:700;letter-spacing:-.045em;line-height:1}
+.stat .big small{font-size:.42em;font-weight:600;letter-spacing:-.02em;margin-left:2px}
+.stat .foot{font-size:14px;color:var(--ink3);margin-top:10px}
+.stat .foot b{color:var(--green);font-weight:600}
+section{padding:0 0 104px}
+h2{font-size:clamp(32px,4.4vw,48px);line-height:1.08;letter-spacing:-.035em;font-weight:700;margin:0 0 12px;text-align:center}
+.sub{font-size:19px;color:var(--ink2);text-align:center;max-width:640px;margin:0 auto 48px;line-height:1.4}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.col{background:var(--card);border-radius:28px;padding:40px 36px;box-shadow:var(--shadow)}
+.col h3{margin:0;font-size:24px;letter-spacing:-.03em;font-weight:600}
+.col .score{font-size:72px;font-weight:700;letter-spacing:-.05em;line-height:1;margin:18px 0 4px}
+.col .score small{font-size:28px;letter-spacing:-.03em}
+.col.skill .score{color:var(--blue)}
+.col.none .score{color:var(--ink3)}
+.col .of{color:var(--ink2);font-size:15px;margin-bottom:26px}
+.col ul{list-style:none;padding:0;margin:0}
+.col li{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--hair)}
+.mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;margin-top:1px}
+.mark svg{width:12px;height:12px;stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.mark.y{background:var(--blue)}.mark.y svg{stroke:#fff}
+.mark.p{background:var(--blue2)}.mark.p svg{stroke:var(--blue)}
+.mark.n{background:var(--bg2)}.mark.n svg{stroke:var(--ink3)}
+.col li b{display:block;font-size:15px;font-weight:600;letter-spacing:-.015em}
+.col li span{display:block;font-size:13px;color:var(--ink3);letter-spacing:-.005em;line-height:1.4;margin-top:1px}
+.col li em{font-style:normal;margin-left:auto;font-size:13px;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.center{text-align:center;margin-bottom:28px}
+.stage{background:var(--card);border-radius:28px;padding:28px;box-shadow:var(--shadow)}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.shot .lab{display:flex;justify-content:space-between;align-items:baseline;margin:0 4px 12px}
+.shot .lab b{font-size:17px;font-weight:600;letter-spacing:-.02em}
+.shot .lab span{font-size:13px;color:var(--ink3)}
+.shot img{width:100%;display:block;border-radius:14px;box-shadow:0 0 0 1px var(--hair),0 12px 32px rgba(0,0,0,.08);background:#fff}
+.shot img+img{margin-top:16px}
+.chart{background:var(--card);border-radius:28px;padding:36px 40px 28px;box-shadow:var(--shadow)}
+.legend{display:flex;gap:22px;justify-content:center;font-size:13px;color:var(--ink2);margin-top:12px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+svg text{fill:var(--ink3);font:12px var(--font);letter-spacing:-.01em}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.tile{background:var(--card);border-radius:24px;padding:28px;box-shadow:var(--shadow)}
+.tile .cap{font-size:14px;color:var(--ink2)}
+.tile .row{display:flex;align-items:baseline;justify-content:space-between;margin-top:18px}
+.tile .row b{font-size:15px;font-weight:600}
+.tile .row span{font-size:28px;font-weight:700;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.tile .row span small{font-size:14px;font-weight:600;color:var(--ink3);margin-left:3px}
+.track{height:6px;border-radius:3px;background:var(--bg2);margin-top:8px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:3px}
+.tile .note{margin-top:18px;font-size:13px;color:var(--ink3);line-height:1.4}
+table{width:100%;border-collapse:collapse;font-size:14px;letter-spacing:-.01em}
+th{text-align:left;font-weight:600;color:var(--ink3);font-size:12px;padding:0 12px 12px;letter-spacing:0}
+td{padding:16px 12px;border-top:1px solid var(--hair);vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:980px}
+.tag.ok{background:var(--blue2);color:var(--blue)}
+.tag.no{background:var(--bg2);color:var(--ink2)}
+td .why{font-size:13px;color:var(--ink3);line-height:1.45}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.steps div{border-top:2px solid var(--ink);padding-top:16px}
+.steps b{display:block;font-size:17px;letter-spacing:-.02em;margin-bottom:6px}
+.steps span{font-size:14px;color:var(--ink2);line-height:1.45;display:block}
+footer{border-top:1px solid var(--hair);background:var(--bg2)}
+footer .wrap{padding:22px;font-size:12px;color:var(--ink3);line-height:1.6}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+@media (max-width:860px){.compare,.shots,.trio{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.hero{padding:64px 0 44px}nav a.plain{display:none}}
+@media (max-width:560px){.stats{grid-template-columns:1fr}.stat+.stat{border-left:0;border-top:1px solid var(--hair)}.stat{padding:24px 0}.col{padding:28px 22px}.stage,.chart{padding:18px;border-radius:20px}.steps{grid-template-columns:1fr}nav .name{font-size:16px}section{padding-bottom:72px}}
+</style>
+</head>
+<body>
+<nav><div class="in">
+  <span class="name">Power BI Architect</span>
+  <span class="grow"></span>
+  <a class="plain" href="#comparar">Comparar</a><a class="plain" href="#entregas">Entregas</a><a class="plain" href="#metodo">Método</a>
+  <div class="seg" id="ver" role="tablist" aria-label="Versão"></div>
+  <a class="cta" href="https://github.com/DaviMark/powerbi-architect" target="_blank" rel="noopener">GitHub</a>
+</div></nav>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="h1"></h1>
+    <p class="lede" id="lede"></p>
+  </header>
+  <div class="stats" id="stats"></div>
+
+  <section id="comparar" class="reveal">
+    <h2>Sete requisitos. Conferidos por ferramenta.</h2>
+    <p class="sub">Cada entrega passa pelos mesmos testes: schemas da Microsoft, auditoria da skill e uma crítica pixel a pixel. Nada de opinião.</p>
+    <div class="compare" id="compare"></div>
+  </section>
+
+  <section id="entregas" class="reveal">
+    <h2>Veja o que foi entregue.</h2>
+    <p class="sub">As primeiras páginas de cada relatório, desenhadas com os mesmos dados de amostra.</p>
+    <div class="center"><div class="seg" id="scen"></div></div>
+    <div class="stage"><div class="shots" id="shots"></div></div>
+  </section>
+
+  <section class="reveal">
+    <h2>Melhor a cada versão.</h2>
+    <p class="sub">Quando uma conferência fica mais exigente, as entregas antigas são pontuadas de novo. Todas as versões, mesma régua.</p>
+    <div class="chart"><div id="trend"></div>
+      <div class="legend"><span><i style="background:var(--blue)"></i>Com a skill</span><span><i style="background:var(--grey)"></i>Sem a skill</span></div></div>
+  </section>
+
+  <section class="reveal">
+    <h2>O custo do cuidado.</h2>
+    <p class="sub">Com a skill, a IA audita e corrige o próprio trabalho antes de entregar. Isso aparece no consumo.</p>
+    <div class="trio" id="usage"></div>
+  </section>
+
+  <section class="reveal">
+    <h2>Execução por execução.</h2>
+    <p class="sub">Tudo o que foi medido, inclusive o que não saiu a favor da skill.</p>
+    <div class="stage" style="overflow:auto"><table id="runs"></table></div>
+  </section>
+
+  <section id="metodo" class="reveal">
+    <h2>Como é medido.</h2>
+    <p class="sub">Toda versão nova passa pelo mesmo teste, em poucos minutos.</p>
+    <div class="steps">
+      <div><b>Os mesmos pedidos</b><span>Criar um relatório a partir de um modelo e reestilizar um relatório amador.</span></div>
+      <div><b>Com e sem a skill</b><span>O mesmo modelo de IA nas duas condições. A ordem alterna entre os cenários.</span></div>
+      <div><b>Sete requisitos</b><span>Abre sem erro, zero bloqueadores, harmonia, acessibilidade, pixel a pixel, pedido atendido e números seguros.</span></div>
+      <div><b>A mesma régua</b><span>Uma conferência nova vale para todas as versões: as entregas guardadas são pontuadas outra vez.</span></div>
+    </div>
+  </section>
+</div>
+<footer><div class="wrap" id="footer"></div></footer>
+
+<script>
+const DATA = /*__DATA__*/null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = x => x.requisitos_avaliados ? 100 * x.requisitos_atendidos / x.requisitos_avaliados : 0;
+const n0 = v => v == null ? "—" : Math.round(v).toLocaleString("pt-BR");
+const mil = v => v == null ? "—" : Math.round(v / 1000).toLocaleString("pt-BR");
+const dt = s => { if (!s) return ""; const [y, m, d] = s.split("-"); return `${+d} de ${["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"][m - 1]} de ${y}`; };
+const CHECK = '<svg viewBox="0 0 12 12"><path d="M2.5 6.2 5 8.6l4.6-5.2"/></svg>';
+const DASH = '<svg viewBox="0 0 12 12"><path d="M3 6h6"/></svg>';
+const HALF = '<svg viewBox="0 0 12 12"><path d="M3 6h6"/></svg>';
+let cur = DATA.length - 1, scen = null;
+
+function render() {
+  const v = DATA[cur], prev = DATA[cur - 1], c = v.resumo.com, s = v.resumo.sem, P = Math.round(pct(c)), Q = Math.round(pct(s));
+  $("#ver").innerHTML = DATA.map((x, i) => `<button role="tab" aria-selected="${i === cur}" class="${i === cur ? "on" : ""}" data-i="${i}">${esc(x.versao)}</button>`).join("");
+  $("#eyebrow").textContent = `Benchmark · versão ${v.versao}`;
+  $("#h1").innerHTML = `A mesma IA.<br><span>Outro relatório.</span>`;
+  $("#lede").textContent = `${(v.modelo || []).join(", ") || "O mesmo modelo de IA"} recebeu os mesmos pedidos duas vezes: com a skill e sem ela. Com a skill, cumpriu ${P}% dos requisitos. Sem ela, ${Q}%.`;
+  const gain = P - Q, pg = prev ? Math.round(pct(prev.resumo.com)) : null;
+  $("#stats").innerHTML = [
+    ["Requisitos cumpridos", P, "%", `<b>+${gain} pontos</b> sobre a IA sem a skill`],
+    ["Entregas completas", c.entregas_completas, `/${c.execucoes}`, `${s.entregas_completas} de ${s.execucoes} sem a skill`],
+    ["Harmonia das páginas", n0(c.harmonia_media), "", `${n0(s.harmonia_media)} sem a skill, de 100`]]
+    .map(([cap, big, unit, foot]) => `<div class="stat"><div class="cap">${cap}</div><div class="big">${big}<small>${unit}</small></div><div class="foot">${foot}</div></div>`).join("");
+  const item = (r, x) => { const k = x.por_requisito[r.id], n = x.execucoes, cls = k === n ? "y" : k ? "p" : "n";
+    return `<li><span class="mark ${cls}">${k === n ? CHECK : k ? HALF : DASH}</span><div><b>${esc(r.nome)}</b><span>${esc(r.descricao)}</span></div><em>${k} de ${n}</em></li>`; };
+  $("#compare").innerHTML = [["skill", "Com a skill", c, P], ["none", "Sem a skill", s, Q]].map(([cls, t, x, p]) =>
+    `<div class="col ${cls}"><h3>${t}</h3><div class="score">${p}<small>%</small></div><div class="of">${x.requisitos_atendidos} de ${x.requisitos_avaliados} requisitos em ${x.execucoes} entregas</div>
+     <ul>${v.requisitos.map(r => item(r, x)).join("")}</ul></div>`).join("");
+  const scenarios = [...new Map(v.execucoes.map(x => [x.cenario, x.nome.split(":")[0]])).entries()];
+  if (!scen || !scenarios.some(x => x[0] === scen)) scen = scenarios[0][0];
+  $("#scen").innerHTML = scenarios.map(([id, nome]) => `<button class="${id === scen ? "on" : ""}" data-s="${esc(id)}">${esc(nome)}</button>`).join("");
+  shots(v);
+  $("#trend").innerHTML = trend();
+  const tile = (cap, key, unit, fmt, note) => { const a = c[key], b = s[key], mx = Math.max(a || 0, b || 0) || 1;
+    return `<div class="tile"><div class="cap">${cap}</div>
+      ${[["Com a skill", a, "var(--blue)"], ["Sem a skill", b, "var(--grey)"]].map(([l, x, col]) =>
+        `<div class="row"><b>${l}</b><span>${fmt(x)}<small>${unit}</small></span></div><div class="track"><i style="width:${100 * (x || 0) / mx}%;background:${col}"></i></div>`).join("")}
+      <div class="note">${note}</div></div>`; };
+  const ratio = c.tokens_medios && s.tokens_medios ? (c.tokens_medios / s.tokens_medios).toLocaleString("pt-BR", {maximumFractionDigits: 1}) : "—";
+  $("#usage").innerHTML = tile("Tokens por execução", "tokens_medios", "mil", mil, `${ratio}× o consumo sem a skill.`) +
+    tile("Chamadas de ferramenta", "ferramentas_medias", "", n0, "Auditoria, preview e correções.") +
+    tile("Tempo por execução", "segundos_medios", "s", n0, "Ainda em menos de dois minutos.");
+  const names = Object.fromEntries(v.requisitos.map(r => [r.id, r.nome]));
+  $("#runs").innerHTML = `<tr><th>Cenário</th><th>Condição</th><th class="n">Requisitos</th><th class="n">Harmonia</th><th class="n">Tokens</th><th>O que faltou</th></tr>` +
+    v.execucoes.map(x => { const miss = Object.entries(x.requisitos).filter(([, r]) => r[0] === false), ok = x.atendidos === x.avaliados;
+      return `<tr><td>${esc(x.nome.split(":")[0])}</td><td>${x.condicao === "com" ? "Com a skill" : "Sem a skill"}</td>
+        <td class="n"><span class="tag ${ok ? "ok" : "no"}">${x.atendidos} de ${x.avaliados}</span></td><td class="n">${n0(x.metricas.harmonia_media)}</td>
+        <td class="n">${n0((x.consumo || {}).tokens)}</td>
+        <td><div class="why">${miss.length ? miss.map(([k, r]) => `${esc(names[k] || k)}${r[1] ? ": " + esc(r[1]) : ""}`).join("<br>") : "Nada."}</div></td></tr>`; }).join("");
+  $("#footer").innerHTML = `Medido em ${dt(v.data)}. Uma execução por cenário e condição; diferenças pequenas podem ser acaso.
+    Os relatórios não foram abertos no Power BI Desktop: as imagens vêm do preview da skill.
+    Dados: <a href="versoes/${encodeURIComponent(v.versao)}/resultados.json">resultados.json</a> ·
+    <a href="https://github.com/DaviMark/powerbi-architect/tree/main/benchmarks">Como medir uma versão nova</a>`;
+}
+function shots(v) {
+  const base = `versoes/${encodeURIComponent(v.versao)}/imagens/`, runs = v.execucoes.filter(x => x.cenario === scen);
+  $("#shots").innerHTML = [["com", "Com a skill"], ["sem", "Sem a skill"]].map(([k, t]) => { const r = runs.find(x => x.condicao === k); if (!r) return "";
+    return `<div class="shot"><div class="lab"><b>${t}</b><span>${r.atendidos} de ${r.avaliados} requisitos</span></div>
+      ${(r.imagens || []).map((im, i) => `<img loading="lazy" src="${base}${esc(im)}" alt="Página ${i + 1} do relatório entregue ${t.toLowerCase()}">`).join("") || `<p class="sub">A entrega não pôde ser desenhada.</p>`}</div>`; }).join("");
+}
+function trend() {
+  const W = 960, H = 300, L = 44, R = 24, T = 28, B = 36, n = DATA.length;
+  const x = i => n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1), y = p => T + (H - T - B) * (1 - p / 100);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Requisitos cumpridos por versão, com e sem a skill">`;
+  [0, 50, 100].forEach(t => s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--hair)"/><text x="${L - 12}" y="${y(t) + 4}" text-anchor="end">${t}%</text>`);
+  DATA.forEach((d, i) => s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" style="${i === cur ? "fill:var(--ink);font-weight:600" : ""}">${esc(d.versao)}</text>`);
+  [["com", "var(--blue)"], ["sem", "var(--grey)"]].forEach(([k, col]) => {
+    const pts = DATA.map((d, i) => `${x(i)},${y(pct(d.resumo[k]))}`).join(" ");
+    s += `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+    DATA.forEach((d, i) => { const p = Math.round(pct(d.resumo[k]));
+      s += `<circle cx="${x(i)}" cy="${y(p)}" r="${i === cur ? 6 : 4.5}" fill="${col}"/>
+        <text x="${x(i)}" y="${y(p) + (k === "com" ? -14 : 24)}" text-anchor="middle" style="fill:${k === "com" ? "var(--ink)" : "var(--ink3)"};font-size:14px;font-weight:600">${p}%</text>`; });
+  });
+  return s + "</svg>";
+}
+$("#ver").onclick = e => { const b = e.target.closest("[data-i]"); if (b) { cur = +b.dataset.i; render(); } };
+$("#scen").onclick = e => { const b = e.target.closest("[data-s]"); if (b) { scen = b.dataset.s; shots(DATA[cur]); $("#scen").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.s === scen)); } };
+render();
+const io = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), {threshold: .12}) : null;
+document.querySelectorAll(".reveal").forEach(el => io ? io.observe(el) : el.classList.add("in"));
+</script>
+</body>
+</html>

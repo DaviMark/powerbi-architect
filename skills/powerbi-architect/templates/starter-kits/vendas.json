@@ -447,7 +447,7 @@
       "icon": "chart-bar",
       "rows": [
         {
-          "height": 300,
+          "height": 260,
           "split": [
             1,
             1
@@ -475,7 +475,7 @@
           ]
         },
         {
-          "height": 300,
+          "height": "fill",
           "visuals": [
             {
               "type": "matrix",
