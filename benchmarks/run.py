@@ -4,7 +4,7 @@
 Run from the repository root. Python 3.9+; `jsonschema` is optional (schema checks), a local Edge,
 Chrome or Chromium is optional (pixel critique and images).
 
-    python benchmarks/run.py prepare  [--out .tmp/benchmark]          # 10 workspaces + the prompts
+    python benchmarks/run.py prepare  [--out .tmp/benchmark]          # 4 workspaces + the prompts
     python benchmarks/run.py record   <run> --tokens N --tools N --seconds S [--model M]
     python benchmarks/run.py score    [--out .tmp/benchmark]          # requirements, metrics, images
     python benchmarks/run.py report                                   # benchmarks/index.html
@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import html
 import json
 import re
 import shutil
@@ -36,7 +35,6 @@ sys.path.insert(0, str(ROOT / "tests"))
 sys.path.insert(0, str(ROOT / "tools"))
 import audit_pbip  # noqa: E402
 import new_project  # noqa: E402
-import pbir_layout  # noqa: E402
 
 CONDITIONS = ("com", "sem")
 REQUIREMENTS = [
@@ -45,7 +43,7 @@ REQUIREMENTS = [
     ("harmonia", "Harmonia ≥ 90", "Todas as páginas com nota de harmonia de 90 ou mais"),
     ("acessivel", "Acessível", "Todo visual de dados com título e texto alternativo; texto com contraste ≥ 4,5:1"),
     ("pixel", "Pixel a pixel", "Nenhum achado da crítica do preview: texto cortado, sobreposição, gutters, grade"),
-    ("pedido", "Pedido atendido", "As páginas pedidas existem; edições do usuário preservadas; informação mantida"),
+    ("pedido", "Pedido atendido", "As páginas pedidas existem e nenhuma informação do relatório anterior sumiu"),
     ("numeros", "Números seguros", "Nenhum padrão de DAX ou SQL que devolve número errado (PBI032, PBI070–PBI077)"),
 ]
 NUMBER_RULES = {"PBI032", "PBI070", "PBI071", "PBI072", "PBI073", "PBI074", "PBI075", "PBI076", "PBI077"}
@@ -60,24 +58,6 @@ def scenarios() -> list[dict]:
 
 
 # ---------------------------------------------------------------------- prepare
-MANUAL_VISUAL = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.1.0/schema.json",
-    "name": "manual0000000000000a",
-    "position": {"x": 748, "y": 448, "z": 9000, "width": 508, "height": 248, "tabOrder": 9000},
-    "visual": {"visualType": "clusteredBarChart",
-               "query": {"queryState": {
-                   "Category": {"projections": [{"field": {"Column": {"Expression": {"SourceRef": {"Entity": "dm_cliente"}},
-                                                                     "Property": "Segmento"}},
-                                                 "queryRef": "dm_cliente.Segmento", "nativeQueryRef": "Segmento"}]},
-                   "Y": {"projections": [{"field": {"Measure": {"Expression": {"SourceRef": {"Entity": "_Medidas"}},
-                                                               "Property": "Receita"}},
-                                          "queryRef": "_Medidas.Receita", "nativeQueryRef": "Receita"}]}}},
-               "visualContainerObjects": {
-                   "title": [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
-                                             "text": {"expr": {"Literal": {"Value": "'Receita por segmento'"}}}}}],
-                   "general": [{"properties": {"altText": {"expr": {"Literal": {"Value": "'Receita por segmento de cliente'"}}}}}]}}}
-
-
 def model_only(kit: dict, out: Path, name: str) -> dict:
     """Generate a kit project, keep the model and an empty report; return the preview sample."""
     new_project.generate(kit, out, name, "localhost", "dw", None)
@@ -93,32 +73,8 @@ def model_only(kit: dict, out: Path, name: str) -> dict:
     return sample
 
 
-def edits_project(out: Path) -> dict:
-    """The sales kit, then three edits made by hand after the agent's last edit (benchmark scenario 4)."""
-    kit = json.loads((SKILL / "templates" / "starter-kits" / "vendas.json").read_text(encoding="utf-8"))
-    new_project.generate(kit, out, "Vendas", "localhost", "dw", None)
-    subprocess.run([sys.executable, str(SCRIPTS / "pbip_changes.py"), "accept", str(out), "--quiet"], check=True)
-    rep = out / "Vendas.Report"
-    for f in sorted(rep.rglob("visual.json")):
-        v = json.loads(f.read_text(encoding="utf-8"))
-        title = (((v["visual"].get("visualContainerObjects") or {}).get("title") or [{}])[0]
-                 .get("properties", {}).get("text", {}).get("expr", {}).get("Literal", {}).get("Value", ""))
-        if title == "'Receita por regional'":
-            v["position"]["x"], v["position"]["width"] = 232, 500
-            v["visual"]["visualContainerObjects"]["title"][0]["properties"]["text"] = \
-                {"expr": {"Literal": {"Value": "'Receita por regional (gestão comercial)'"}}}
-            f.write_text(json.dumps(v, indent=4), encoding="utf-8")
-            manual = f.parent.parent / MANUAL_VISUAL["name"]
-            manual.mkdir()
-            (manual / "visual.json").write_text(json.dumps(MANUAL_VISUAL, indent=2), encoding="utf-8")
-    m = out / "Vendas.SemanticModel" / "definition" / "tables" / "_Medidas.tmdl"
-    m.write_text(m.read_text(encoding="utf-8").replace("measure 'Meta % Margem' = 0.30", "measure 'Meta % Margem' = 0.32"),
-                 encoding="utf-8")
-    return json.loads((out / "preview-sample.json").read_text(encoding="utf-8"))
-
-
 def legacy_project(out: Path) -> dict:
-    """The example model with a deliberately amateur report (benchmark scenario 5)."""
+    """The example model with a deliberately amateur report (the restyle scenario)."""
     from legacy_report import make_legacy
     example = ROOT / "examples" / "contas-a-receber"
     out.mkdir(parents=True)
@@ -160,8 +116,6 @@ def prepare(out: Path) -> None:
             if s["tipo"] == "relatorio":
                 kit = json.loads((ROOT / s["modelo"]).read_text(encoding="utf-8"))
                 sample = model_only(kit, folder, s["projeto"])
-            elif s["tipo"] == "edicoes":
-                sample = edits_project(folder)
             else:
                 sample = legacy_project(folder)
             (base / "_amostras" / f"{s['id']}.json").write_text(json.dumps(sample, ensure_ascii=False), encoding="utf-8")
@@ -276,25 +230,6 @@ def request_met(s: dict, folder: Path, legacy_fields: set) -> tuple[bool, str]:
     names = page_names(folder)
     missing = [p for p in s["paginas"] if not any(re.search(p, n, re.I) for n in names)]
     problems = [f"falta página /{p}/" for p in missing]
-    if s["tipo"] == "edicoes":
-        rep = folder / "Vendas.Report"
-        vis = []
-        for f in rep.rglob("visual.json"):
-            try:
-                vis.append((f, json.loads(f.read_text(encoding="utf-8-sig"))))
-            except ValueError:
-                pass
-        mine = [v for f, v in vis if (((v.get("visual") or {}).get("visualContainerObjects") or {}).get("title") or [{}])[0]
-                .get("properties", {}).get("text", {}).get("expr", {}).get("Literal", {}).get("Value")
-                == "'Receita por regional (gestão comercial)'"]
-        if not mine or mine[0]["position"]["width"] != 500 or mine[0]["position"]["x"] != 232:
-            problems.append("o gráfico editado à mão perdeu título, largura ou posição")
-        copies = [f for f, v in vis if f.parent.name == MANUAL_VISUAL["name"]]
-        if not copies:
-            problems.append("o gráfico criado à mão sumiu")
-        m = (folder / "Vendas.SemanticModel/definition/tables/_Medidas.tmdl").read_text(encoding="utf-8")
-        if "measure 'Meta % Margem' = 0.32" not in m:
-            problems.append("a meta alterada à mão foi desfeita")
     if s["tipo"] == "reestilizar":
         after = visual_fields(folder / "ContasReceber.Report")
         lost = sorted(f"{e}[{p}]" for e, p in legacy_fields - after)
@@ -303,18 +238,13 @@ def request_met(s: dict, folder: Path, legacy_fields: set) -> tuple[bool, str]:
     return not problems, "; ".join(problems)
 
 
-def score_run(s: dict, folder: Path, sample: dict, legacy_fields: set, baseline: frozenset = frozenset()) -> dict:
-    """`baseline`: critique lines the starting project already had and the agent must not change (scenario 4:
-    a grid finding caused by the user's own edit). Only new findings count."""
+def score_run(s: dict, folder: Path, sample: dict, legacy_fields: set) -> dict:
     issues = audit_pbip.audit(folder)
     scores = audit_pbip.harmony(folder, issues)
     rules = {i["rule"] for i in issues}
     sev = {k: sum(1 for i in issues if i["severity"] == k) for k in ("BLOCKER", "IMPORTANT", "SUGGESTION")}
     opens, why_open = opens_cleanly(folder)
     n_crit, crit_lines = critique(folder, sample)
-    if n_crit is not None and baseline:
-        crit_lines = [x for x in crit_lines if x not in baseline]
-        n_crit = len(crit_lines)
     met, why_req = request_met(s, folder, legacy_fields)
     req = {
         "abre": [opens, why_open],
@@ -364,7 +294,8 @@ def score(out: Path) -> None:
     base = out / v
     runs = json.loads((base / "runs.json").read_text(encoding="utf-8"))
     d = results_dir(v)
-    (d / "imagens").mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(d / "imagens", ignore_errors=True)
+    (d / "imagens").mkdir(parents=True)
     usage = json.loads((d / "consumo.json").read_text(encoding="utf-8")) if (d / "consumo.json").exists() else {}
     from legacy_report import make_legacy
     import tempfile
@@ -372,18 +303,14 @@ def score(out: Path) -> None:
         legacy_fields = visual_fields(make_legacy(ROOT / "examples" / "contas-a-receber" / "ContasReceber.Report",
                                                   Path(tmp) / "L.Report"))
     by_id = {s["id"]: s for s in scenarios()}
-    baselines = {}
-    for s in by_id.values():
-        if s["tipo"] == "edicoes":                     # the user's edits stay, and so do the findings they cause
-            with tempfile.TemporaryDirectory() as tmp:
-                sample = edits_project(Path(tmp) / "b")
-                baselines[s["id"]] = frozenset(critique(Path(tmp) / "b", sample)[1])
     results = []
     for r in runs:
+        if r["cenario"] not in by_id:                    # a scenario removed after the runs were prepared
+            continue
         s = by_id[r["cenario"]]
         folder = Path(r["pasta"])
         sample = json.loads((base / "_amostras" / f"{s['id']}.json").read_text(encoding="utf-8"))
-        res = score_run(s, folder, sample, legacy_fields, baselines.get(s["id"], frozenset()))
+        res = score_run(s, folder, sample, legacy_fields)
         res.update({"run": r["run"], "cenario": s["id"], "nome": s["nome"], "condicao": r["condicao"],
                     "consumo": usage.get(r["run"]), "imagens": render_images(folder, sample, d / "imagens", r["run"])})
         met = [x[0] for x in res["requisitos"].values() if x[0] is not None]

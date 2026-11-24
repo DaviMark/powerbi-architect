@@ -16,13 +16,13 @@ BY_ID = {s["id"]: s for s in bench.scenarios()}
 
 
 class TestScenarios(unittest.TestCase):
-    def test_five_scenarios_with_their_inputs(self):
-        self.assertEqual(len(BY_ID), 5)
+    def test_two_scenarios_with_their_inputs(self):
+        self.assertEqual(sorted(BY_ID), ["s1-logistica", "s2-reestilizar"])
         for s in BY_ID.values():
             with self.subTest(s["id"]):
                 for key in ("id", "nome", "tipo", "projeto", "pedido", "paginas"):
                     self.assertIn(key, s)
-                self.assertIn(s["tipo"], ("relatorio", "edicoes", "reestilizar"))
+                self.assertIn(s["tipo"], ("relatorio", "reestilizar"))
                 if s["tipo"] == "relatorio":
                     self.assertTrue((ROOT / s["modelo"]).exists(), s["modelo"])
 
@@ -43,41 +43,22 @@ class TestStartingProjects(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def test_models_without_report_open_and_ask_for_the_pages(self):
-        for sid in ("s1-logistica", "s2-atendimento", "s3-compras"):
-            with self.subTest(sid):
-                s = BY_ID[sid]
-                kit = json.loads((ROOT / s["modelo"]).read_text(encoding="utf-8"))
-                folder = self.tmp / sid
-                sample = bench.model_only(kit, folder, s["projeto"])
-                self.assertTrue(sample.get("measures"))
-                self.assertFalse(list(folder.glob("*.Report/definition/pages")))
-                ok, why = bench.opens_cleanly(folder)
-                self.assertTrue(ok, why)
-                met, why = bench.request_met(s, folder, set())
-                self.assertFalse(met)
-                self.assertIn("falta página", why)
-
-    def test_manual_edits_are_checked(self):
-        s = BY_ID["s4-edicoes-manuais"]
-        folder = self.tmp / "s4"
-        bench.edits_project(folder)
+    def test_model_without_report_opens_and_asks_for_the_pages(self):
+        s = BY_ID["s1-logistica"]
+        kit = json.loads((ROOT / s["modelo"]).read_text(encoding="utf-8"))
+        folder = self.tmp / "s1"
+        sample = bench.model_only(kit, folder, s["projeto"])
+        self.assertTrue(sample.get("measures"))
+        self.assertFalse(list(folder.glob("*.Report/definition/pages")))
         ok, why = bench.opens_cleanly(folder)
         self.assertTrue(ok, why)
         met, why = bench.request_met(s, folder, set())
         self.assertFalse(met)
-        self.assertNotIn("à mão", why)                    # the edits are there; only the new page is missing
-
-        shutil.rmtree(next(folder.rglob(bench.MANUAL_VISUAL["name"])))
-        m = folder / "Vendas.SemanticModel/definition/tables/_Medidas.tmdl"
-        m.write_text(m.read_text(encoding="utf-8").replace("= 0.32", "= 0.30"), encoding="utf-8")
-        _, why = bench.request_met(s, folder, set())
-        self.assertIn("o gráfico criado à mão sumiu", why)
-        self.assertIn("a meta alterada à mão foi desfeita", why)
+        self.assertIn("falta página", why)
 
     def test_restyle_flags_lost_information(self):
-        s = BY_ID["s5-reestilizar"]
-        folder = self.tmp / "s5"
+        s = BY_ID["s2-reestilizar"]
+        folder = self.tmp / "s2"
         bench.legacy_project(folder)
         report = folder / "ContasReceber.Report"
         before = bench.visual_fields(report)

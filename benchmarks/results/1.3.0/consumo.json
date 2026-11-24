@@ -11,49 +11,13 @@
     "segundos": 46.1,
     "tokens": 75917
   },
-  "s2-atendimento-com": {
-    "ferramentas": 21,
-    "modelo": "Claude Sonnet 5.5",
-    "segundos": 218.8,
-    "tokens": 111334
-  },
-  "s2-atendimento-sem": {
-    "ferramentas": 6,
-    "modelo": "Claude Sonnet 5.5",
-    "segundos": 54.0,
-    "tokens": 77702
-  },
-  "s3-compras-com": {
-    "ferramentas": 17,
-    "modelo": "Claude Sonnet 5.5",
-    "segundos": 76.1,
-    "tokens": 97127
-  },
-  "s3-compras-sem": {
-    "ferramentas": 4,
-    "modelo": "Claude Sonnet 5.5",
-    "segundos": 35.8,
-    "tokens": 73228
-  },
-  "s4-edicoes-manuais-com": {
-    "ferramentas": 17,
-    "modelo": "Claude Sonnet 5.5",
-    "segundos": 74.1,
-    "tokens": 103190
-  },
-  "s4-edicoes-manuais-sem": {
-    "ferramentas": 9,
-    "modelo": "Claude Sonnet 5.5",
-    "segundos": 66.6,
-    "tokens": 100798
-  },
-  "s5-reestilizar-com": {
+  "s2-reestilizar-com": {
     "ferramentas": 12,
     "modelo": "Claude Sonnet 5.5",
     "segundos": 46.1,
     "tokens": 89757
   },
-  "s5-reestilizar-sem": {
+  "s2-reestilizar-sem": {
     "ferramentas": 4,
     "modelo": "Claude Sonnet 5.5",
     "segundos": 29.0,
