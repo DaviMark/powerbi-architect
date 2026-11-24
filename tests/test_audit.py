@@ -188,10 +188,10 @@ class TestRules(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             p = copy_example(d)
             page_dir = next(pj.parent / "visuals" for pj in (p / "ContasReceber.Report").rglob("page.json")
-                            if json.loads(pj.read_text(encoding="utf-8"))["displayName"] == "Visão Geral")
+                            if json.loads(pj.read_text(encoding="utf-8"))["displayName"] == "Diagnóstico")
             files = sorted(page_dir.rglob("visual.json"))
             charts = [f for f in files if '"clusteredBarChart"' in f.read_text(encoding="utf-8")
-                      or '"lineChart"' in f.read_text(encoding="utf-8")]
+                      or '"waterfallChart"' in f.read_text(encoding="utf-8")]
             bar = json.loads(charts[0].read_text(encoding="utf-8"))
             vco = bar["visual"]["visualContainerObjects"]
             vco["title"] = [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
@@ -212,8 +212,8 @@ class TestRules(unittest.TestCase):
                 self.assertIn(expected, rules)
             self.assertEqual(r.returncode, 1)                                   # harmony below 90
             text = run(p).stdout
-            self.assertRegex(text, r"Harmony: Visão Geral \d+")
-            self.assertNotIn("Visão Geral 100", text)
+            self.assertRegex(text, r"Diagnóstico \d+")
+            self.assertNotIn("Diagnóstico 100", text)
 
 
 class TestArtDirector(unittest.TestCase):
@@ -226,7 +226,7 @@ class TestArtDirector(unittest.TestCase):
             for f in sorted((p / "ContasReceber.Report").rglob("visual.json")):
                 v = json.loads(f.read_text(encoding="utf-8"))
                 files.setdefault(v["visual"]["visualType"], []).append((f, v))
-            col_f, col = files["clusteredColumnChart"][0]
+            col_f, col = max(files["clusteredColumnChart"], key=lambda fv: fv[1]["position"]["width"])
             col["visual"]["visualContainerObjects"]["title"][0]["properties"]["text"] = \
                 {"expr": {"Literal": {"Value": "'" + "Um título longo demais para um gráfico estreito " * 2 + "'"}}}
             col["position"]["height"] = 120                                  # PBI059 and PBI064

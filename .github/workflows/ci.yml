@@ -79,3 +79,7 @@ jobs:
           npx eslint .
           pbiviz package
           ls dist/*.pbiviz
+      - name: Visuais da skill (KPI, tendência, lista) compilam, passam no lint e empacotam
+        run: |
+          python3 tools/build_visuals.py
+          git diff --exit-code skills/powerbi-architect/scripts/visuals.js   # o preview desenha com o código atual

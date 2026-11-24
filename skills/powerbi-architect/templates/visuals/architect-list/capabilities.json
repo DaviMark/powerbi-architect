@@ -1,0 +1,185 @@
+{
+    "dataRoles": [
+        {
+            "displayName": "Item",
+            "displayNameKey": "Role_Item",
+            "name": "item",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Second line",
+            "displayNameKey": "Role_Detail",
+            "name": "detail",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Status",
+            "displayNameKey": "Role_Status",
+            "name": "status",
+            "kind": "GroupingOrMeasure"
+        },
+        {
+            "displayName": "Values",
+            "displayNameKey": "Role_Values",
+            "name": "values",
+            "kind": "Measure"
+        },
+        {
+            "displayName": "Progress (0 to 1)",
+            "displayNameKey": "Role_Progress",
+            "name": "progress",
+            "kind": "Measure"
+        },
+        {
+            "displayName": "Tooltips",
+            "displayNameKey": "Role_Tooltips",
+            "name": "tooltips",
+            "kind": "Measure"
+        }
+    ],
+    "dataViewMappings": [
+        {
+            "conditions": [
+                {
+                    "item": {
+                        "max": 1
+                    },
+                    "detail": {
+                        "max": 1
+                    },
+                    "status": {
+                        "max": 1
+                    },
+                    "values": {
+                        "max": 4
+                    },
+                    "progress": {
+                        "max": 1
+                    }
+                }
+            ],
+            "table": {
+                "rows": {
+                    "select": [
+                        {
+                            "for": {
+                                "in": "item"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "detail"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "status"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "values"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "progress"
+                            }
+                        },
+                        {
+                            "for": {
+                                "in": "tooltips"
+                            }
+                        }
+                    ],
+                    "dataReductionAlgorithm": {
+                        "top": {
+                            "count": 500
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "objects": {
+        "brand": {
+            "properties": {
+                "accent": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "text": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "secondary": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "context": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "fontFamily": {
+                    "type": {
+                        "formatting": {
+                            "fontFamily": true
+                        }
+                    }
+                }
+            }
+        },
+        "list": {
+            "properties": {
+                "avatars": {
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "title": {
+                    "type": {
+                        "text": true
+                    }
+                }
+            }
+        }
+    },
+    "sorting": {
+        "default": {}
+    },
+    "supportsHighlight": false,
+    "supportsLandingPage": true,
+    "supportsEmptyDataView": true,
+    "supportsKeyboardFocus": true,
+    "supportsMultiVisualSelection": true,
+    "privileges": [],
+    "tooltips": {
+        "supportedTypes": {
+            "default": true,
+            "canvas": true
+        },
+        "roles": [
+            "tooltips"
+        ]
+    }
+}

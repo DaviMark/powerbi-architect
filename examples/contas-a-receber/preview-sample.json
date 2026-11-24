@@ -5,17 +5,18 @@
     "% Vencido": "22,6%",
     "Atraso Médio (dias)": "41",
     "Texto A Vencer": "R$ 14,4 mi ainda a vencer",
-    "Texto Clientes Vencidos": "312 clientes com parcela vencida",
+    "Texto Clientes Vencidos": "312 clientes em atraso",
     "Texto Var % Vencido": "▲ 7,6 p.p. acima da meta de 15%",
     "Texto Var Dias Atraso": "▲ 11 dias acima da meta de 30",
     "Texto Atualizacao": "Atualizado em 21/11/2026 08:00",
-    "Titulo Vencido": "Vencido: R$ 4,2 mi (22,6% do saldo)"
+    "Titulo Vencido": "Vencido: R$ 4,2 mi (22,6% do saldo)",
+    "Meta % Vencido": "15,0%",
+    "Meta Dias Atraso": "30"
   },
   "colors": {
     "Cor Var % Vencido": "#CE2C31",
     "Cor Var Dias Atraso": "#CE2C31",
-    "Cor % Vencido": "#CE2C31",
-    "Cor Atraso": "#AD6200"
+    "Cor % Vencido": "#CE2C31"
   },
   "fields": {
     "dm_regional[Regional]": [

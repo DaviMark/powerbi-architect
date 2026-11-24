@@ -1,0 +1,17 @@
+{
+		"version": "1.0.0.0",
+		"author": {"name":"powerbi-architect","email":"maintainers@example.com"},
+		"resources": [
+			{
+				"resourceId": "rId0",
+				"sourceType": 5,
+				"file": "resources/architectTrend04065D478A6B472B94D080E2C64E3531.pbiviz.json"
+			}
+		],
+		"visual": {"name":"architectTrend","displayName":"Architect Trend","guid":"architectTrend04065D478A6B472B94D080E2C64E3531","visualClassName":"Visual","version":"1.0.0.0","description":"Dense columns over time with a headline, legend and the current period in focus (powerbi-architect).","supportUrl":"https://github.com/DaviMark/powerbi-architect","gitHubUrl":"https://github.com/DaviMark/powerbi-architect"},
+		"metadata": {
+			"pbivizjson": {
+				"resourceId": "rId0"
+			}
+		}
+	}

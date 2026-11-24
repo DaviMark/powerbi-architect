@@ -45,6 +45,14 @@ Visual types: kpi, card, lineChart, clusteredBarChart, clusteredColumnChart, wat
   scatter   {"details": field, "x": measure, "y": measure, "size": measure, "labels": true (≤ 12 points)}
   kpiTrend  {"measure": m, "trend": date field, "goal": m, "label": "..."}   (native KPI visual)
   kpi "trend": date field adds a small trend line at the card's right (no axes, own scale)
+The skill's custom visuals (templates/visuals; packaged inside the report, identity from the theme):
+  kpiCard   {"measure", "label", "trend": date field, "reference": target, "higherIsBetter", "note" (text) or
+            "noteMeasure" (a text measure), "spark": "auto"|"bars"|"line"|"none"}
+            the latest period, a pill with its variation (vs the period before, or vs "reference") and a trend
+  trend     {"category": date field, "values": [m], "compare": m, "title", "seriesName", "compareName",
+            "headline": true, "focus": "last"|"max"|"none"}  dense columns, headline and legend
+  list      {"item": field, "detail": field, "status": field, "values": [...], "progress": m (0-1),
+            "itemTitle", "title", "sortBy", "top", "avatars"}  rows to act on, status chips
 Chart craft: "target": m on lineChart and combo adds the target as a thin grey dashed line;
 combo puts the line on the columns' axis when it has a target ("sameAxis": true/false to choose);
 "target": m on bar and column charts paints the bars below the target red and the rest in the accent
@@ -69,6 +77,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import zipfile
 import zlib
 import math
 from fractions import Fraction
@@ -90,8 +99,22 @@ CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H, GUTTER = 232, 80, 1024, 616, 16
 NAV_X, NAV_Y, NAV_ITEM = 8, 76, 32
 PHONE_W, PHONE_MARGIN = 320, 8
 ICONS = Path(__file__).resolve().parent.parent / "templates" / "icons"
+VISUALS = Path(__file__).resolve().parent.parent / "templates" / "visuals"
+
+
+def _architect_guid(folder: str) -> str:
+    try:
+        return json.loads((VISUALS / folder / "pbiviz.json").read_text(encoding="utf-8"))["visual"]["guid"]
+    except (OSError, ValueError, KeyError):
+        return folder
+
+
+# The skill's own custom visuals (templates/visuals): spec type -> (folder, visualType in PBIR).
+ARCHITECT = {t: (f, _architect_guid(f)) for t, f in (("kpiCard", "architect-kpi"), ("trend", "architect-trend"),
+                                                    ("list", "architect-list"))}
 CHARTS = {"lineChart", "clusteredBarChart", "clusteredColumnChart", "waterfallChart"}
-SPEC_TYPES = {"kpi", "card", "tableEx", "slicer", "matrix", "combo", "scatter", "kpiTrend"} | CHARTS
+SPEC_TYPES = {"kpi", "card", "tableEx", "slicer", "matrix", "combo", "scatter", "kpiTrend", "kpiCard", "trend",
+              "list"} | CHARTS
 
 
 
@@ -290,6 +313,7 @@ class Builder:
         # same files instead of creating copies; otherwise ids are derived from the names.
         self.page_ids = {p["name"]: p.get("id") or hid("page", p["name"]) for p in spec["pages"]}
         self.ids: dict[tuple[str, str], str] = {}
+        self.custom_used: set[str] = set()
         self.icons_used: set[str] = set()
         self.notes: list[str] = []                      # printed after the build: things to decide
 
@@ -448,6 +472,72 @@ class Builder:
         return {"properties": {"fill": {"solid": {"color": {"expr": rule}}}},
                 "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}
 
+    def architect(self, t: str, spec: dict, alt: str) -> dict:
+        """One of the skill's custom visuals (templates/visuals): the drawing carries its own title or label,
+        so the container title is off; the theme gives them the report's identity (visualStyles)."""
+        folder, vtype = ARCHITECT[t]
+        self.custom_used.add(folder)
+
+        def named(field: str, label):
+            p = self.proj(field)
+            if label:
+                p["displayName"] = label
+            return p
+
+        def text(v):
+            return lit(quote(str(v)))
+
+        def boolean(v):
+            return lit("true" if v else "false")
+        objects: dict = {}
+        sort = None
+        if t == "kpiCard":
+            roles = {"value": {"projections": [named(spec["measure"], spec.get("label"))]}}
+            if spec.get("trend"):
+                roles["period"] = {"projections": [self.proj(spec["trend"])]}
+                sort = (spec["trend"], "Ascending")
+            if spec.get("reference"):
+                roles["reference"] = {"projections": [self.proj(spec["reference"])]}
+            if spec.get("noteMeasure"):
+                roles["note"] = {"projections": [self.proj(spec["noteMeasure"])]}
+            props = {"higherIsBetter": boolean(spec.get("higherIsBetter", True))}
+            if spec.get("note"):
+                props["note"] = text(spec["note"])
+            if spec.get("spark"):
+                props["spark"] = text(spec["spark"])
+            objects["kpi"] = [{"properties": props}]
+        elif t == "trend":
+            if len(spec.get("values", [])) != 1:
+                raise SpecError("'trend' takes one measure in \"values\" (and an optional \"compare\")")
+            roles = {"period": {"projections": [self.proj(spec["category"])]},
+                     "value": {"projections": [named(spec["values"][0], spec.get("seriesName"))]}}
+            if spec.get("compare"):
+                roles["compare"] = {"projections": [named(spec["compare"], spec.get("compareName"))]}
+            sort = (spec["category"], "Ascending")
+            objects["header"] = [{"properties": {"title": text(spec.get("title", "")),
+                                                 "showHeadline": boolean(spec.get("headline", True))}}]
+            if spec.get("focus"):
+                objects["focus"] = [{"properties": {"highlight": text(spec["focus"])}}]
+        else:
+            roles = {"item": {"projections": [named(spec["item"], spec.get("itemTitle"))]}}
+            for role in ("detail", "status", "progress"):
+                if spec.get(role):
+                    roles[role] = {"projections": [self.proj(spec[role])]}
+            if spec.get("values"):
+                roles["values"] = {"projections": [self.proj(v) for v in spec["values"]]}
+            if spec.get("sortBy"):
+                name, _, direction = spec["sortBy"].rpartition(" ")
+                sort = (name, "Descending" if direction.lower() == "desc" else "Ascending")
+            objects["list"] = [{"properties": {"avatars": boolean(spec.get("avatars", True)),
+                                               "title": text(spec.get("title", ""))}}]
+        visual = self.data_visual(vtype, roles, alt, sort=sort, objects=objects, tooltip_page=spec.get("tooltipPage"))
+        visual["visualContainerObjects"]["title"] = [{"properties": {"show": lit("false")}}]
+        if t == "list" and spec.get("top") is not None:
+            if not sort:
+                raise SpecError("'top' needs 'sortBy': \"<measure> desc\"")
+            visual["_filterConfig"] = self.top_filter(spec["item"], sort[0], spec["top"], sort[1] == "Descending")
+        return visual
+
     @staticmethod
     def auto_height(visuals: list[dict]) -> int:
         """Row height that fits its content: bars grow with the expected number of categories."""
@@ -475,7 +565,7 @@ class Builder:
         if not alt:
             raise SpecError(f"visual {spec} needs 'alt' text")
         x, y, w, h = pos
-        first = (spec.get("measure") or spec.get("category") or spec.get("details")
+        first = (spec.get("measure") or spec.get("category") or spec.get("details") or spec.get("item")
                  or (spec.get("columns") or spec.get("rows") or [""])[0])
         key = spec.get("key") or f"{t}-{first}"
         if spec.get("id"):
@@ -577,6 +667,8 @@ class Builder:
                 first = spec["columns"][0] if t == "tableEx" else spec["rows"][0]
                 visual["_filterConfig"] = self.top_filter(first, sort[0], n, sort[1] == "Descending")
             return [(key, pos, visual)]
+        if t in ARCHITECT:
+            return [(key, pos, self.architect(t, spec, alt))]
         if t == "combo":
             lines = list(spec.get("lineValues", [])) + ([spec["target"]] if spec.get("target") else [])
             roles = {"Category": {"projections": [self.proj(spec["category"])]},
@@ -835,8 +927,22 @@ class Builder:
                 shutil.copyfile(src, res / src.name)
             items.append({"name": src.name, "path": src.name, "type": "Image"})
         rj.setdefault("themeCollection", {})
-        rj["resourcePackages"] = [p for p in rj.get("resourcePackages", []) if p["name"] != "RegisteredResources"]
+        rj["resourcePackages"] = [p for p in rj.get("resourcePackages", []) if p["name"] != "RegisteredResources"
+                                  and p["name"] not in {g for _, g in ARCHITECT.values()}]
         rj["resourcePackages"].append({"name": "RegisteredResources", "type": "RegisteredResources", "items": items})
+        for folder in sorted(self.custom_used):           # private custom visuals travel inside the report
+            guid = _architect_guid(folder)
+            package = VISUALS / "dist" / f"{folder}.pbiviz"
+            if not package.exists():
+                raise SpecError(f"{package} is missing: run tools/build_visuals.py")
+            with zipfile.ZipFile(package) as z:
+                files = {f"CustomVisuals/{guid}/{n}": z.read(n).decode("utf-8") for n in z.namelist()
+                         if not n.endswith("/")}
+            merge_write(report, files, f"CustomVisuals/{guid}/")
+            rj["resourcePackages"].append({"name": guid, "type": "CustomVisual", "items": [
+                {"name": "package.json", "path": "package.json", "type": "CustomVisualMetadata"},
+                {"name": f"{guid}.pbiviz.json", "path": f"resources/{guid}.pbiviz.json",
+                 "type": "CustomVisualJavascript"}]})
         rj_path.parent.mkdir(parents=True, exist_ok=True)
         current = json.loads(rj_path.read_text(encoding="utf-8-sig")) if rj_path.exists() else None
         if current != rj:                    # an unchanged file keeps its bytes (line endings, formatting)
@@ -921,6 +1027,69 @@ class Extractor:
             return None, None
         return self.name(s["field"], "sort"), s.get("direction", "Ascending")
 
+    def architect_spec(self, kind: str, vis: dict, r: dict) -> dict:
+        """The spec of one of the skill's custom visuals, read back from its roles and properties."""
+        objs = vis.get("objects") or {}
+        qs = (vis.get("query") or {}).get("queryState") or {}
+
+        def disp(role):
+            return (((qs.get(role) or {}).get("projections") or [{}])[0]).get("displayName")
+
+        def first(role):
+            return (r.get(role) or [None])[0]
+
+        def prop(obj, name):
+            return _lit(_prop(objs, obj, name))
+        if kind == "kpiCard":
+            out = {"type": "kpiCard", "measure": first("value")}
+            if disp("value"):
+                out["label"] = disp("value")
+            for role, key in (("period", "trend"), ("reference", "reference"), ("note", "noteMeasure")):
+                if first(role):
+                    out[key] = first(role)
+            if str(prop("kpi", "higherIsBetter")).lower() == "false":
+                out["higherIsBetter"] = False
+            for name in ("note", "spark"):
+                if prop("kpi", name):
+                    out[name] = prop("kpi", name)
+            return out
+        if kind == "trend":
+            out = {"type": "trend", "category": first("period"), "values": r.get("value", [])}
+            if first("compare"):
+                out["compare"] = first("compare")
+            if prop("header", "title"):
+                out["title"] = prop("header", "title")
+            for role, key in (("value", "seriesName"), ("compare", "compareName")):
+                if disp(role):
+                    out[key] = disp(role)
+            if str(prop("header", "showHeadline")).lower() == "false":
+                out["headline"] = False
+            if prop("focus", "highlight"):
+                out["focus"] = prop("focus", "highlight")
+            return out
+        out = {"type": "list", "item": first("item")}
+        if disp("item"):
+            out["itemTitle"] = disp("item")
+        for role in ("detail", "status", "progress"):
+            if first(role):
+                out[role] = first(role)
+        if r.get("values"):
+            out["values"] = r["values"]
+        if prop("list", "title"):
+            out["title"] = prop("list", "title")
+        if str(prop("list", "avatars")).lower() == "false":
+            out["avatars"] = False
+        by, direction = self.sort(vis)
+        if by:
+            out["sortBy"] = f"{by} {'desc' if direction == 'Descending' else 'asc'}"
+        for flt in (vis.get("_filterConfig") or {}).get("filters", []):
+            if flt.get("type") == "TopN":
+                try:
+                    out["top"] = flt["filter"]["From"][0]["Expression"]["Subquery"]["Query"]["Top"]
+                except (KeyError, IndexError, TypeError):
+                    pass
+        return out
+
     def visual(self, vis: dict, where: str, page_names: dict) -> dict | None:
         t = vis.get("visualType", "")
         r = self.roles(vis, where)
@@ -931,7 +1100,10 @@ class Extractor:
             alt = title or (first if t in CARDS or t == "kpi" else None) or t
             self.notes.append(f"{where}: no alt text; used '{alt}', write a real one")
         out: dict = {}
-        if t in CARDS:
+        kind = next((k for k, (_f, guid) in ARCHITECT.items() if t == guid), None)
+        if kind:
+            out = self.architect_spec(kind, vis, r)
+        elif t in CARDS:
             m = (r.get("Values") or r.get("Data") or r.get("Fields") or [None])[0]
             if not m:
                 return None
@@ -1023,7 +1195,7 @@ class Extractor:
         else:
             self.notes.append(f"{where}: {t or 'unknown'} is not in the layout engine; rebuild it by hand")
             return None
-        if out["type"] not in ("kpi", "kpiTrend"):
+        if out["type"] not in ("kpi", "kpiTrend", "kpiCard", "trend", "list"):   # the skill's visuals carry their own
             if title_measure:
                 out["titleMeasure"] = title_measure
             else:
@@ -1179,6 +1351,7 @@ class Extractor:
                     sp["key"] = f"{k}-{seen[k]}"
             for sp in specs:                       # pin to the existing folder when the name would differ
                 key = sp.get("key") or f"{sp['type']}-" + (sp.get("measure") or sp.get("category") or sp.get("details")
+                                                           or sp.get("item")
                                                            or (sp.get("columns") or sp.get("rows") or [""])[0])
                 folder, var_folder = sp.pop("_folder"), sp.pop("_var", None)
                 if folder != hid("visual", page_name, key):
@@ -1186,13 +1359,15 @@ class Extractor:
                 if var_folder and var_folder != hid("visual", page_name, key + "-var"):
                     sp["varId"] = var_folder
             rows.append(row)
-        kpi_rows = [r for r in rows if all(v["type"] == "kpi" for v in r["visuals"])]
-        free = CONTENT_H - GUTTER * max(len(rows) - 1, 0) - 88 * len(kpi_rows)
+        kpi_rows = [r for r in rows if all(v["type"] in ("kpi", "kpiCard") for v in r["visuals"])]
+        kpi_h = {id(r): (88 if all(v["type"] == "kpi" for v in r["visuals"]) else max(88, r["_h"] // 4 * 4))
+                 for r in kpi_rows}
+        free = CONTENT_H - GUTTER * max(len(rows) - 1, 0) - sum(kpi_h.values())
         rest = [r for r in rows if r not in kpi_rows]
         total = sum(r["_h"] for r in rest) or 1
         for r in rows:
             h = r.pop("_h")
-            r_h = 88 if r in kpi_rows else int(free * h / total) // 4 * 4
+            r_h = kpi_h[id(r)] if r in kpi_rows else int(free * h / total) // 4 * 4
             if r not in kpi_rows and r_h < 160:
                 self.notes.append(f"{page_name}: a row is only {r_h} px high; split the page in two")
             r["height"] = max(r_h, 40)

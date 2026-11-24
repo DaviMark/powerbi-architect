@@ -1,0 +1,26 @@
+{
+  "visual": {
+    "name": "architectKpi",
+    "displayName": "Architect KPI",
+    "guid": "architectKpi65B0C3629EF349A48053C4786DFC05A7",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "KPI card: value, variation pill, note and a small trend (powerbi-architect).",
+    "supportUrl": "https://github.com/DaviMark/powerbi-architect",
+    "gitHubUrl": "https://github.com/DaviMark/powerbi-architect"
+  },
+  "apiVersion": "5.11.1",
+  "author": {
+    "name": "powerbi-architect",
+    "email": "maintainers@example.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": null,
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": [],
+  "version": "1.0.0.0"
+}

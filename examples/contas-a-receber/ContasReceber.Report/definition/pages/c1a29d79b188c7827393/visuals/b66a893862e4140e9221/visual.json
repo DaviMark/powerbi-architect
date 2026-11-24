@@ -95,8 +95,13 @@
             },
             "text": {
               "expr": {
-                "Literal": {
-                  "Value": "'Vencido do cliente por mês de vencimento'"
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Titulo Vencido"
                 }
               }
             }

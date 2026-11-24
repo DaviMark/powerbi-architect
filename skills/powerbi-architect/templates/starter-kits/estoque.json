@@ -208,20 +208,6 @@
       "folder": "Metas"
     },
     {
-      "name": "Texto Var Cobertura",
-      "description": "Linha do KPI de cobertura: distância para a meta, em dias.",
-      "expr": "VAR _d = [Cobertura (dias)] - [Meta Cobertura] RETURN IF ( ISBLANK ( [Cobertura (dias)] ), BLANK (), IF ( _d > 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ), \"#,0\" ) & \" dias \" & IF ( _d > 0, \"acima\", \"abaixo\" ) & \" da meta de \" & FORMAT ( [Meta Cobertura], \"#,0\" ) )",
-      "folder": "Textos",
-      "sample": "▲ 17 dias acima da meta de 30"
-    },
-    {
-      "name": "Cor Var Cobertura",
-      "description": "Cor da linha do KPI de cobertura: vermelho acima da meta (capital parado).",
-      "expr": "IF ( [Cobertura (dias)] > [Meta Cobertura], \"#CE2C31\", \"#00824D\" )",
-      "folder": "Cores",
-      "sampleColor": "#CE2C31"
-    },
-    {
       "name": "Texto sem Giro",
       "description": "Linha do KPI de valor sem giro: participação no estoque.",
       "expr": "FORMAT ( [% sem Giro], \"0.0%\" ) & \" do valor em estoque\"",
@@ -233,13 +219,6 @@
       "description": "Cor da cobertura em tabelas: vermelho acima de 90 dias, âmbar acima da meta.",
       "expr": "SWITCH ( TRUE (), [Cobertura (dias)] > 90, \"#CE2C31\", [Cobertura (dias)] > [Meta Cobertura], \"#AD6200\", \"#333333\" )",
       "folder": "Cores"
-    },
-    {
-      "name": "Titulo Estoque",
-      "description": "Título do gráfico de valor em estoque, com o valor atual.",
-      "expr": "\"Valor em estoque no fim de cada mês: \" & FORMAT ( [Valor em Estoque], \"R$ #,0\" ) & \" hoje\"",
-      "folder": "Títulos",
-      "sample": "Valor em estoque no fim de cada mês: R$ 7.402.913 hoje"
     }
   ],
   "series": {
@@ -282,34 +261,39 @@
       "icon": "layout-dashboard",
       "rows": [
         {
-          "height": 88,
+          "height": 104,
           "visuals": [
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Valor em Estoque",
               "label": "Valor em estoque",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Valor em estoque no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Cobertura (dias)",
               "label": "Cobertura, em dias",
-              "variation": "Texto Var Cobertura",
-              "variationColor": "Cor Var Cobertura",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Meta Cobertura",
+              "alt": "Cobertura, em dias no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Itens Abaixo do Ponto",
               "label": "Itens abaixo do ponto de pedido",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "higherIsBetter": false,
+              "alt": "Itens abaixo do ponto de pedido no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Valor sem Giro",
               "label": "Sem saída há 90 dias",
-              "variation": "Texto sem Giro",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "noteMeasure": "Texto sem Giro",
+              "higherIsBetter": false,
+              "alt": "Sem saída há 90 dias no último mês, com a variação e a tendência"
             }
           ]
         },
@@ -321,13 +305,13 @@
           ],
           "visuals": [
             {
-              "type": "lineChart",
+              "type": "trend",
               "category": "dm_calendario[Ano-Mês]",
               "values": [
                 "Valor em Estoque"
               ],
-              "titleMeasure": "Titulo Estoque",
-              "sort": "category",
+              "title": "Valor em estoque por mês",
+              "seriesName": "Valor em Estoque",
               "alt": "Valor em estoque ao fim de cada mês"
             },
             {
@@ -343,7 +327,7 @@
           ]
         },
         {
-          "height": 248,
+          "height": 232,
           "split": [
             2,
             1

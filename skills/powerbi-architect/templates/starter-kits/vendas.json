@@ -277,34 +277,6 @@
       "folder": "Metas"
     },
     {
-      "name": "Texto Var Receita",
-      "description": "Linha do KPI de receita: variação contra o ano anterior, com seta.",
-      "expr": "IF ( ISBLANK ( [Receita AA] ), BLANK (), IF ( [Var % Receita AA] >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( [Var % Receita AA] ), \"0.0%\" ) & \" vs ano anterior\" )",
-      "folder": "Textos",
-      "sample": "▲ 8,2% vs ano anterior"
-    },
-    {
-      "name": "Cor Var Receita",
-      "description": "Cor da linha do KPI de receita: verde quando cresce, vermelho quando cai.",
-      "expr": "IF ( [Var % Receita AA] >= 0, \"#00824D\", \"#CE2C31\" )",
-      "folder": "Cores",
-      "sampleColor": "#00824D"
-    },
-    {
-      "name": "Texto Var Margem",
-      "description": "Linha do KPI de margem: distância para a meta, em pontos percentuais.",
-      "expr": "VAR _d = [% Margem] - [Meta % Margem] RETURN IF ( ISBLANK ( [% Margem] ), BLANK (), IF ( _d >= 0, \"▲ \", \"▼ \" ) & FORMAT ( ABS ( _d ) * 100, \"0.0\" ) & \" p.p. \" & IF ( _d >= 0, \"acima\", \"abaixo\" ) & \" da meta de \" & FORMAT ( [Meta % Margem], \"0%\" ) )",
-      "folder": "Textos",
-      "sample": "▲ 1,4 p.p. acima da meta de 30%"
-    },
-    {
-      "name": "Cor Var Margem",
-      "description": "Cor da linha do KPI de margem: verde na meta ou acima, vermelho abaixo.",
-      "expr": "IF ( [% Margem] >= [Meta % Margem], \"#00824D\", \"#CE2C31\" )",
-      "folder": "Cores",
-      "sampleColor": "#00824D"
-    },
-    {
       "name": "Texto Clientes",
       "description": "Linha do KPI de pedidos: quantos clientes compraram.",
       "expr": "FORMAT ( [Clientes Ativos], \"#,0\" ) & \" clientes compraram\"",
@@ -328,13 +300,6 @@
         "#CE2C31",
         "#CE2C31"
       ]
-    },
-    {
-      "name": "Titulo Receita",
-      "description": "Título do gráfico de receita mensal, com o total do período.",
-      "expr": "\"Receita por mês: \" & FORMAT ( [Receita], \"R$ #,0\" ) & \" no período\"",
-      "folder": "Títulos",
-      "sample": "Receita por mês: R$ 12.804.311 no período"
     }
   ],
   "series": {
@@ -365,36 +330,37 @@
       "icon": "layout-dashboard",
       "rows": [
         {
-          "height": 88,
+          "height": 104,
           "visuals": [
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Receita",
               "label": "Receita líquida",
-              "variation": "Texto Var Receita",
-              "variationColor": "Cor Var Receita",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Receita líquida no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "% Margem",
               "label": "Margem",
-              "variation": "Texto Var Margem",
-              "variationColor": "Cor Var Margem",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "reference": "Meta % Margem",
+              "alt": "Margem no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Pedidos",
               "label": "Pedidos faturados",
-              "variation": "Texto Clientes",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "noteMeasure": "Texto Clientes",
+              "alt": "Pedidos faturados no último mês, com a variação e a tendência"
             },
             {
-              "type": "kpi",
+              "type": "kpiCard",
               "measure": "Ticket Médio",
               "label": "Ticket médio por pedido",
-              "trend": "dm_calendario[Ano-Mês]"
+              "trend": "dm_calendario[Ano-Mês]",
+              "alt": "Ticket médio por pedido no último mês, com a variação e a tendência"
             }
           ]
         },
@@ -406,16 +372,15 @@
           ],
           "visuals": [
             {
-              "type": "combo",
+              "type": "trend",
               "category": "dm_calendario[Ano-Mês]",
               "values": [
                 "Receita"
               ],
-              "lineValues": [
-                "Receita AA"
-              ],
-              "titleMeasure": "Titulo Receita",
-              "alt": "Receita por mês em colunas e a do ano anterior em linha"
+              "title": "Receita por mês",
+              "seriesName": "Receita",
+              "alt": "Receita por mês em colunas e a do ano anterior em linha",
+              "compare": "Receita AA"
             },
             {
               "type": "clusteredBarChart",
@@ -430,7 +395,7 @@
           ]
         },
         {
-          "height": 248,
+          "height": 232,
           "visuals": [
             {
               "type": "clusteredBarChart",

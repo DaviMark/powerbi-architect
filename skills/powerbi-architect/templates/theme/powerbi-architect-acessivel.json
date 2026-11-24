@@ -762,6 +762,93 @@
           }
         ]
       }
+    },
+    "architectKpi65B0C3629EF349A48053C4786DFC05A7": {
+      "*": {
+        "brand": [
+          {
+            "accent": {
+              "solid": {
+                "color": "#18181B"
+              }
+            },
+            "text": {
+              "solid": {
+                "color": "#18181B"
+              }
+            },
+            "secondary": {
+              "solid": {
+                "color": "#71717A"
+              }
+            },
+            "context": {
+              "solid": {
+                "color": "#D4D4D8"
+              }
+            },
+            "fontFamily": "Segoe UI"
+          }
+        ]
+      }
+    },
+    "architectList5F4923141E4D499CB7BD0BB11305C6FF": {
+      "*": {
+        "brand": [
+          {
+            "accent": {
+              "solid": {
+                "color": "#18181B"
+              }
+            },
+            "text": {
+              "solid": {
+                "color": "#18181B"
+              }
+            },
+            "secondary": {
+              "solid": {
+                "color": "#71717A"
+              }
+            },
+            "context": {
+              "solid": {
+                "color": "#D4D4D8"
+              }
+            },
+            "fontFamily": "Segoe UI"
+          }
+        ]
+      }
+    },
+    "architectTrend04065D478A6B472B94D080E2C64E3531": {
+      "*": {
+        "brand": [
+          {
+            "accent": {
+              "solid": {
+                "color": "#18181B"
+              }
+            },
+            "text": {
+              "solid": {
+                "color": "#18181B"
+              }
+            },
+            "secondary": {
+              "solid": {
+                "color": "#71717A"
+              }
+            },
+            "context": {
+              "solid": {
+                "color": "#D4D4D8"
+              }
+            },
+            "fontFamily": "Segoe UI"
+          }
+        ]
+      }
     }
   }
 }

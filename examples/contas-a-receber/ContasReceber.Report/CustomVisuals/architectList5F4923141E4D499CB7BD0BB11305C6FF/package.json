@@ -1,0 +1,17 @@
+{
+		"version": "1.0.0.0",
+		"author": {"name":"powerbi-architect","email":"maintainers@example.com"},
+		"resources": [
+			{
+				"resourceId": "rId0",
+				"sourceType": 5,
+				"file": "resources/architectList5F4923141E4D499CB7BD0BB11305C6FF.pbiviz.json"
+			}
+		],
+		"visual": {"name":"architectList","displayName":"Architect List","guid":"architectList5F4923141E4D499CB7BD0BB11305C6FF","visualClassName":"Visual","version":"1.0.0.0","description":"List to act on: avatar, name, status chip, numbers and progress (powerbi-architect).","supportUrl":"https://github.com/DaviMark/powerbi-architect","gitHubUrl":"https://github.com/DaviMark/powerbi-architect"},
+		"metadata": {
+			"pbivizjson": {
+				"resourceId": "rId0"
+			}
+		}
+	}
