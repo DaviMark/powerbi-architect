@@ -1,0 +1,8 @@
+{
+  "id": "s5-reestilizar",
+  "nome": "Relatório amador: deixar profissional sem perder informação",
+  "tipo": "reestilizar",
+  "projeto": "ContasReceber",
+  "pedido": "Este relatório está com cara de amador. Deixe-o com padrão profissional, sem perder nenhuma informação que ele mostra hoje, em ContasReceber.Report.",
+  "paginas": []
+}

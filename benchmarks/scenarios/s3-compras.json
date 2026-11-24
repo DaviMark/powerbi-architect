@@ -1,0 +1,12 @@
+{
+  "id": "s3-compras",
+  "nome": "Compras: relatório a partir do modelo",
+  "tipo": "relatorio",
+  "modelo": "benchmarks/models/compras.json",
+  "projeto": "Compras",
+  "pedido": "Crie o relatório deste modelo em PBIR: uma visão geral de compras para a diretoria e uma página avaliando os fornecedores, em Compras.Report.",
+  "paginas": [
+    "vis[aã]o|geral|resumo|overview",
+    "fornecedor"
+  ]
+}

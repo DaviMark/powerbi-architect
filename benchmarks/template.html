@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Benchmark Power BI Architect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --canvas: #F1F1F1; --panel: #FFFFFF; --line: #EBEBEB; --line-strong: #D6D6D6;
+    --ink: #333333; --ink-2: #666666; --ink-3: #757575;
+    --accent: #3E63DD; --accent-soft: #EEF2FD; --grey: #B8B8B8;
+    --good: #00824D; --bad: #CE2C31; --radius: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #141414; --panel: #1C1C1C; --line: #2A2A2A; --line-strong: #3A3A3A;
+      --ink: #EBEBEB; --ink-2: #B3B3B3; --ink-3: #9A9A9A; --accent: #7B97F0; --accent-soft: #1F2A4A;
+      --grey: #5C5C5C; --good: #3DD68C; --bad: #FF6369;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #141414; --panel: #1C1C1C; --line: #2A2A2A; --line-strong: #3A3A3A;
+    --ink: #EBEBEB; --ink-2: #B3B3B3; --ink-3: #9A9A9A; --accent: #7B97F0; --accent-soft: #1F2A4A;
+    --grey: #5C5C5C; --good: #3DD68C; --bad: #FF6369;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--canvas); color: var(--ink);
+         font: 400 14px/1.5 Inter, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--ink-2); font-weight: 500; }
+  .brand i { width: 16px; height: 16px; border-radius: 4px; background: var(--accent); display: inline-block; }
+  h1 { font-size: 28px; line-height: 1.2; font-weight: 600; margin: 8px 0 6px; letter-spacing: -0.01em; }
+  .lede { color: var(--ink-2); max-width: 680px; margin: 0; }
+  .picker { display: flex; align-items: center; gap: 8px; color: var(--ink-3); font-size: 13px; }
+  select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line-strong);
+           border-radius: 6px; padding: 6px 28px 6px 10px; }
+  .grid { display: grid; gap: 16px; }
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 14px; min-width: 0; }
+  .label { color: var(--ink-2); font-size: 12px; }
+  .value { font-size: 28px; font-weight: 600; line-height: 1.15; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+  .value small { font-size: 14px; font-weight: 500; color: var(--ink-3); margin-left: 6px; }
+  .note { font-size: 12px; color: var(--ink-3); }
+  .up { color: var(--good); } .down { color: var(--bad); }
+  section { margin-top: 16px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: var(--ink-3); font-size: 12px; margin: 0 0 14px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); margin-bottom: 12px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .legend .c::before { background: var(--accent); } .legend .s::before { background: var(--grey); }
+  .req { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 6px 16px; align-items: center; }
+  .req .name { font-size: 13px; }
+  .req .name em { display: block; font-style: normal; color: var(--ink-3); font-size: 11px; line-height: 1.35; }
+  .pair { display: grid; gap: 6px; padding-right: 64px; }
+  .bar { height: 12px; border-radius: 2px; background: var(--line); position: relative; }
+  .bar b { position: absolute; inset: 0 auto 0 0; border-radius: 2px; }
+  .bar.c b { background: var(--accent); } .bar.s b { background: var(--grey); }
+  .bar span { position: absolute; top: 50%; transform: translateY(-50%); padding-left: 6px; font-size: 11px; line-height: 12px;
+              color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .two { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-weight: 500; color: var(--ink-2); font-size: 12px; padding: 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+  .dots i { width: 8px; height: 8px; border-radius: 2px; background: var(--line-strong); }
+  .dots i.ok { background: var(--accent); } .dots.s i.ok { background: var(--ink-3); }
+  .shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  .shots figure { margin: 0; min-width: 0; }
+  .shots img { width: 100%; border: 1px solid var(--line); border-radius: 6px; display: block; cursor: zoom-in; background: var(--canvas); }
+  .shots figcaption { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+  .why { color: var(--ink-3); font-size: 12px; margin-top: 2px; }
+  .trend svg { width: 100%; height: 220px; display: block; }
+  .method { color: var(--ink-2); font-size: 13px; }
+  .method li { margin: 4px 0; }
+  .scen { display: grid; gap: 16px; }
+  .scen .card h3 { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+  .row-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+  dialog { border: 0; padding: 0; border-radius: var(--radius); max-width: 96vw; background: transparent; }
+  dialog img { max-width: 96vw; max-height: 90vh; display: block; border-radius: var(--radius); }
+  dialog::backdrop { background: rgba(0, 0, 0, .6); }
+  footer { color: var(--ink-3); font-size: 12px; margin-top: 24px; }
+  a { color: var(--accent); }
+  @media (max-width: 860px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .two { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .kpis { grid-template-columns: 1fr; } .req { grid-template-columns: 1fr; } .shots { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand"><i></i>Power BI Architect · Benchmark</div>
+      <h1 id="headline">Com a skill e sem a skill</h1>
+      <p class="lede" id="lede"></p>
+    </div>
+    <label class="picker">Versão <select id="version"></select></label>
+  </header>
+
+  <div class="grid kpis" id="kpis"></div>
+
+  <section class="card">
+    <h2>Requisitos atendidos, um por um</h2>
+    <p class="sub">Execuções que atendem a cada requisito, conferido por ferramenta, sem opinião.</p>
+    <div class="legend"><span class="c">Com a skill</span><span class="s">Sem a skill</span></div>
+    <div class="req bars-wrap" id="reqs"></div>
+  </section>
+
+  <section class="grid two" id="usage"></section>
+
+  <section>
+    <h2 style="margin-top:8px">Cenários</h2>
+    <p class="sub">Os mesmos pedidos para as duas condições. Imagens desenhadas pelo preview da skill a partir dos arquivos PBIR entregues, com os mesmos dados de amostra.</p>
+    <div class="scen" id="scenarios"></div>
+  </section>
+
+  <section class="card trend">
+    <h2>Evolução por versão</h2>
+    <p class="sub">Percentual de requisitos atendidos em cada versão medida. Cada nova versão entra aqui, sempre comparada com a IA sem a skill.</p>
+    <div id="trend"></div>
+  </section>
+
+  <section class="card">
+    <h2>Como é medido</h2>
+    <ul class="method" id="method"></ul>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<dialog id="zoom"><img alt=""></dialog>
+<script>
+const DATA = /*__DATA__*/null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const fmt = (n, d = 0) => n == null ? "—" : Number(n).toLocaleString("pt-BR", {maximumFractionDigits: d, minimumFractionDigits: d});
+const pct = r => r.requisitos_avaliados ? 100 * r.requisitos_atendidos / r.requisitos_avaliados : 0;
+
+function kpi(label, value, unit, note, cls = "") {
+  return `<div class="card"><div class="label">${esc(label)}</div><div class="value">${value}<small>${esc(unit)}</small></div>
+          <div class="note ${cls}">${note}</div></div>`;
+}
+
+function render(v) {
+  const c = v.resumo.com, s = v.resumo.sem;
+  $("#headline").textContent = `Versão ${v.versao}: com a skill e sem a skill`;
+  $("#lede").textContent = `${c.execucoes} execuções com a skill e ${s.execucoes} sem, nos mesmos ${v.execucoes.length / 2} cenários, ` +
+    `com ${v.modelo.join(", ") || "o mesmo modelo de IA"}. Medido em ${new Date(v.data + "T12:00").toLocaleDateString("pt-BR")}.`;
+  const dpp = pct(c) - pct(s);
+  const tok = c.tokens_medios && s.tokens_medios ? c.tokens_medios / s.tokens_medios : null;
+  $("#kpis").innerHTML =
+    kpi("Requisitos atendidos com a skill", fmt(pct(c)), "%",
+        `${dpp >= 0 ? "▲" : "▼"} ${fmt(Math.abs(dpp))} p.p. contra ${fmt(pct(s))}% sem a skill`, dpp >= 0 ? "up" : "down") +
+    kpi("Entregas que atendem a tudo", `${c.entregas_completas}`, `de ${c.execucoes}`,
+        `${s.entregas_completas} de ${s.execucoes} sem a skill`) +
+    kpi("Harmonia média das páginas", fmt(c.harmonia_media), "de 100",
+        `${fmt(s.harmonia_media)} sem a skill`, c.harmonia_media >= s.harmonia_media ? "up" : "down") +
+    kpi("Tokens por execução", fmt((c.tokens_medios || 0) / 1000, 0), "mil",
+        tok ? `${fmt(tok, 1)}× o consumo sem a skill (${fmt((s.tokens_medios || 0) / 1000)} mil)` : "consumo não registrado");
+
+  const n = Math.max(c.execucoes, 1);
+  $("#reqs").innerHTML = v.requisitos.map(r => {
+    const a = c.por_requisito[r.id], b = s.por_requisito[r.id];
+    return `<div class="name">${esc(r.nome)}<em>${esc(r.descricao)}</em></div>
+      <div class="pair">
+        <div class="bar c"><b style="width:${100 * a / n}%"></b><span style="left:${100 * a / n}%">${a} de ${n}</span></div>
+        <div class="bar s"><b style="width:${100 * b / n}%"></b><span style="left:${100 * b / n}%">${b} de ${n}</span></div>
+      </div>`;
+  }).join("");
+
+  const pair = (title, key, unit, d = 0, scale = 1) => {
+    const a = c[key], b = s[key], m = Math.max(a || 0, b || 0) || 1;
+    return `<div class="card"><h2>${esc(title)}</h2><p class="sub">Média por execução</p>
+      <div class="pair">
+        <div class="bar c"><b style="width:${100 * (a || 0) / m}%"></b><span style="left:${100 * (a || 0) / m}%">${fmt((a || 0) / scale, d)} ${unit}</span></div>
+        <div class="bar s"><b style="width:${100 * (b || 0) / m}%"></b><span style="left:${100 * (b || 0) / m}%">${fmt((b || 0) / scale, d)} ${unit}</span></div>
+      </div><div class="note" style="margin-top:10px">Azul: com a skill · cinza: sem a skill</div></div>`;
+  };
+  $("#usage").innerHTML = pair("Tokens", "tokens_medios", "mil", 0, 1000) +
+    pair("Chamadas de ferramenta", "ferramentas_medias", "", 0) + pair("Tempo", "segundos_medios", "s", 0);
+
+  const base = `results/${encodeURIComponent(v.versao)}/imagens/`;
+  const ids = [...new Set(v.execucoes.map(x => x.cenario))];
+  $("#scenarios").innerHTML = ids.map(id => {
+    const rc = v.execucoes.find(x => x.cenario === id && x.condicao === "com");
+    const rs = v.execucoes.find(x => x.cenario === id && x.condicao === "sem");
+    const dots = (r, cls) => `<span class="dots ${cls}">${Object.values(r.requisitos).map(q =>
+      `<i class="${q[0] ? "ok" : ""}" title="${q[0] === null ? "não avaliado" : q[0] ? "atendido" : esc(q[1] || "não atendido")}"></i>`).join("")}</span>`;
+    const why = r => Object.entries(r.requisitos).filter(([, q]) => q[0] === false)
+      .map(([k, q]) => `${esc(v.requisitos.find(x => x.id === k).nome)}${q[1] ? ": " + esc(q[1]) : ""}`).join(" · ");
+    const shot = (r, cap) => r.imagens && r.imagens.length
+      ? `<figure><img loading="lazy" src="${base}${esc(r.imagens[0])}" alt="Primeira página entregue ${cap}"><figcaption>${cap}</figcaption></figure>`
+      : `<figure><div class="note">sem imagem</div></figure>`;
+    const line = (r, label, cls) => `<div class="row-meta"><strong style="color:var(--ink)">${label}</strong>
+        ${dots(r, cls)} <span>${r.atendidos} de ${r.avaliados} requisitos</span>
+        <span>harmonia ${fmt(r.metricas.harmonia_media)}</span>
+        <span>${r.consumo ? fmt(r.consumo.tokens / 1000) + " mil tokens" : ""}</span></div>
+        ${why(r) ? `<div class="why">${why(r)}</div>` : ""}`;
+    return `<div class="card"><h3>${esc(rc.nome)}</h3>${line(rc, "Com a skill", "c")}${line(rs, "Sem a skill", "s")}
+      <div class="shots">${shot(rc, "com a skill")}${shot(rs, "sem a skill")}</div></div>`;
+  }).join("");
+  document.querySelectorAll(".shots img").forEach(img => img.addEventListener("click", () => {
+    $("#zoom img").src = img.src; $("#zoom").showModal();
+  }));
+}
+
+function trend() {
+  const W = 1000, H = 220, L = 44, R = 16, T = 16, B = 32, n = DATA.length;
+  const x = i => n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1);
+  const y = p => T + (100 - p) * (H - T - B) / 100;
+  const series = (cond, color) => {
+    const pts = DATA.map((v, i) => [x(i), y(pct(v.resumo[cond]))]);
+    return `<polyline fill="none" stroke="${color}" stroke-width="2" points="${pts.map(p => p.join(",")).join(" ")}"/>` +
+      pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${color}"/><text x="${p[0]}" y="${p[1] - 10}" text-anchor="middle"
+        font-size="12" fill="currentColor">${fmt(pct(DATA[i].resumo[cond]))}%</text>`).join("");
+  };
+  const grid = [0, 50, 100].map(p => `<line x1="${L}" x2="${W - R}" y1="${y(p)}" y2="${y(p)}" stroke="var(--line)"/>
+    <text x="${L - 8}" y="${y(p) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)">${p}%</text>`).join("");
+  const labels = DATA.map((v, i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="12" fill="var(--ink-2)">v${esc(v.versao)}</text>`).join("");
+  $("#trend").innerHTML = `<div class="legend"><span class="c">Com a skill</span><span class="s">Sem a skill</span></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Percentual de requisitos atendidos por versão" style="color:var(--ink-2)">
+    ${grid}${series("sem", "var(--grey)")}${series("com", "var(--accent)")}${labels}</svg>` +
+    (n === 1 ? `<p class="note">Primeira versão medida. A próxima entra neste gráfico ao lado desta.</p>` : "");
+}
+
+function method(v) {
+  const items = [
+    "Cada versão roda os mesmos cenários duas vezes: uma com a skill (a IA lê o SKILL.md e pode usar os scripts) e outra sem (a IA não pode abrir o repositório). A ordem entre as condições alterna de um cenário para o outro.",
+    "Os cenários usam modelos que a skill não traz (logística, atendimento, compras), um projeto editado à mão entre dois pedidos e um relatório amador para reestilizar.",
+    ...v.requisitos.map(r => `<strong>${esc(r.nome)}</strong>: ${esc(r.descricao)}.`),
+    "Consumo: tokens, chamadas de ferramenta e tempo de cada execução, como o agente informa ao terminar. A média é por condição.",
+    "Limites: uma execução por cenário e condição; os relatórios não foram abertos no Power BI Desktop; as imagens vêm do preview da skill.",
+  ];
+  $("#method").innerHTML = items.map(i => `<li>${i}</li>`).join("");
+  $("#footer").innerHTML = `Dados: <a href="results/${encodeURIComponent(v.versao)}/resultados.json">resultados.json</a> ·
+    gerado por <code>benchmarks/run.py report</code>`;
+}
+
+const sel = $("#version");
+DATA.forEach((v, i) => sel.insertAdjacentHTML("beforeend", `<option value="${i}">v${esc(v.versao)}</option>`));
+sel.value = DATA.length - 1;
+const show = () => { const v = DATA[sel.value]; render(v); method(v); };
+sel.addEventListener("change", show);
+show(); trend();
+</script>
+</body>
+</html>
