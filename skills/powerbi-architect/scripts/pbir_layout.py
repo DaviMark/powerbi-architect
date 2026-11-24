@@ -714,13 +714,16 @@ class Builder:
             src = ICONS / f"{icon}.png"
             if not src.exists():
                 raise SpecError(f"icon '{icon}' not found in templates/icons")
-            shutil.copyfile(src, res / src.name)
+            if not (res / src.name).exists() or (res / src.name).read_bytes() != src.read_bytes():
+                shutil.copyfile(src, res / src.name)
             items.append({"name": src.name, "path": src.name, "type": "Image"})
         rj.setdefault("themeCollection", {})
         rj["resourcePackages"] = [p for p in rj.get("resourcePackages", []) if p["name"] != "RegisteredResources"]
         rj["resourcePackages"].append({"name": "RegisteredResources", "type": "RegisteredResources", "items": items})
         rj_path.parent.mkdir(parents=True, exist_ok=True)
-        write_lf(rj_path, json.dumps(rj, indent=2, ensure_ascii=False) + "\n")
+        current = json.loads(rj_path.read_text(encoding="utf-8-sig")) if rj_path.exists() else None
+        if current != rj:                    # an unchanged file keeps its bytes (line endings, formatting)
+            write_lf(rj_path, json.dumps(rj, indent=2, ensure_ascii=False) + "\n")
 
 
 # ---------------------------------------------------------------------- extract (restyle)
