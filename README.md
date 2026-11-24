@@ -93,6 +93,21 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
 |---|---|
 | ![Página Diagnóstico com cascata, barras e tabela](docs/assets/exemplo-diagnostico.png) | ![Layout de celular da Visão Geral](docs/assets/exemplo-celular.png) |
 
+### Suas edições no Desktop nunca se perdem
+
+Você pode mexer no projeto à vontade no Power BI Desktop ou nos arquivos, entre um pedido e outro, sem
+avisar a IA:
+- **Ela percebe sozinha.** Antes de cada pedido, um hook compara o projeto com o estado depois da última
+  edição da IA. Ela recebe em português o que você mudou: "medida 'Valor Vencido' — expressão mudou",
+  "Visão Geral › barras "Vencido por regional" — movido (232, 448) → (240, 448)". Ela trata isso como a
+  versão atual e continua a partir dali. O histórico fica em `.powerbi-architect/alteracoes.md`.
+- **Ela não escreve por cima.** Ao gerar as páginas de novo, o `pbir_layout.py` faz um merge em três
+  vias, como o git:
+  - visual que você moveu, redimensionou ou renomeou fica como você deixou;
+  - visual que você criou fica, e visual que você apagou continua apagado;
+  - o resto segue a especificação nova;
+  - quando os dois mudaram a mesma propriedade, vale a sua.
+
 ### Começar por um kit do seu domínio
 
 Para não partir do zero, `new_project.py` cria um projeto PBIP completo a partir de um kit: modelo
@@ -215,6 +230,7 @@ O instalador também deixa o grafo sempre em uso e atualizado:
 - audita o relatório ou o modelo logo após cada edição feita pelo Claude Code: se surgir um bloqueador
   ou uma página abaixo de 90 no placar de harmonia, o agente recebe os achados na hora e corrige antes
   de seguir;
+- avisa a IA, antes de cada pedido, do que você mudou à mão no Desktop ou nos arquivos;
 - cria hooks do git (`post-commit`, `post-merge`, `post-checkout`).
 
 Rodar de novo não duplica nada. `pbi_graph.py uninstall` remove tudo. Detalhes em
@@ -255,7 +271,8 @@ skills/powerbi-architect/
     ├── pbir_layout.py              ← gera as páginas a partir de um layout em JSON; --extract reestiliza
     ├── preview_pbir.py             ← prévia das páginas em HTML, sem o Power BI Desktop
     ├── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
-    └── new_project.py              ← projeto PBIP completo a partir de um kit inicial
+    ├── new_project.py              ← projeto PBIP completo a partir de um kit inicial
+    └── pbip_changes.py             ← percebe o que você mudou à mão e conta para a IA
 
 examples/contas-a-receber/          ← projeto PBIP completo que segue todas as regras
 ```
