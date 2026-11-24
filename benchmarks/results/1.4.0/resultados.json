@@ -1,0 +1,354 @@
+{
+  "versao": "1.4.0",
+  "data": "2026-11-24",
+  "modelo": [
+    "Claude Sonnet 5.5"
+  ],
+  "requisitos": [
+    {
+      "id": "abre",
+      "nome": "Abre sem erro",
+      "descricao": "JSON válido nos schemas da Microsoft e todo campo usado pelos visuais existe no modelo"
+    },
+    {
+      "id": "bloqueadores",
+      "nome": "Zero bloqueadores",
+      "descricao": "Nenhum achado bloqueador na auditoria"
+    },
+    {
+      "id": "harmonia",
+      "nome": "Harmonia ≥ 90",
+      "descricao": "Todas as páginas com nota de harmonia de 90 ou mais"
+    },
+    {
+      "id": "acessivel",
+      "nome": "Acessível",
+      "descricao": "Todo visual de dados com título e texto alternativo; texto com contraste ≥ 4,5:1"
+    },
+    {
+      "id": "pixel",
+      "nome": "Pixel a pixel",
+      "descricao": "Nenhum achado da crítica do preview: texto cortado, sobreposição, gutters, grade"
+    },
+    {
+      "id": "pedido",
+      "nome": "Pedido atendido",
+      "descricao": "As páginas pedidas existem e nenhuma informação do relatório anterior sumiu"
+    },
+    {
+      "id": "numeros",
+      "nome": "Números seguros",
+      "descricao": "Nenhum padrão de DAX ou SQL que devolve número errado (PBI032, PBI070–PBI077)"
+    }
+  ],
+  "resumo": {
+    "com": {
+      "execucoes": 2,
+      "requisitos_atendidos": 14,
+      "requisitos_avaliados": 14,
+      "entregas_completas": 2,
+      "harmonia_media": 100.0,
+      "achados_medios": 2.0,
+      "tokens_medios": 96098.0,
+      "ferramentas_medias": 12.0,
+      "segundos_medios": 59.2,
+      "por_requisito": {
+        "abre": 2,
+        "bloqueadores": 2,
+        "harmonia": 2,
+        "acessivel": 2,
+        "pixel": 2,
+        "pedido": 2,
+        "numeros": 2
+      }
+    },
+    "sem": {
+      "execucoes": 2,
+      "requisitos_atendidos": 4,
+      "requisitos_avaliados": 14,
+      "entregas_completas": 0,
+      "harmonia_media": 6.0,
+      "achados_medios": 24.5,
+      "tokens_medios": 76183.0,
+      "ferramentas_medias": 4.5,
+      "segundos_medios": 31.4,
+      "por_requisito": {
+        "abre": 0,
+        "bloqueadores": 0,
+        "harmonia": 0,
+        "acessivel": 0,
+        "pixel": 0,
+        "pedido": 2,
+        "numeros": 2
+      }
+    }
+  },
+  "execucoes": [
+    {
+      "requisitos": {
+        "abre": [
+          true,
+          ""
+        ],
+        "bloqueadores": [
+          true,
+          ""
+        ],
+        "harmonia": [
+          true,
+          ""
+        ],
+        "acessivel": [
+          true,
+          ""
+        ],
+        "pixel": [
+          true,
+          ""
+        ],
+        "pedido": [
+          true,
+          ""
+        ],
+        "numeros": [
+          true,
+          ""
+        ]
+      },
+      "metricas": {
+        "harmonia_media": 100.0,
+        "paginas": 3,
+        "achados": {
+          "BLOCKER": 0,
+          "IMPORTANT": 0,
+          "SUGGESTION": 2
+        },
+        "critica": 0,
+        "regras": [
+          "PBI034",
+          "PBI043"
+        ]
+      },
+      "critica_detalhe": [],
+      "run": "s1-logistica-com",
+      "cenario": "s1-logistica",
+      "nome": "Logística: relatório a partir do modelo",
+      "condicao": "com",
+      "consumo": {
+        "ferramentas": 11,
+        "modelo": "Claude Sonnet 5.5",
+        "segundos": 56.0,
+        "tokens": 92142
+      },
+      "imagens": [
+        "s1-logistica-com-p1.png",
+        "s1-logistica-com-p2.png"
+      ],
+      "atendidos": 7,
+      "avaliados": 7
+    },
+    {
+      "requisitos": {
+        "abre": [
+          false,
+          "2 erro(s) de schema"
+        ],
+        "bloqueadores": [
+          false,
+          "1 bloqueador(es)"
+        ],
+        "harmonia": [
+          false,
+          "Visão Geral 0, Transportadoras 16"
+        ],
+        "acessivel": [
+          false,
+          "PBI019, PBI056"
+        ],
+        "pixel": [
+          false,
+          "1 achado(s)"
+        ],
+        "pedido": [
+          true,
+          ""
+        ],
+        "numeros": [
+          true,
+          ""
+        ]
+      },
+      "metricas": {
+        "harmonia_media": 8.0,
+        "paginas": 2,
+        "achados": {
+          "BLOCKER": 1,
+          "IMPORTANT": 15,
+          "SUGGESTION": 18
+        },
+        "critica": 1,
+        "regras": [
+          "PBI006",
+          "PBI019",
+          "PBI034",
+          "PBI043",
+          "PBI046",
+          "PBI047",
+          "PBI048",
+          "PBI056",
+          "PBI068"
+        ]
+      },
+      "critica_detalhe": [
+        "Visão Geral › : [uneven] gutters of 15, 20 px on one page — use one"
+      ],
+      "run": "s1-logistica-sem",
+      "cenario": "s1-logistica",
+      "nome": "Logística: relatório a partir do modelo",
+      "condicao": "sem",
+      "consumo": {
+        "ferramentas": 5,
+        "modelo": "Claude Sonnet 5.5",
+        "segundos": 34.1,
+        "tokens": 73441
+      },
+      "imagens": [
+        "s1-logistica-sem-p1.png",
+        "s1-logistica-sem-p2.png"
+      ],
+      "atendidos": 2,
+      "avaliados": 7
+    },
+    {
+      "requisitos": {
+        "abre": [
+          false,
+          "9 erro(s) de schema"
+        ],
+        "bloqueadores": [
+          false,
+          "1 bloqueador(es)"
+        ],
+        "harmonia": [
+          false,
+          "Painel de Cobrança 4"
+        ],
+        "acessivel": [
+          false,
+          "PBI019, PBI056"
+        ],
+        "pixel": [
+          false,
+          "1 achado(s)"
+        ],
+        "pedido": [
+          true,
+          ""
+        ],
+        "numeros": [
+          true,
+          ""
+        ]
+      },
+      "metricas": {
+        "harmonia_media": 4.0,
+        "paginas": 1,
+        "achados": {
+          "BLOCKER": 1,
+          "IMPORTANT": 8,
+          "SUGGESTION": 6
+        },
+        "critica": 1,
+        "regras": [
+          "PBI006",
+          "PBI019",
+          "PBI034",
+          "PBI043",
+          "PBI047",
+          "PBI056"
+        ]
+      },
+      "critica_detalhe": [
+        "Painel de Cobrança › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
+      ],
+      "run": "s2-reestilizar-sem",
+      "cenario": "s2-reestilizar",
+      "nome": "Relatório amador: deixar profissional sem perder informação",
+      "condicao": "sem",
+      "consumo": {
+        "ferramentas": 4,
+        "modelo": "Claude Sonnet 5.5",
+        "segundos": 28.7,
+        "tokens": 78925
+      },
+      "imagens": [
+        "s2-reestilizar-sem-p1.png"
+      ],
+      "atendidos": 2,
+      "avaliados": 7
+    },
+    {
+      "requisitos": {
+        "abre": [
+          true,
+          ""
+        ],
+        "bloqueadores": [
+          true,
+          ""
+        ],
+        "harmonia": [
+          true,
+          ""
+        ],
+        "acessivel": [
+          true,
+          ""
+        ],
+        "pixel": [
+          true,
+          ""
+        ],
+        "pedido": [
+          true,
+          ""
+        ],
+        "numeros": [
+          true,
+          ""
+        ]
+      },
+      "metricas": {
+        "harmonia_media": 100.0,
+        "paginas": 3,
+        "achados": {
+          "BLOCKER": 0,
+          "IMPORTANT": 0,
+          "SUGGESTION": 2
+        },
+        "critica": 0,
+        "regras": [
+          "PBI034",
+          "PBI043"
+        ]
+      },
+      "critica_detalhe": [],
+      "run": "s2-reestilizar-com",
+      "cenario": "s2-reestilizar",
+      "nome": "Relatório amador: deixar profissional sem perder informação",
+      "condicao": "com",
+      "consumo": {
+        "ferramentas": 13,
+        "modelo": "Claude Sonnet 5.5",
+        "segundos": 62.4,
+        "tokens": 100054
+      },
+      "imagens": [
+        "s2-reestilizar-com-p1.png",
+        "s2-reestilizar-com-p2.png"
+      ],
+      "atendidos": 7,
+      "avaliados": 7
+    }
+  ]
+}

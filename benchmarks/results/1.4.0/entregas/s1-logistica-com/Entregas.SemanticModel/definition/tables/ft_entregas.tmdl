@@ -1,0 +1,58 @@
+/// Entregas concluídas ou em rota nos últimos 24 meses.
+/// Grão: 1 linha por entrega · Fonte: dw.vw_fato_entregas · Conexão: dw
+table ft_entregas
+
+	column id_transportadora
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: id_transportadora
+
+	column id_cidade
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: id_cidade
+
+	column 'Data Prevista'
+		dataType: dateTime
+		isHidden
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Data Prevista
+
+	/// Dias entre a data prevista e a entrega; 0 quando no prazo.
+	column 'Dias Atraso'
+		dataType: int64
+		isHidden
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Dias Atraso
+
+	column 'Peso Kg'
+		dataType: decimal
+		isHidden
+		formatString: #,0.0
+		summarizeBy: none
+		sourceColumn: Peso Kg
+
+	column 'Valor Frete'
+		dataType: decimal
+		isHidden
+		formatString: \R\$ #,0.00
+		summarizeBy: none
+		sourceColumn: Valor Frete
+
+	/// Entregue, Em rota ou Devolvida.
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+	partition ft_entregas = m
+		mode: import
+		source =
+				let
+				    Fonte = Value.NativeQuery(Sql.Database(Servidor, Banco), "SELECT t.id_transportadora, t.id_cidade, t.data_prevista AS [Data Prevista], t.dias_atraso AS [Dias Atraso], t.peso_kg AS [Peso Kg], t.valor_frete AS [Valor Frete], t.status AS [Status] FROM dw.vw_fato_entregas AS t", null, [EnableFolding = true])
+				in
+				    Fonte
