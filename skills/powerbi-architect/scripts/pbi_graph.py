@@ -1301,6 +1301,11 @@ It is refreshed automatically (session start, after edits, after commits). **Use
    - `{cmd} path "<A>" "<B>"` — how two objects connect
 4. Open a source file only to edit it, at the file:line the graph gave you.
 5. After editing outside Claude Code, run `{cmd} update` (no-op when nothing changed).
+6. **The user also edits by hand** (Power BI Desktop or the files). Before each request a hook reports
+   those edits ("O usuário mudou o projeto à mão…"); outside Claude Code run
+   `{cmd.replace("pbi_graph.py", "pbip_changes.py")} status`. Treat them as the current, intended version: keep
+   them, build on them, never revert them, and ask when a request contradicts one. History:
+   `.powerbi-architect/alteracoes.md`.
 {MARK_END}
 """
 
@@ -1363,7 +1368,8 @@ def install(repo: Path, hooks: bool, agents: bool, commit_graph: bool) -> int:
             print(f"[ok] .github/copilot-instructions.md: {upsert_block(gh, sec, MARK_START, MARK_END)}")
     if hooks:
         audit_cmd = cmd.replace("pbi_graph.py", "audit_pbip.py")
-        claude_hooks(repo, f"{cmd} update --quiet", f"{audit_cmd} --hook")
+        changes_cmd = cmd.replace("pbi_graph.py", "pbip_changes.py")
+        claude_hooks(repo, f"{cmd} update --quiet", f"{audit_cmd} --hook", changes_cmd)
         git_hooks(repo, f"{cmd} update --quiet")
     print("\nDone. Agents now read powerbi-graph/GRAPH_REPORT.md first and query the graph instead of raw files.")
     return 0
@@ -1371,10 +1377,11 @@ def install(repo: Path, hooks: bool, agents: bool, commit_graph: bool) -> int:
 
 def ours(hook: dict) -> bool:
     c = hook.get("command", "")
-    return "pbi_graph.py" in c or ("audit_pbip.py" in c and "--hook" in c)
+    return "pbi_graph.py" in c or "pbip_changes.py" in c or ("audit_pbip.py" in c and "--hook" in c)
 
 
-def claude_hooks(repo: Path, command: str, audit_command: str | None = None) -> None:
+def claude_hooks(repo: Path, command: str, audit_command: str | None = None,
+                 changes_command: str | None = None) -> None:
     sp = repo / ".claude" / "settings.json"
     try:
         settings = json.loads(sp.read_text(encoding="utf-8")) if sp.exists() else {}
@@ -1393,10 +1400,22 @@ def claude_hooks(repo: Path, command: str, audit_command: str | None = None) -> 
         if matcher and audit_command:
             groups.append({"matcher": "Edit|Write|MultiEdit",
                            "hooks": [{"type": "command", "command": audit_command, "timeout": 60}]})
+    if changes_command:
+        # Edits made by hand reach the agent before each request; the agent's own edits are accepted
+        # right after it makes them, so they are never reported as the user's.
+        hooks["SessionStart"].append({"hooks": [{"type": "command", "timeout": 60,
+                                                 "command": f"{changes_command} status --hook"}]})
+        prompt = hooks.setdefault("UserPromptSubmit", [])
+        prompt[:] = [grp for grp in prompt if not any(ours(h) for h in grp.get("hooks", []))]
+        prompt.append({"hooks": [{"type": "command", "command": f"{changes_command} status --hook", "timeout": 60}]})
+        hooks["PostToolUse"].append({"matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+                                     "hooks": [{"type": "command", "timeout": 60,
+                                                "command": f"{changes_command} accept --quiet"}]})
     sp.parent.mkdir(parents=True, exist_ok=True)
     sp.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print("[ok] .claude/settings.json: graph refresh on SessionStart and after edits"
-          + ("; audit after every report or model edit" if audit_command else ""))
+          + ("; audit after every report or model edit" if audit_command else "")
+          + ("; edits made by hand reported before every request" if changes_command else ""))
 
 
 def git_hooks(repo: Path, command: str) -> None:

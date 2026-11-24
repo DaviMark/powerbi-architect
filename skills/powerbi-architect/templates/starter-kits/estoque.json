@@ -341,7 +341,7 @@
         {
           "height": 248,
           "split": [
-            1,
+            2,
             1
           ],
           "visuals": [
@@ -374,7 +374,7 @@
       "icon": "chart-bar",
       "rows": [
         {
-          "height": 300,
+          "height": "fill",
           "split": [
             1,
             1
@@ -401,7 +401,7 @@
           ]
         },
         {
-          "height": 300,
+          "height": "auto",
           "visuals": [
             {
               "type": "matrix",
@@ -415,7 +415,8 @@
                 "Cobertura (dias)"
               ],
               "title": "Cobertura por curva ABC e depósito",
-              "alt": "Matriz de cobertura por curva ABC e depósito"
+              "alt": "Matriz de cobertura por curva ABC e depósito",
+              "items": 3
             }
           ]
         }

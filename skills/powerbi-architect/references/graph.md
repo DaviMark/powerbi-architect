@@ -71,6 +71,9 @@ composite model the graph cannot see, so confirm with the user before you delete
    `Edit|Write|MultiEdit|NotebookEdit`, plus `audit_pbip.py --hook` after `Edit|Write|MultiEdit`. The audit
    hook stays silent unless the edited `.Report`/`.SemanticModel` now has a blocker or a page below
    harmony 90; then it exits 2 and Claude reads the findings right after its edit. Fix them before moving on.
+   `pbip_changes.py status --hook` on `SessionStart` and `UserPromptSubmit` tells the agent what the user
+   changed by hand (Desktop or files) since its last edit; `pbip_changes.py accept` after every agent edit
+   or command keeps the agent's own work out of that report. The journal is `.powerbi-architect/alteracoes.md`.
 4. Git hooks `post-commit`, `post-merge` and `post-checkout` run `update --quiet`. Existing hooks are kept, and the block is appended.
 
 Every step is idempotent. `uninstall` removes exactly these blocks and the output folder.

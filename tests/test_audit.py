@@ -181,6 +181,107 @@ class TestRules(unittest.TestCase):
             self.assertNotIn("Visão Geral 100", text)
 
 
+class TestArtDirector(unittest.TestCase):
+    """PBI059–PBI064: what a designer catches at a glance."""
+
+    def test_each_design_rule_fires(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            files = {}
+            for f in sorted((p / "ContasReceber.Report").rglob("visual.json")):
+                v = json.loads(f.read_text(encoding="utf-8"))
+                files.setdefault(v["visual"]["visualType"], []).append((f, v))
+            col_f, col = files["clusteredColumnChart"][0]
+            col["visual"]["visualContainerObjects"]["title"][0]["properties"]["text"] = \
+                {"expr": {"Literal": {"Value": "'" + "Um título longo demais para um gráfico estreito " * 2 + "'"}}}
+            col["position"]["height"] = 120                                  # PBI059 and PBI064
+            col_f.write_text(json.dumps(col), encoding="utf-8")
+            table_f, table = next((f, v) for f, v in files["tableEx"] if len(
+                v["visual"]["query"]["queryState"]["Values"]["projections"]) == 5)
+            table["position"]["width"] = 360                                 # PBI060
+            table_f.write_text(json.dumps(table), encoding="utf-8")
+            bar_f, bar = files["clusteredBarChart"][0]
+            bar["visual"]["visualContainerObjects"]["title"][0]["properties"]["text"] = \
+                {"expr": {"Measure": {"Expression": {"SourceRef": {"Entity": "_Medidas"}}, "Property": "Texto Atualizacao"}}}
+            cat = bar["visual"]["query"]["queryState"]["Category"]["projections"][0]["field"]["Column"]
+            cat["Expression"]["SourceRef"]["Entity"], cat["Property"] = "dm_calendario", "Ano-Mês"   # PBI062
+            bar_f.write_text(json.dumps(bar), encoding="utf-8")                                  # PBI061
+            card_f, card = next((f, v) for f, v in files["card"] if v["position"]["height"] == 88)
+            card["position"]["width"] = 160                                  # PBI063
+            card_f.write_text(json.dumps(card), encoding="utf-8")
+            found = {(i["rule"], Path(i["where"]).parent.name) for i in ap.audit(p)}
+            for rule, f in (("PBI059", col_f), ("PBI064", col_f), ("PBI060", table_f), ("PBI061", bar_f),
+                            ("PBI062", bar_f), ("PBI063", card_f)):
+                self.assertIn((rule, f.parent.name), found, rule)
+
+
+class TestNoAiLook(unittest.TestCase):
+    def test_round_corners_shadows_gutters_and_copies(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            bars = [f for f in sorted((p / "ContasReceber.Report").rglob("visual.json"))
+                    if '"clusteredBarChart"' in f.read_text(encoding="utf-8")]
+            f = bars[0]
+            v = json.loads(f.read_text(encoding="utf-8"))
+            vco = v["visual"].setdefault("visualContainerObjects", {})
+            vco["border"] = [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
+                                             "radius": {"expr": {"Literal": {"Value": "20D"}}}}}]
+            vco["dropShadow"] = [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}}}}]
+            f.write_text(json.dumps(v), encoding="utf-8")
+            copy = f.parent.parent / "copia000000000000000"
+            copy.mkdir()
+            v2 = json.loads(json.dumps(v))
+            v2["name"] = copy.name
+            v2["position"]["y"] += 4
+            (copy / "visual.json").write_text(json.dumps(v2), encoding="utf-8")
+            line = next(f for f in sorted((p / "ContasReceber.Report").rglob("visual.json"))
+                        if '"lineChart"' in f.read_text(encoding="utf-8"))
+            lv = json.loads(line.read_text(encoding="utf-8"))
+            lv["position"]["width"] -= 8                     # 24 px to its neighbour, 16 px everywhere else
+            line.write_text(json.dumps(lv), encoding="utf-8")
+            rules = {i["rule"] for i in ap.audit(p) if i["where"].endswith(("visual.json",))}
+            self.assertTrue({"PBI066", "PBI067", "PBI068", "PBI069"} <= rules, rules)
+
+
+class TestNumbersRight(unittest.TestCase):
+    """PBI070–PBI077: DAX and SQL that return the wrong number without any error."""
+
+    def test_dax_and_sql_pitfalls(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            tables = p / "ContasReceber.SemanticModel" / "definition" / "tables"
+            m = tables / "_Medidas.tmdl"
+            m.write_text(m.read_text(encoding="utf-8") + (
+                "\n\t/// Média do percentual por título.\n"
+                "\tmeasure 'Média % Vencido' = AVERAGEX ( ft_titulos, [% Vencido] )\n"
+                "\t\tformatString: 0.0%\n\t\tdisplayFolder: Indicadores\n"
+                "\n\t/// Saldo no período.\n"
+                "\tmeasure 'Saldo Período' = SUM ( ft_titulos[Saldo] )\n"
+                "\t\tformatString: \\R\\$ #,0\n\t\tdisplayFolder: Valores\n"
+                "\n\t/// Percentual com formato errado.\n"
+                "\tmeasure '% Atrasados' = DIVIDE ( [Valor Vencido], [Valor Aberto] )\n"
+                "\t\tformatString: #,0\n\t\tdisplayFolder: Indicadores\n"), encoding="utf-8")
+            ft = tables / "ft_titulos.tmdl"
+            text = ft.read_text(encoding="utf-8")
+            text = text.replace("/// Parcelas de títulos", "/// Foto diária da posição das parcelas de títulos", 1)
+            text = text.replace("\tcolumn id_cliente", "\tcolumn Saldo\n\t\tdataType: decimal\n\t\tsourceColumn: Saldo\n\n"
+                                "\tcolumn id_cliente", 1)
+            text = text.replace("FROM dw.fato_titulos_receber AS t WHERE t.valor_aberto > 0",
+                                "FROM dw.fato_titulos_receber AS t WITH (NOLOCK), dw.dim_cliente c "
+                                "WHERE YEAR(t.data_vencimento) = 2025")
+            ft.write_text(text, encoding="utf-8")
+            dm = tables / "dm_cliente.tmdl"
+            dm.write_text(dm.read_text(encoding="utf-8").replace("SELECT c.id_cliente, c.nome_fantasia AS Cliente, "
+                                                                 "c.segmento AS Segmento", "SELECT *"), encoding="utf-8")
+            rules = {i["rule"] for i in ap.audit(p)}
+            for rule in ("PBI070", "PBI071", "PBI072", "PBI073", "PBI074", "PBI076", "PBI077"):
+                self.assertIn(rule, rules)
+
+    def test_distinct_in_a_fact(self):
+        self.assertIn("PBI075", {r for r, _ in ap.sql_review("SELECT DISTINCT a, b FROM f", True)})
+        self.assertEqual(ap.sql_review("SELECT a FROM f JOIN d ON d.k = f.k CROSS JOIN x", True), [])
+
+
 class TestSuppression(unittest.TestCase):
     def broken(self, d: str) -> Path:
         p = copy_example(d)

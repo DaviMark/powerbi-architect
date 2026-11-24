@@ -14,7 +14,8 @@ waterfalls, lines, column-and-line combos, scatter plots, tables, matrices and s
 JSON file so labels, number lengths and legends look real:
 
     {"measures": {"Valor Vencido": "R$ 4,2 mi", "Texto Var % Vencido": "▲ 2,3 p.p. acima da meta"},
-     "colors":   {"Cor Var % Vencido": "#CE2C31"},
+     "colors":   {"Cor Var % Vencido": "#CE2C31",          # one colour, a list (one per bar) or
+                  "Cor Meta": {"total": "#CE2C31", "byCategory": ["#3E63DD", "#CE2C31"]}},  # both
      "fields":   {"dm_regional[Regional]": ["Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]},
      "series":   {"dm_regional[Regional]": [4.2, 3.1, 2.4, 1.2, 0.8]}}   # by category field (or measure)
 
@@ -111,7 +112,10 @@ class Preview:
         if isinstance(c, dict):
             m = measure_name(c)
             if m:
-                return self.sample.get("colors", {}).get(m, default)
+                c = self.sample.get("colors", {}).get(m, default)
+                if isinstance(c, dict):                          # {"total": card colour, "byCategory": [...]}
+                    return c.get("total", default)
+                return c[0] if isinstance(c, list) and c else c    # a list is one colour per bar
             return lit(c, default)
         return default
 
@@ -294,8 +298,38 @@ class Preview:
             inner = (title + f'<table style="width:calc(100% - 8px);margin:{CAL["table_margin"]};border-collapse:collapse;'
                      f'font:400 {size:.1f}px {FONT}"><tr>{head}</tr>{body}</table>')
         elif vtype:
+            try:
+                srt = vis["query"]["sortDefinition"]["sort"][0]
+                self._sort_desc = srt.get("direction") == "Descending" and "Measure" in srt.get("field", {})
+            except (KeyError, IndexError, TypeError):
+                self._sort_desc = False
             inner = title + self.chart(vtype, roles, objs, w, h)
-        return f'<div class="v" style="{";".join(css)}">{inner}</div>'
+        chromeless = str(title_show).lower() == "false" and str(bg_show).lower() == "false"
+        tags = (f'data-t="{html.escape(vtype)}" data-name="{html.escape(str(v.get("name", "")))}" '
+                f'data-title="{html.escape(str(title_text or ""))}"' + (' data-chromeless="1"' if chromeless else ""))
+        return f'<div class="v" {tags} style="{";".join(css)}">{inner}</div>'
+
+    def target_of(self, objs: dict) -> str | None:
+        """Measure drawn as a dashed target line (lineStyles with lineStyle 'dashed' on one series)."""
+        for item in objs.get("lineStyles", []):
+            if lit((item.get("properties") or {}).get("lineStyle")) == "dashed":
+                meta = (item.get("selector") or {}).get("metadata", "")
+                return meta.split(".", 1)[-1] if meta else None
+        return None
+
+    def bar_colours(self, objs: dict, n: int) -> list[str]:
+        """Accent for every bar, or the sample colours of a colour measure (one per bar, or one for all)."""
+        for item in objs.get("dataPoint", []):
+            if (item.get("selector") or {}).get("data"):
+                m = measure_name(((item.get("properties") or {}).get("fill") or {}).get("solid", {}).get("color"))
+                c = self.sample.get("colors", {}).get(m) if m else None
+                if isinstance(c, dict):
+                    c = c.get("byCategory") or c.get("total")
+                if isinstance(c, list):
+                    return (c * n)[:n]
+                if isinstance(c, str):
+                    return [c] * n
+        return [self.accent] * n
 
     def chart(self, vtype: str, roles: dict, objs: dict, w: float, h: float) -> str:
         cat = (roles.get("Category") or [None])[0]
@@ -306,10 +340,16 @@ class Preview:
             names = self.labels(cat, 12) or [""] * 12
             xs = self.series((roles.get("X") or [None])[0], len(names), [2, 3.5, 5, 6, 7.5, 3, 8, 4.5, 6.5, 9, 2.5, 5.5])
             ys = self.series(m, len(names), [3, 5, 4, 7, 6, 2, 8, 6.5, 4.5, 7.5, 5, 3.5])
+            x0, y0 = min(xs) * 0.9, min(ys) * 0.9           # axes fit the data, like Power BI
+            xs, ys = [x - x0 for x in xs], [y - y0 for y in ys]
             xp, yp = max(xs) or 1, max(ys) or 1
+            show_names = str(lit(prop(objs, "categoryLabels", "show"))).lower() == "true"
+            lab_css = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2};white-space:nowrap"
             dots = "".join(f'<div title="{html.escape(n)}" style="position:absolute;left:{4 + 90 * x / xp:.1f}%;'
                            f'top:{88 - 80 * y / yp:.1f}%;width:8px;height:8px;margin:-4px;border-radius:50%;'
-                           f'background:{self.accent};opacity:.8"></div>' for n, x, y in zip(names, xs, ys))
+                           f'background:{self.accent};opacity:.8">'
+                           + (f'<span style="position:absolute;left:12px;top:-5px;{lab_css}">{html.escape(n)}</span>'
+                              if show_names else "") + '</div>' for n, x, y in zip(names, xs, ys))
             return (f'<div style="position:relative;height:{body_h - 16}px;margin:8px 12px;'
                     f'border-bottom:1px solid #EBEBEB;border-left:1px solid #EBEBEB">{dots}</div>')
         if kind in ("piechart", "donutchart"):
@@ -328,31 +368,54 @@ class Preview:
         if kind == "lineclusteredcolumncombochart":
             labels = self.labels(cat, 12) or [""] * 12
             cols_v = self.series(m, len(labels), [6, 7, 6.5, 8, 7.5, 9, 8.5, 9.5, 9, 10, 9.8, 11])
-            line_v = self.series((roles.get("Y2") or [None])[0], len(labels),
-                                 [4, 4.2, 4.1, 4.6, 4.4, 5, 4.8, 5.3, 5.1, 5.6, 5.4, 6])
-            peak = max(cols_v + line_v) or 1
+            target = self.target_of(objs)
+            lines = [x for x in roles.get("Y2", []) if x != target]
+            line_v = self.series(lines[0] if lines else None, len(labels),
+                                 [4, 4.2, 4.1, 4.6, 4.4, 5, 4.8, 5.3, 5.1, 5.6, 5.4, 6]) if lines else []
+            target_v = (self.sample.get("series", {}).get(target) or [max(cols_v) * 0.85] * len(labels)) if target else []
+            shared = str(lit(prop(objs, "valueAxis", "secShow"))).lower() == "false"
+            peak = max(cols_v + list(target_v) + (line_v if shared else [])) or 1
+            if line_v and not shared:                      # secondary axis: the line has its own scale
+                line_v = [v / (max(line_v) or 1) * peak * 0.9 for v in line_v]
             n = len(labels)
+            fills = self.bar_colours(objs, n)
             bars = "".join(f'<rect x="{i * 100 / n + 100 / n * 0.2:.1f}" y="{66 - 60 * v / peak:.1f}" '
-                           f'width="{100 / n * 0.6:.1f}" height="{60 * v / peak:.1f}" fill="{self.accent}"/>'
+                           f'width="{100 / n * 0.6:.1f}" height="{60 * v / peak:.1f}" fill="{fills[i]}"/>'
                            for i, v in enumerate(cols_v))
-            pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(line_v))
-            line = self.ink2
+            svg = bars
+            if line_v:
+                pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(line_v))
+                svg += (f'<polyline points="{pts}" fill="none" stroke="{self.ink2}" stroke-width="2" '
+                        f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/>')
+            if target_v:
+                pts = " ".join(f"{(i + 0.5) * 100 / n:.1f},{66 - 60 * v / peak:.1f}" for i, v in enumerate(target_v))
+                svg += (f'<polyline points="{pts}" fill="none" stroke="#999999" stroke-width="1.5" '
+                        f'stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>')
             return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
-                    f'padding:{CAL["chart_padding"]};box-sizing:border-box">{bars}<polyline points="{pts}" fill="none" stroke="{line}" stroke-width="2" '
-                    f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
-        n = 5 if "bar" in kind or "column" in kind or kind == "waterfallchart" else 12
+                    f'padding:{CAL["chart_padding"]};box-sizing:border-box">{svg}</svg>')
+        n = (min(len(self.labels(cat, 10)) or 5, 10) if "bar" in kind or "column" in kind or kind == "waterfallchart"
+             else 12)
         labels = self.labels(cat, n) or [""] * n
-        vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
+        by_measure, by_category = (self.sample.get("series", {}).get(k or "") for k in (m, cat))
+        # A time series belongs to the measure; a ranking belongs to the category it ranks.
+        first, second = (by_measure, by_category) if kind == "linechart" else (by_category, by_measure)
+        vals = (first or second or self.series(m, n, [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2]))[:len(labels)]
+        if getattr(self, "_sort_desc", False) and kind != "linechart":     # Power BI applies the visual's sort
+            pairs = sorted(zip(labels, vals), key=lambda lv: -lv[1])
+            labels, vals = [lv[0] for lv in pairs], [lv[1] for lv in pairs]
         peak = max(vals) or 1
         lab = f"font:400 {9 * PT:.1f}px {FONT};color:{self.ink2}"
         if "bar" in kind:
+            slot = (body_h + 20) / max(len(labels), 1)      # bars share the plot height, as in Power BI
+            thick = min(max(slot * 0.62, 8), 28)
+            fills = self.bar_colours(objs, len(labels))
             rows = "".join(
-                f'<div style="display:flex;align-items:center;margin:6px 0">'
+                f'<div style="display:flex;align-items:center;height:{slot:.1f}px">'
                 f'<div style="flex:none;width:96px;{lab};white-space:nowrap;overflow:hidden">{html.escape(l)}</div>'
-                f'<div style="height:{max(body_h / 9, 10):.0f}px;width:{70 * v / peak:.0f}%;background:{self.accent};'
+                f'<div style="height:{thick:.0f}px;width:{70 * v / peak:.0f}%;background:{fills[i]};'
                 f'border-radius:2px"></div><span style="{lab};margin-left:6px">{v:g}</span></div>'
-                for l, v in zip(labels, vals))
-            return f'<div style="padding:{CAL["chart_padding"]}">{rows}</div>'
+                for i, (l, v) in enumerate(zip(labels, vals)))
+            return f'<div style="padding:4px 12px 0">{rows}</div>'
         if "column" in kind or kind == "waterfallchart":
             waterfall = kind == "waterfallchart"
             sent = {k: self.color(prop(objs, "sentimentColors", k + "Fill"))
@@ -367,13 +430,14 @@ class Preview:
                     steps.append((l, v, 0.0, v, "column"))
             if waterfall:
                 steps.append(("Total", level, 0.0, level, "total"))
+            col_fills = self.bar_colours(objs, len(steps))
             ends = [x for st in steps for x in st[2:4]] + [0.0]
             lo, hi = min(ends), max(ends)
             plot = body_h - 40                     # room for the value and category labels
             scale = plot / ((hi - lo) or 1)
             cols = []
             for l, v, a, b, k in steps:
-                fill = self.accent if k == "column" else (sent.get(k) or {"total": "#666666"}.get(k, self.accent))
+                fill = col_fills[len(cols)] if k == "column" else (sent.get(k) or {"total": "#666666"}.get(k, self.accent))
                 top = (hi - max(a, b)) * scale
                 cols.append(f'<div style="flex:1;margin:0 6px;position:relative;height:{plot + 18:.0f}px">'
                             f'<div style="position:absolute;left:0;right:0;top:{top - 16:.0f}px;{lab};'
@@ -384,14 +448,26 @@ class Preview:
                             f'overflow:hidden;height:18px">{html.escape(l)}</div></div>')
             return (f'<div style="display:flex;align-items:flex-end;height:{body_h}px;padding:24px 12px 0;'
                     f'box-sizing:border-box">{"".join(cols)}</div>')
-        low = min(vals)                            # line axes fit the data, like Power BI's auto range
+        target = self.target_of(objs)
+        series = [vals]
+        palette = [self.accent] + list((self.theme.get("dataColors") or [])[1:]) + ["#666666"]
+        for extra in [x for x in roles.get("Y", [])[1:] if x != target]:
+            series.append(self.series(extra, len(vals), [v * 0.7 for v in vals]))
+        target_v = (self.sample.get("series", {}).get(target) or [max(vals) * 0.9] * len(vals))[:len(vals)] \
+            if target else []
+        everything = [v for sr in series for v in sr] + list(target_v)
+        peak, low = max(everything) or 1, min(everything)     # line axes fit the data, like Power BI
         low = 0 if low > 0 and low < peak * 0.5 else low
-        pts = " ".join(f"{i * 100 / (len(vals) - 1 or 1):.1f},{62 - 52 * (v - low) / ((peak - low) or 1):.1f}"
-                       for i, v in enumerate(vals))
+        xy = lambda sr: " ".join(f"{i * 100 / (len(sr) - 1 or 1):.1f},{62 - 52 * (v - low) / ((peak - low) or 1):.1f}"  # noqa: E731
+                                 for i, v in enumerate(sr))
         sw = num(self.style("lineChart", "lineStyles", "strokeWidth", 2), 2)
+        svg = "".join(f'<polyline points="{xy(sr)}" fill="none" stroke="{palette[i % len(palette)]}" stroke-width="{sw}" '
+                      f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' for i, sr in enumerate(series))
+        if target_v:
+            svg += (f'<polyline points="{xy(target_v)}" fill="none" stroke="#999999" stroke-width="1.5" '
+                    f'stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>')
         return (f'<svg viewBox="0 0 100 70" preserveAspectRatio="none" style="width:100%;height:{body_h}px;'
-                f'padding:{CAL["chart_padding"]};box-sizing:border-box"><polyline points="{pts}" fill="none" stroke="{self.accent}" stroke-width="{sw}" '
-                f'vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
+                f'padding:{CAL["chart_padding"]};box-sizing:border-box">{svg}</svg>')
 
     # ------------------------------------------------------------------ pages
     def render(self, mobile: bool = False, overlays: list[Path] | None = None) -> str:
@@ -452,9 +528,117 @@ class Preview:
             kind = {"Tooltip": " · tooltip", "Drillthrough": " · drill-through"}.get(
                 p.get("pageBinding", {}).get("type", ""), "")
             out.append((f'{p.get("displayName", pid)}{kind}', width, height,
-                        f'<div class="page" style="width:{width}px;height:{height}px;background:{bg}">'
+                        f'<div class="page" data-page="{html.escape(p.get("displayName", pid))}" '
+                        f'style="width:{width}px;height:{height}px;background:{bg}">'
                         f'{"".join(items)}</div>'))
         return out
+
+
+# ---------------------------------------------------------------------- pixel critic
+# Runs inside the rendered page and measures what a designer checks with a loupe. The result is written
+# into the DOM, which the headless browser dumps back to Python.
+CRITIC_JS = r"""
+(function () {
+  const out = [];
+  const SHELL = new Set(["shape", "textbox", "image", "pageNavigator", "actionButton", "slicer"]);
+  const add = (page, v, kind, msg) => out.push({page: page, visual: v ? v.dataset.name : "", type: v ? v.dataset.t : "",
+                                               title: v ? v.dataset.title : "", kind: kind, message: msg});
+  document.querySelectorAll(".page").forEach(pg => {
+    const page = pg.dataset.page, P = pg.getBoundingClientRect();
+    const all = [...pg.querySelectorAll(".v[data-t]")];
+    const data = all.filter(v => !SHELL.has(v.dataset.t) && !v.dataset.chromeless && P.width > 400);
+    all.forEach(v => {
+      const r = v.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
+      const spilled = [];
+      v.querySelectorAll("*").forEach(el => {
+        const text = (el.childElementCount === 0 ? el.textContent : "").trim();
+        if (!text) return;
+        const cs = getComputedStyle(el), rg = document.createRange();
+        rg.selectNodeContents(el);
+        const e = rg.getBoundingClientRect();                  // the glyphs, not the padded box
+        if (el.scrollWidth > el.clientWidth + 1 && cs.overflow !== "visible")
+          add(page, v, "truncated", "'" + text.slice(0, 60) + "' is cut (" + el.scrollWidth + " px of text in " + el.clientWidth + " px)");
+        else if (e.right > r.right + 0.5 || e.bottom > r.bottom + 0.5 || e.left < r.left - 0.5 || e.top < r.top - 0.5)
+          spilled.push(text.slice(0, 40));
+        else if (!v.dataset.chromeless && !SHELL.has(v.dataset.t) && e.width > 0 &&
+                 (e.left - r.left < 6 || r.right - e.right < 4))
+          add(page, v, "tight", "'" + text.slice(0, 40) + "' touches the edge (" +
+              Math.round(Math.min(e.left - r.left, r.right - e.right)) + " px) — keep ≥ 8 px of padding");
+      });
+      if (spilled.length) add(page, v, "clipped", spilled.length + " text(s) spill out of the visual, e.g. '" +
+                                spilled[0] + "'");
+      v.querySelectorAll("table").forEach(t => {
+        if (t.scrollWidth > v.clientWidth + 1) add(page, v, "overflow", "the table is " + t.scrollWidth + " px wide in a " +
+                                                   v.clientWidth + " px visual");
+        const empty = r.bottom - t.getBoundingClientRect().bottom;
+        if (r.height < 400 && empty > 120 && empty > r.height * 0.45)   // full-height lists scroll with real data
+          add(page, v, "empty", Math.round(empty) + " px empty under the rows — size the card to its rows (\"height\": \"auto\" with \"items\")");
+      });
+    });
+    for (let i = 0; i < data.length; i++) for (let j = i + 1; j < data.length; j++) {
+      const a = data[i].getBoundingClientRect(), b = data[j].getBoundingClientRect();
+      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (w > 2 && h > 2) add(page, data[i], "overlap", "overlaps " + (data[j].dataset.title || data[j].dataset.t) + " by " +
+                              Math.round(w) + "×" + Math.round(h) + " px");
+    }
+    const rows = [];
+    data.slice().sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).forEach(v => {
+      const r = v.getBoundingClientRect(), row = rows.find(x => Math.abs(x.top - r.top) <= 2);
+      row ? row.items.push(v) : rows.push({top: r.top, items: [v]});
+    });
+    const gaps = [];
+    rows.forEach(row => {
+      row.items.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+      for (let k = 1; k < row.items.length; k++) {
+        const g = row.items[k].getBoundingClientRect().left - row.items[k - 1].getBoundingClientRect().right;
+        if (g > -1) gaps.push([g, row.items[k]]);
+      }
+    });
+    for (let k = 1; k < rows.length; k++) {
+      const above = Math.max(...rows[k - 1].items.map(v => v.getBoundingClientRect().bottom));
+      const g = rows[k].top - above;
+      if (g > -1) gaps.push([g, rows[k].items[0]]);
+    }
+    gaps.forEach(([g, v]) => {
+      if (g < 8) add(page, v, "cramped", "only " + Math.round(g) + " px from its neighbour — use the 16 px gutter");
+      else if (g > 32) add(page, v, "loose", Math.round(g) + " px from its neighbour — use the 16 px gutter");
+    });
+    const sizes = [...new Set(gaps.map(x => Math.round(x[0])).filter(g => g >= 8 && g <= 32))];
+    if (sizes.length > 1) add(page, null, "uneven", "gutters of " + sizes.sort((a, b) => a - b).join(", ") + " px on one page — use one");
+    const charts = rows.filter(x => x.items.length > 1 && x.items[0].getBoundingClientRect().height > 120);
+    for (let k = 1; k < charts.length; k++) {
+      const edges = x => x.items.slice(0, -1).map(v => Math.round(v.getBoundingClientRect().right)).join(",");
+      if (edges(charts[k]) !== edges(charts[k - 1]))
+        add(page, charts[k].items[0], "grid", "this row splits at x " + edges(charts[k]) + " and the one above at x " +
+            edges(charts[k - 1]) + " — rows of charts read best on the same column grid");
+    }
+  });
+  const box = document.createElement("script");
+  box.type = "application/json"; box.id = "critique-result"; box.textContent = JSON.stringify(out);
+  document.body.appendChild(box);
+})();
+"""
+
+
+def critique(preview: "Preview", mobile: bool = False) -> list[dict] | None:
+    """Render every page in a headless browser and measure it; None when no browser is available."""
+    import re
+    import subprocess
+    import tempfile
+    browser = find_browser()
+    if not browser:
+        return None
+    body = "".join(b for _t, _w, _h, b in preview.pages(mobile))
+    with tempfile.TemporaryDirectory() as tmp:
+        f = Path(tmp) / "critique.html"
+        f.write_text(Preview.document(body, margin=0) + f"<script>{CRITIC_JS}</script>", encoding="utf-8")
+        r = subprocess.run([browser, "--headless=new", "--disable-gpu", "--no-first-run", "--no-sandbox",
+                            f"--user-data-dir={Path(tmp) / 'profile'}", "--window-size=1400,900",
+                            "--virtual-time-budget=3000", "--dump-dom", f.resolve().as_uri()],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180, check=False)
+    m = re.search(r'<script type="application/json" id="critique-result">(.*?)</script>', r.stdout, re.S)
+    return json.loads(html.unescape(m.group(1))) if m else None
 
 
 BROWSERS = ["msedge", "microsoft-edge", "google-chrome", "chrome", "chromium", "chromium-browser",
@@ -523,6 +707,9 @@ def main() -> int:
     ap.add_argument("--overlay", type=Path, nargs="+", metavar="PNG",
                     help="Power BI Desktop screenshots, one per page in page order (or one folder of page-N.png), "
                          "drawn over the preview to calibrate it")
+    ap.add_argument("--critique", action="store_true",
+                    help="measure the rendered pages (cut or spilled text, padding, overlaps, gutters, column grid, "
+                         "empty space); exit 1 when something needs fixing (needs Edge, Chrome or Chromium)")
     ap.add_argument("--calibration", type=Path, metavar="JSON",
                     help="override the render constants in CALIBRATION (paddings, reserved heights)")
     args = ap.parse_args()
@@ -550,6 +737,20 @@ def main() -> int:
         n = screenshot(Preview(args.report, sample), args.mobile, args.png)
         if n:
             print(f"[ok] {n} PNG(s) in {args.png}")
+    if args.critique:
+        found = critique(Preview(args.report, sample), args.mobile)
+        if found is None:
+            print("! --critique needs Microsoft Edge, Google Chrome or Chromium (set PBIR_PREVIEW_BROWSER)")
+            return 2
+        seen = set()
+        for c in found:
+            line = (f"{c['page']} › {c['type'] or 'page'}" + (f' "{c["title"]}"' if c["title"] else "")
+                    + f": [{c['kind']}] {c['message']}")
+            if line not in seen:
+                seen.add(line)
+                print(f"- {line}")
+        print(f"[{'ok' if not seen else 'fix'}] critique: {len(seen)} finding(s)")
+        return 1 if seen else 0
     return 0
 
 

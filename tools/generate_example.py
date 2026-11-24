@@ -37,7 +37,7 @@ def wjson(path: Path, obj) -> None:
 
 
 if ROOT.exists():
-    for p in (SM, RP, ROOT / f"{NAME}.pbip"):
+    for p in (SM, RP, ROOT / f"{NAME}.pbip", ROOT / ".powerbi-architect"):
         if p.is_dir():
             shutil.rmtree(p)
         elif p.exists():

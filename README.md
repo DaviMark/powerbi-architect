@@ -83,8 +83,17 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
 2. **Layout descrito, não desenhado:** a IA descreve as páginas em linhas de visuais e `pbir_layout.py`
    calcula cada posição na grade de 4 px, com sidebar, barra do topo, KPIs com linha de meta, gráficos,
    tabelas, páginas de drill-through e de tooltip e o layout de celular.
-3. **Ver antes de entregar:** `preview_pbir.py` desenha cada página, com dados de amostra, para a IA olhar
-   e corrigir o que estiver desalinhado ou pesado. Os espaçamentos internos dos visuais são aproximações;
+3. **Criticar até não sobrar nada, e só então olhar:** `preview_pbir.py --critique` desenha cada página
+   no navegador e mede pixel a pixel:
+   - texto cortado ou vazando;
+   - valor que não cabe;
+   - texto colado na borda;
+   - visuais sobrepostos;
+   - gutters irregulares;
+   - colunas desalinhadas entre linhas;
+   - cartões grandes demais para o conteúdo.
+
+   A IA corrige e roda de novo até zerar. Depois abre cada imagem e faz a revisão de três segundos. Os espaçamentos internos dos visuais são aproximações;
    [calibrar o preview](docs/calibrar-preview.md) mostra como compará-los com capturas do Desktop.
 4. **Auditar:** `audit_pbip.py` dá uma nota de harmonia de 0 a 100 por página e só aceita entregar com 90
    ou mais.
@@ -92,6 +101,23 @@ A IA não monta o relatório "no olho". Ela segue sempre o mesmo ciclo:
 | Diagnóstico | Celular |
 |---|---|
 | ![Página Diagnóstico com cascata, barras e tabela](docs/assets/exemplo-diagnostico.png) | ![Layout de celular da Visão Geral](docs/assets/exemplo-celular.png) |
+
+Todos os visuais que o motor monta estão na [galeria de componentes](docs/galeria/README.md).
+
+### Suas edições no Desktop nunca se perdem
+
+Você pode mexer no projeto à vontade no Power BI Desktop ou nos arquivos, entre um pedido e outro, sem
+avisar a IA:
+- **Ela percebe sozinha.** Antes de cada pedido, um hook compara o projeto com o estado depois da última
+  edição da IA. Ela recebe em português o que você mudou: "medida 'Valor Vencido' — expressão mudou",
+  "Visão Geral › barras "Vencido por regional" — movido (232, 448) → (240, 448)". Ela trata isso como a
+  versão atual e continua a partir dali. O histórico fica em `.powerbi-architect/alteracoes.md`.
+- **Ela não escreve por cima.** Ao gerar as páginas de novo, o `pbir_layout.py` faz um merge em três
+  vias, como o git:
+  - visual que você moveu, redimensionou ou renomeou fica como você deixou;
+  - visual que você criou fica, e visual que você apagou continua apagado;
+  - o resto segue a especificação nova;
+  - quando os dois mudaram a mesma propriedade, vale a sua.
 
 ### Começar por um kit do seu domínio
 
@@ -215,6 +241,7 @@ O instalador também deixa o grafo sempre em uso e atualizado:
 - audita o relatório ou o modelo logo após cada edição feita pelo Claude Code: se surgir um bloqueador
   ou uma página abaixo de 90 no placar de harmonia, o agente recebe os achados na hora e corrige antes
   de seguir;
+- avisa a IA, antes de cada pedido, do que você mudou à mão no Desktop ou nos arquivos;
 - cria hooks do git (`post-commit`, `post-merge`, `post-checkout`).
 
 Rodar de novo não duplica nada. `pbi_graph.py uninstall` remove tudo. Detalhes em
@@ -241,6 +268,8 @@ skills/powerbi-architect/
 │   ├── semantic-features.md        calculation groups, field parameters, visual calculations, funções DAX
 │   ├── fabric-and-cicd.md          Direct Lake, Git do Fabric, deployment pipelines, CI
 │   ├── copywriting.md              títulos, nomes de medida, números e textos das páginas
+│   ├── chart-craft.md              receita de acabamento de cada visual, formatos de número, revisão de 3 segundos
+│   ├── numbers.md                  provar os números: reconciliação, armadilhas de DAX, SQL e M, Python
 │   ├── performance.md · security.md · quality-checklist.md
 ├── templates/
 │   ├── starter-kits/               ← kits de vendas, financeiro, RH e estoque
@@ -255,7 +284,9 @@ skills/powerbi-architect/
     ├── pbir_layout.py              ← gera as páginas a partir de um layout em JSON; --extract reestiliza
     ├── preview_pbir.py             ← prévia das páginas em HTML, sem o Power BI Desktop
     ├── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
-    └── new_project.py              ← projeto PBIP completo a partir de um kit inicial
+    ├── new_project.py              ← projeto PBIP completo a partir de um kit inicial
+    ├── pbip_changes.py             ← percebe o que você mudou à mão e conta para a IA
+    └── reconcile.py                ← compara os números do relatório com os da origem, linha a linha
 
 examples/contas-a-receber/          ← projeto PBIP completo que segue todas as regras
 ```

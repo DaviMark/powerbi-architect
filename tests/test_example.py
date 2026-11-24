@@ -83,10 +83,17 @@ class TestClaudeHooks(unittest.TestCase):
             commands = [h["command"] for g in post for h in g["hooks"]]
             self.assertEqual(sum("audit_pbip.py" in c and "--hook" in c for c in commands), 1, commands)
             self.assertEqual(sum("pbi_graph.py" in c for c in commands), 1, commands)
+            self.assertEqual(sum("pbip_changes.py accept" in c.replace('"', "") for c in commands), 1, commands)
+            hooks = json.loads(settings.read_text(encoding="utf-8"))["hooks"]
+            on_prompt = [h["command"] for g in hooks["UserPromptSubmit"] for h in g["hooks"]]
+            self.assertEqual(len(on_prompt), 1)
+            self.assertIn("pbip_changes.py status --hook", on_prompt[0].replace('"', ""))
+            self.assertTrue(any("pbip_changes.py status --hook" in h["command"].replace('"', "")
+                                for g in hooks["SessionStart"] for h in g["hooks"]))
             self.assertIn("echo mine", commands)
             self.assertEqual(graph(repo, "uninstall", ".").returncode, 0)
-            post = json.loads(settings.read_text(encoding="utf-8"))["hooks"]["PostToolUse"]
-            self.assertEqual([h["command"] for g in post for h in g["hooks"]], ["echo mine"])
+            left = json.loads(settings.read_text(encoding="utf-8"))["hooks"]
+            self.assertEqual(left, {"PostToolUse": [mine]})
 
 
 class TestCrossModelFindings(unittest.TestCase):

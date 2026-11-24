@@ -412,7 +412,40 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI056": ("SUGGESTION", "6", "Data visual without a title", ()),
     "PBI057": ("SUGGESTION", "6", "Axis title shown", ()),
     "PBI058": ("SUGGESTION", "6", "More than 6 colours on a page", ()),
+    "PBI059": ("SUGGESTION", "6", "Title or label likely truncated by the visual width", ()),
+    "PBI060": ("SUGGESTION", "6", "Table too narrow for its columns", ()),
+    "PBI061": ("IMPORTANT", "1", "Dynamic title about something the visual does not show", ()),
+    "PBI062": ("SUGGESTION", "7", "Time on the vertical axis of a bar chart", ()),
+    "PBI063": ("SUGGESTION", "6", "KPI cards too narrow or too many in one row", ()),
+    "PBI064": ("SUGGESTION", "6", "Chart too small to read", ()),
+    "PBI065": ("SUGGESTION", "a11y", "Theme colours that look alike to people with colour-vision deficiency", ()),
+    "PBI066": ("SUGGESTION", "6", "Corners rounder than 8 px (the generic 'AI dashboard' look)", ()),
+    "PBI067": ("SUGGESTION", "6", "Shadow or glow on a visual", ()),
+    "PBI068": ("SUGGESTION", "6", "Uneven, cramped or loose gutters between visuals", ()),
+    "PBI069": ("SUGGESTION", "1", "Two visuals that show the same thing", ()),
+    # Numbers that come out wrong without any error message.
+    "PBI070": ("IMPORTANT", "5", "Average of a percentage (wrong in every total)", ()),
+    "PBI071": ("IMPORTANT", "5", "Balance or stock summed over time", ()),
+    "PBI072": ("SUGGESTION", "5", "Format string does not match what the measure returns", ()),
+    "PBI073": ("IMPORTANT", "4", "Implicit or keyless join in the source SQL", ()),
+    "PBI074": ("IMPORTANT", "4", "NOLOCK or READ UNCOMMITTED in the source SQL (dirty reads)", ()),
+    "PBI075": ("SUGGESTION", "4", "SELECT DISTINCT in a fact query (hides a grain problem)", ()),
+    "PBI076": ("IMPORTANT", "3", "SELECT * in the source SQL", ()),
+    "PBI077": ("SUGGESTION", "4", "Function on a column in WHERE (slow, may skip the index)", ()),
 }
+PERCENT_NAME = re.compile(r"%|\bpercent|\bpct\b|\btaxa\b|\brate\b|\bpercentual\b", re.I)
+MONEY_NAME = re.compile(r"\b(?:valor|receita|custo|frete|saldo|pre[cç]o|faturamento|revenue|cost|price|amount|sales)\b", re.I)
+STOCK_NAME = re.compile(r"\b(?:saldo|estoque|quantidade|qtd|headcount|ativo|balance|stock|on ?hand|posi[cç][aã]o|inventory)\b",
+                        re.I)
+SNAPSHOT_HINT = re.compile(r"snapshot|\bfoto\b|posi[cç][aã]o|por dia|di[aá]ri[oa]|mensal|end of (?:day|month)", re.I)
+TIME_AWARE = re.compile(r"\b(?:LASTNONBLANK|LASTNONBLANKVALUE|LASTDATE|CLOSINGBALANCE\w*|OPENINGBALANCE\w*|ENDOF\w+|"
+                        r"FIRSTNONBLANK|MAX\s*\(\s*'?dm_calendario)", re.I)
+CHART_TYPES = {"lineChart", "areaChart", "clusteredBarChart", "clusteredColumnChart", "barChart", "columnChart",
+               "lineClusteredColumnComboChart", "lineStackedColumnComboChart", "scatterChart", "waterfallChart",
+               "stackedBarChart", "stackedColumnChart", "ribbonChart"}
+TIME_NAME = re.compile(r"^(?:data|date|dia|day|m[eê]s|month|ano[- ]?m[eê]s|year[- ]?month|trimestre|quarter|semana|week)\b",
+                       re.I)
+TEXT_WIDTH = 0.5        # average glyph width of Segoe UI, in em: estimates whether a title fits
 # Harmony score: 100 per page minus these penalties for each finding on that page.
 HARMONY_PENALTY = {"BLOCKER": 20, "IMPORTANT": 10, "SUGGESTION": 4}
 BPA_TO_PBI: dict[str, set[str]] = {}
@@ -614,6 +647,215 @@ def family_of(font: str) -> str:
     return "segoe ui" if font.startswith("segoe ui") else font
 
 
+def number_review(m, code: str, table, model) -> list[tuple[str, str]]:
+    """DAX that returns a number without error, and the wrong number."""
+    found = []
+    for agg, ref in re.findall(r"\b(AVERAGE|AVERAGEX)\s*\((.*)", code, re.I):
+        target = re.search(r"\[([^\]]+)\]", ref)
+        if target and PERCENT_NAME.search(target.group(1)):
+            found.append(("PBI070", f"averages [{target.group(1)}], a percentage: the average of ratios is not "
+                                    "the ratio of the totals (a branch with 10 sales weighs as much as one with "
+                                    "10 000) — divide the sums: DIVIDE ( SUM ( numerator ), SUM ( denominator ) )"))
+            break
+    if not TIME_AWARE.search(code):
+        for tname, col in re.findall(r"\bSUM\s*\(\s*'?([\w ]+?)'?\s*\[([^\]]+)\]", code, re.I):
+            src = model.table(tname.strip())
+            hint = " ".join(filter(None, [src.description if src else "", tname]))
+            if src and STOCK_NAME.search(col) and SNAPSHOT_HINT.search(hint):
+                found.append(("PBI071", f"sums {tname}[{col}], a balance in a snapshot table: over a month or a "
+                                        "year it adds every day's position — take the last one: CALCULATE ( SUM ( … ), "
+                                        "LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( fact ) ) ) )"))
+                break
+    fmt = m.format_string or ""
+    if fmt and PERCENT_NAME.search(m.name) and "%" not in fmt and "FORMAT" not in code.upper():
+        found.append(("PBI072", f"is a percentage by its name but formatted as '{fmt}' — use 0.0%"))
+    elif "%" in fmt.replace("\\%", "") and MONEY_NAME.search(m.name) and not PERCENT_NAME.search(m.name):
+        found.append(("PBI072", f"is an amount by its name but formatted as a percentage ('{fmt}')"))
+    return found
+
+
+def native_sql(m_source: str) -> str:
+    """The SQL text inside Value.NativeQuery / Sql.Database Query=, with M's doubled quotes undone."""
+    parts = re.findall(r'"((?:[^"]|"")*)"', m_source)
+    return "\n".join(p.replace('""', '"') for p in parts if re.search(r"\bselect\b", p, re.I))
+
+
+def sql_review(sql: str, is_fact: bool) -> list[tuple[str, str]]:
+    """Source SQL that silently changes the numbers or the load."""
+    found = []
+    if not sql:
+        return found
+    flat = re.sub(r"--[^\n]*|/\*.*?\*/", " ", sql, flags=re.S)
+    flat = re.sub(r"'(?:[^']|'')*'", "''", flat)
+    if re.search(r"\bselect\s+(?:distinct\s+)?(?:top\s+\d+\s+)?\*", flat, re.I):
+        found.append(("PBI076", "SELECT * — list the columns: new source columns would load silently"))
+    from_list = re.search(r"\bfrom\s+(.*?)(?:\bwhere\b|\bgroup\s+by\b|\border\s+by\b|\bunion\b|$)", flat,
+                          re.I | re.S)
+    first_from = re.sub(r"\bwith\s*\([^)]*\)", " ", from_list.group(1), flags=re.I).split("join")[0] if from_list else ""
+    if from_list and re.search(r"^[^()]*?\w+(?:\s+(?:as\s+)?\w+)?\s*,\s*\w", first_from, re.I):
+        found.append(("PBI073", "joins tables with a comma (FROM a, b) — write JOIN … ON with the key; a forgotten "
+                                "condition multiplies rows"))
+    for m in re.finditer(r"\bjoin\b(.*?)(?=\bjoin\b|\bwhere\b|\bgroup\b|\border\b|$)", flat, re.I | re.S):
+        body = m.group(1)
+        on = re.search(r"\bon\b(.*)", body, re.I | re.S)
+        if re.match(r"\s*\(?\s*select\b", body, re.I):
+            continue
+        if not on or re.match(r"\s*\(?\s*1\s*=\s*1", on.group(1)):
+            if not re.search(r"\bcross\s+join\b|\bcross\s+apply\b|\bouter\s+apply\b", flat[max(0, m.start() - 12):m.end()], re.I):
+                found.append(("PBI073", "JOIN without a key condition — every row of one side meets every row "
+                                        "of the other"))
+                break
+    if re.search(r"\bnolock\b|read\s+uncommitted", flat, re.I):
+        found.append(("PBI074", "NOLOCK / READ UNCOMMITTED reads rows that are being written — totals can count "
+                                "a row twice or not at all"))
+    if is_fact and re.search(r"\bselect\s+distinct\b", flat, re.I):
+        found.append(("PBI075", "SELECT DISTINCT in a fact — if rows repeat, fix the join or the grain; DISTINCT "
+                                "also removes legitimate equal rows (two identical sales)"))
+    where = re.search(r"\bwhere\b(.*?)(?:\bgroup\s+by\b|\border\s+by\b|$)", flat, re.I | re.S)
+    if where and re.search(r"\b(?:year|month|cast|convert|upper|lower|trim|ltrim|rtrim|isnull|coalesce|"
+                           r"format|to_char|date_trunc)\s*\(\s*[\w.\[\]]+\s*[,)]", where.group(1), re.I):
+        found.append(("PBI077", "a function wraps a column in WHERE — compare the column to a range instead "
+                                "(data >= '2025-01-01' AND data < '2026-01-01')"))
+    return found
+
+
+def vco_or(visual: dict) -> dict:
+    return visual.get("visualContainerObjects") or {}
+
+
+def num_literal(o, raw: bool = False):
+    """The value of a Literal expression ("8D" → 8.0); raw=True returns the text."""
+    try:
+        v = o["expr"]["Literal"]["Value"]
+    except (KeyError, TypeError):
+        return None
+    if raw:
+        return str(v).strip("'")
+    try:
+        return float(str(v).rstrip("DLM"))
+    except ValueError:
+        return None
+
+
+def layout_review(boxes: list) -> list[tuple[str, str, str]]:
+    """Gutters and repeated breakdowns on one page (data visuals only; KPI variation lines are excluded)."""
+    found = []
+    rows: list[list] = []
+    for b in sorted(boxes, key=lambda b: (b[1], b[0])):
+        row = next((r for r in rows if abs(r[0][1] - b[1]) <= 2), None)
+        row.append(b) if row else rows.append([b])
+    gaps = []
+    for r in rows:
+        r.sort(key=lambda b: b[0])
+        gaps += [(r[i][0] - (r[i - 1][0] + r[i - 1][2]), r[i][4]) for i in range(1, len(r))]
+    for i in range(1, len(rows)):
+        above = max(b[1] + b[3] for b in rows[i - 1])
+        gaps.append((rows[i][0][1] - above, rows[i][0][4]))
+    gaps = [(g, w) for g, w in gaps if g >= 0]
+    for g, w in gaps:
+        if g < 8 or g > 32:
+            found.append(("PBI068", w, f"{g:g} px between neighbouring visuals — use the 16 px gutter"))
+    sizes = sorted({round(g) for g, _ in gaps if 8 <= g <= 32})
+    if len(sizes) > 1:
+        found.append(("PBI068", gaps[0][1], f"gutters of {', '.join(map(str, sizes))} px — use one size everywhere"))
+    seen: dict[tuple, str] = {}
+    for b in boxes:
+        if b[5] in CHART_TYPES and b[6]:
+            k = (b[5], b[6])
+            if k in seen:
+                found.append(("PBI069", b[4], f"two {b[5]} with the same fields ({', '.join(b[6][:3])}) — keep one "
+                                              "and use the space for a different question"))
+            seen.setdefault(k, b[4])
+    return found
+
+
+def projections(visual: dict) -> dict[str, list[tuple[str, str, str]]]:
+    """{role: [(kind, entity, property)]} for a visual's query."""
+    out: dict[str, list[tuple[str, str, str]]] = {}
+    for role, body in ((visual.get("query") or {}).get("queryState") or {}).items():
+        for p in body.get("projections", []):
+            f = p.get("field") or {}
+            kind = next(iter(f), "")
+            inner = f.get(kind) or {}
+            if kind == "Aggregation":
+                inner = (inner.get("Expression") or {}).get("Column") or {}
+            ent = ((inner.get("Expression") or {}).get("SourceRef") or {}).get("Entity", "")
+            out.setdefault(role, []).append((kind, ent, inner.get("Property", "")))
+    return out
+
+
+def dax_refs(expr: str) -> set[str]:
+    return set(re.findall(r"\[([^\]]+)\]", strip_dax(expr or "")))
+
+
+def design_review(visual: dict, w: float, h: float, title: str, page_w: float,
+                  measure_dax: dict[str, str], time_columns: set[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Art-director checks on one data visual: what a designer would catch at a glance."""
+    found = []
+    vtype = visual.get("visualType", "")
+    roles = projections(visual)
+    big = vtype in BIG_NUMBER_VISUALS
+    title_px = (9 if big else 10) * 4 / 3
+    if title and len(title) * title_px * TEXT_WIDTH + 24 > w:
+        fits = int((w - 24) / (title_px * TEXT_WIDTH))
+        found.append(("PBI059", f"title '{title}' ({len(title)} characters) does not fit {w:g} px — "
+                                f"about {fits} fit; shorten it or widen the visual"))
+    if vtype == "tableEx":
+        cols = len(roles.get("Values", []))
+        if cols and (w - 16) / cols < 80:
+            found.append(("PBI060", f"{cols} columns in {w:g} px ({(w - 16) / cols:.0f} px each) — keep ≥ 80 px "
+                                    "per column: drop columns or give the table the full width"))
+    vco = visual.get("visualContainerObjects") or {}
+    text = ((vco.get("title") or [{}])[0].get("properties") or {}).get("text") or {}
+    title_measure = ((text.get("expr") or {}).get("Measure") or {}).get("Property") if isinstance(text, dict) else None
+    if title_measure and title_measure in measure_dax:
+        shown = {p for r in roles.values() for _, _, p in r}
+        refs = dax_refs(measure_dax[title_measure])
+        deep = set(refs)
+        for r in refs:
+            deep |= dax_refs(measure_dax.get(r, ""))
+        if refs and shown and not (deep & shown):
+            found.append(("PBI061", f"the title comes from [{title_measure}], which uses "
+                                    f"{', '.join(sorted(refs)[:3])} — none of them is in the visual "
+                                    f"({', '.join(sorted(shown)[:3])}); the title would describe something else"))
+    if vtype in ("clusteredBarChart", "barChart", "stackedBarChart", "hundredPercentStackedBarChart"):
+        cat = (roles.get("Category") or [("", "", "")])[0]
+        if (cat[1], cat[2]) in time_columns:
+            found.append(("PBI062", f"{cat[1]}[{cat[2]}] is time, shown down the vertical axis — time reads left "
+                                    "to right: use a column or line chart"))
+    if vtype in CHART_TYPES and page_w > 320 and (h < 140 or w < 200):
+        found.append(("PBI064", f"{w:g}×{h:g} px is too small for a chart — at least 200×140, or use a card"))
+    return found
+
+
+def theme_colour_clashes(rep: Path) -> list[tuple[Path, str]]:
+    """The custom theme's first 6 data colours that a person with colour-vision deficiency would confuse."""
+    try:
+        sys_path = str(Path(__file__).resolve().parent)
+        if sys_path not in _sys.path:
+            _sys.path.insert(0, sys_path)
+        import make_theme
+        rj = _json.loads((rep / "definition" / "report.json").read_text(encoding="utf-8-sig"))
+        name = ((rj.get("themeCollection") or {}).get("customTheme") or {}).get("name")
+        f = rep / "StaticResources" / "RegisteredResources" / name if name else None
+        colours = _json.loads(f.read_text(encoding="utf-8-sig")).get("dataColors", [])[:6] if f and f.exists() else []
+    except (OSError, ValueError, ImportError):
+        return []
+    out = []
+    for i, a in enumerate(colours):
+        for b in colours[i + 1:]:
+            try:
+                d = make_theme.distances(a, b)
+            except ValueError:
+                continue
+            kind = min(("protanopia", "deuteranopia"), key=lambda k: d[k])
+            if d[kind] < 8 or d["tritanopia"] < 5:
+                kind = kind if d[kind] < 8 else "tritanopia"
+                out.append((f, f"data colours {a} and {b} look alike with {kind} (ΔE {d[kind]:.1f}); about 1 in "
+                               "12 men sees them as the same — `make_theme.py` picks a palette that stays apart"))
+    return out
+
+
 def audit(root: Path, config: dict | None = None) -> list:
     config = config or {"disable": set(), "ignore": []}
     out: list[dict] = []
@@ -645,8 +887,16 @@ def audit(root: Path, config: dict | None = None) -> list:
     for rep in reports:
         fields |= report_fields(rep / "definition")
 
+    measure_dax: dict[str, str] = {}
+    time_columns: set[tuple[str, str]] = set()
     for d in defs:
         model = parse_model(d)
+        for _t, _m in model.measures:
+            measure_dax[_m.name] = _m.expression
+        for _t in model.tables:
+            for _c in _t.columns:
+                if _c.data_type == "dateTime" or _t.data_category == "Time" or TIME_NAME.match(_c.name):
+                    time_columns.add((_t.name, _c.name))
         model_ign = ignored_rules(model.annotations)
         mt = rel(d / "model.tmdl")
         if model.annotations.get("__PBI_TimeIntelligenceEnabled", "0") != "0":
@@ -674,6 +924,8 @@ def audit(root: Path, config: dict | None = None) -> list:
             for p in t.partitions:
                 if p.kind != "m":
                     continue
+                for rule, msg in sql_review(native_sql(p.source), t.name.startswith(("ft_", "fact", "fato"))):
+                    add(rule, path, f"'{t.name}': {msg}", p.line, t_ign)
                 if HARDCODED.search(p.source):
                     add("PBI003", path, f"'{t.name}': hard-coded server — use parameters", p.line, t_ign)
                 n = steps(p.source)
@@ -721,6 +973,8 @@ def audit(root: Path, config: dict | None = None) -> list:
                 if re.search(r"\bIFERROR\s*\(", code, re.I):
                     add("PBI033", path, f"measure [{m.name}] uses IFERROR — handle the case explicitly",
                         m.line, m_ign)
+                for rule, msg in number_review(m, code, t, model):
+                    add(rule, path, f"measure [{m.name}] {msg}", m.line, m_ign)
                 if re.search(r"\]\s*\.\s*\[Date\]", code):
                     add("PBI017", path, f"measure [{m.name}] uses the auto date/time hierarchy (.[Date]) — "
                                         "use the date table", m.line, m_ign)
@@ -772,6 +1026,8 @@ def audit(root: Path, config: dict | None = None) -> list:
             except ValueError:
                 add("PBI004", rel(rj), "invalid JSON")
         report_families: set[str] = set()
+        for theme_file, pair in theme_colour_clashes(rep):
+            add("PBI065", rel(theme_file), pair)
         for pj in sorted(rep.glob("definition/pages/*/page.json")):
             try:
                 pdata = _json.loads(pj.read_text(encoding="utf-8-sig"))
@@ -784,6 +1040,8 @@ def audit(root: Path, config: dict | None = None) -> list:
             if GENERIC_PAGE.match(display.strip()):
                 add("PBI042", rel(pj), f"page '{display}' — name it after the question it answers")
             data_visuals = slicers = 0
+            boxes: list[tuple[float, float, float, float, str, str, tuple]] = []
+            cards: list[tuple[float, float, str]] = []
             tab_items: list[tuple[float, float, float, str]] = []
             page_fills: set[str] = set()
             for vj in sorted(pj.parent.glob("visuals/*/visual.json")):
@@ -806,6 +1064,14 @@ def audit(root: Path, config: dict | None = None) -> list:
                 if off and min(w, h) > 2:
                     add("PBI048", where_v, f"{vtype or 'visual'} on page '{display}': {', '.join(off)} not a "
                                            "multiple of 4 px — align it to the grid")
+                radius = num_literal(((vco_or(v).get("border") or [{}])[0].get("properties") or {}).get("radius"))
+                if radius is not None and radius > 8:
+                    add("PBI066", where_v, f"{vtype or 'visual'} on page '{display}': corner radius {radius:g} px — "
+                                           "keep 0–8 px; very round cards read as a template, not a product")
+                shadow = ((vco_or(v).get("dropShadow") or [{}])[0].get("properties") or {}).get("show")
+                if str(num_literal(shadow, raw=True)).lower() == "true":
+                    add("PBI067", where_v, f"{vtype or 'visual'} on page '{display}' has a shadow — use the "
+                                           "hairline border; depth adds noise, not meaning")
                 text_cols, fill_cols = colour_usage(v)
                 page_fills |= {c for c in fill_cols if not is_neutral(c)}
                 low = sorted(c for c in text_cols if contrast_on_white(c) < 4.5)
@@ -841,6 +1107,9 @@ def audit(root: Path, config: dict | None = None) -> list:
                     continue
                 data_visuals += 1
                 tab_items.append((pos.get("tabOrder", pos.get("z", 0)), y, x, vtype))
+                roles_ = projections(v)
+                boxes.append((x, y, w, h, where_v, vtype,
+                              tuple(sorted(f"{e}[{p_}]" for r_ in roles_.values() for _, e, p_ in r_))))
                 tprops = ((vco_.get("title") or [{}])[0].get("properties", {}))
                 title_show = str(tprops.get("show", {}).get("expr", {}).get("Literal", {}).get("Value", "")).lower()
                 title_text = tprops.get("text", {})
@@ -859,8 +1128,24 @@ def audit(root: Path, config: dict | None = None) -> list:
                     add("PBI019", rel(vj), f"{vtype} on page '{display}' has no alt text")
                 if vtype in ("pieChart", "donutChart"):
                     add("PBI040", rel(vj), f"{vtype} on page '{display}' — ≤ 3 slices, otherwise a sorted bar")
+                for rule, msg in design_review(v, w, h, literal, page_w, measure_dax, time_columns):
+                    add(rule, where_v, f"{vtype} on page '{display}': {msg}")
+                if vtype in BIG_NUMBER_VISUALS:
+                    cards.append((y, w, where_v))
             if data_visuals > 8:
                 add("PBI018", rel(pj), f"page '{display}' has {data_visuals} data visuals (target ≤ 8)")
+            if page_w > 320:
+                for rule, where_g, msg in layout_review(boxes):
+                    add(rule, where_g, f"page '{display}': {msg}")
+            rows_of_cards: dict[float, list] = {}
+            for cy, cw, where_c in cards:
+                rows_of_cards.setdefault(round(cy / 8), []).append((cw, where_c))
+            for row in rows_of_cards.values():
+                narrow = [c for c in row if c[0] < 176]
+                if len(row) > 5 or narrow:
+                    add("PBI063", (narrow or row)[0][1], f"page '{display}': {len(row)} KPI cards in one row"
+                        + (f", the narrowest {min(c[0] for c in row):g} px wide" if narrow else "")
+                        + " — at most 5 per row, each at least 176 px, so values and context lines fit")
             by_tab = [t[3] + str(t[1:3]) for t in sorted(tab_items)]
             by_reading = [t[3] + str(t[1:3]) for t in sorted(tab_items, key=lambda t: (t[1], t[2]))]
             if by_tab != by_reading:
