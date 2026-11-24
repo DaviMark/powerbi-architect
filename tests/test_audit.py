@@ -243,6 +243,45 @@ class TestNoAiLook(unittest.TestCase):
             self.assertTrue({"PBI066", "PBI067", "PBI068", "PBI069"} <= rules, rules)
 
 
+class TestNumbersRight(unittest.TestCase):
+    """PBI070–PBI077: DAX and SQL that return the wrong number without any error."""
+
+    def test_dax_and_sql_pitfalls(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            tables = p / "ContasReceber.SemanticModel" / "definition" / "tables"
+            m = tables / "_Medidas.tmdl"
+            m.write_text(m.read_text(encoding="utf-8") + (
+                "\n\t/// Média do percentual por título.\n"
+                "\tmeasure 'Média % Vencido' = AVERAGEX ( ft_titulos, [% Vencido] )\n"
+                "\t\tformatString: 0.0%\n\t\tdisplayFolder: Indicadores\n"
+                "\n\t/// Saldo no período.\n"
+                "\tmeasure 'Saldo Período' = SUM ( ft_titulos[Saldo] )\n"
+                "\t\tformatString: \\R\\$ #,0\n\t\tdisplayFolder: Valores\n"
+                "\n\t/// Percentual com formato errado.\n"
+                "\tmeasure '% Atrasados' = DIVIDE ( [Valor Vencido], [Valor Aberto] )\n"
+                "\t\tformatString: #,0\n\t\tdisplayFolder: Indicadores\n"), encoding="utf-8")
+            ft = tables / "ft_titulos.tmdl"
+            text = ft.read_text(encoding="utf-8")
+            text = text.replace("/// Parcelas de títulos", "/// Foto diária da posição das parcelas de títulos", 1)
+            text = text.replace("\tcolumn id_cliente", "\tcolumn Saldo\n\t\tdataType: decimal\n\t\tsourceColumn: Saldo\n\n"
+                                "\tcolumn id_cliente", 1)
+            text = text.replace("FROM dw.fato_titulos_receber AS t WHERE t.valor_aberto > 0",
+                                "FROM dw.fato_titulos_receber AS t WITH (NOLOCK), dw.dim_cliente c "
+                                "WHERE YEAR(t.data_vencimento) = 2025")
+            ft.write_text(text, encoding="utf-8")
+            dm = tables / "dm_cliente.tmdl"
+            dm.write_text(dm.read_text(encoding="utf-8").replace("SELECT c.id_cliente, c.nome_fantasia AS Cliente, "
+                                                                 "c.segmento AS Segmento", "SELECT *"), encoding="utf-8")
+            rules = {i["rule"] for i in ap.audit(p)}
+            for rule in ("PBI070", "PBI071", "PBI072", "PBI073", "PBI074", "PBI076", "PBI077"):
+                self.assertIn(rule, rules)
+
+    def test_distinct_in_a_fact(self):
+        self.assertIn("PBI075", {r for r, _ in ap.sql_review("SELECT DISTINCT a, b FROM f", True)})
+        self.assertEqual(ap.sql_review("SELECT a FROM f JOIN d ON d.k = f.k CROSS JOIN x", True), [])
+
+
 class TestSuppression(unittest.TestCase):
     def broken(self, d: str) -> Path:
         p = copy_example(d)
