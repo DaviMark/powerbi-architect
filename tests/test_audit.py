@@ -181,6 +181,40 @@ class TestRules(unittest.TestCase):
             self.assertNotIn("Visão Geral 100", text)
 
 
+class TestArtDirector(unittest.TestCase):
+    """PBI059–PBI064: what a designer catches at a glance."""
+
+    def test_each_design_rule_fires(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            files = {}
+            for f in sorted((p / "ContasReceber.Report").rglob("visual.json")):
+                v = json.loads(f.read_text(encoding="utf-8"))
+                files.setdefault(v["visual"]["visualType"], []).append((f, v))
+            col_f, col = files["clusteredColumnChart"][0]
+            col["visual"]["visualContainerObjects"]["title"][0]["properties"]["text"] = \
+                {"expr": {"Literal": {"Value": "'" + "Um título longo demais para um gráfico estreito " * 2 + "'"}}}
+            col["position"]["height"] = 120                                  # PBI059 and PBI064
+            col_f.write_text(json.dumps(col), encoding="utf-8")
+            table_f, table = next((f, v) for f, v in files["tableEx"] if len(
+                v["visual"]["query"]["queryState"]["Values"]["projections"]) == 5)
+            table["position"]["width"] = 360                                 # PBI060
+            table_f.write_text(json.dumps(table), encoding="utf-8")
+            bar_f, bar = files["clusteredBarChart"][0]
+            bar["visual"]["visualContainerObjects"]["title"][0]["properties"]["text"] = \
+                {"expr": {"Measure": {"Expression": {"SourceRef": {"Entity": "_Medidas"}}, "Property": "Texto Atualizacao"}}}
+            cat = bar["visual"]["query"]["queryState"]["Category"]["projections"][0]["field"]["Column"]
+            cat["Expression"]["SourceRef"]["Entity"], cat["Property"] = "dm_calendario", "Ano-Mês"   # PBI062
+            bar_f.write_text(json.dumps(bar), encoding="utf-8")                                  # PBI061
+            card_f, card = next((f, v) for f, v in files["card"] if v["position"]["height"] == 88)
+            card["position"]["width"] = 160                                  # PBI063
+            card_f.write_text(json.dumps(card), encoding="utf-8")
+            found = {(i["rule"], Path(i["where"]).parent.name) for i in ap.audit(p)}
+            for rule, f in (("PBI059", col_f), ("PBI064", col_f), ("PBI060", table_f), ("PBI061", bar_f),
+                            ("PBI062", bar_f), ("PBI063", card_f)):
+                self.assertIn((rule, f.parent.name), found, rule)
+
+
 class TestSuppression(unittest.TestCase):
     def broken(self, d: str) -> Path:
         p = copy_example(d)

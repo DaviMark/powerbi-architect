@@ -64,6 +64,12 @@ Os códigos `PBI044` e `PBI045` estão reservados para as regras propostas nas i
 | PBI056 | Sugestão | 6 | Visual de dados sem título | Todo visual diz o que mostra, numa frase. Linhas de texto sem moldura (variação do KPI, data da carga) são exceção. | — |
 | PBI057 | Sugestão | 6 | Título de eixo visível | Esconda o título do eixo: o título do visual já diz o que está sendo medido. | — |
 | PBI058 | Sugestão | 6 | Mais de 6 cores na página | Use no máximo 6 cores, além dos cinzas; cor só no que importa. | — |
+| PBI059 | Sugestão | 6 | Título ou rótulo que não cabe na largura do visual | Encurte o título ou dê mais largura ao visual. A estimativa usa a largura média da Segoe UI no tamanho do título. | — |
+| PBI060 | Sugestão | 6 | Tabela estreita demais para as colunas | Deixe pelo menos 80 px por coluna: tire colunas ou dê a largura inteira à tabela. | — |
+| PBI061 | Importante | 1 | Título dinâmico sobre algo que o visual não mostra | A medida do título não usa nenhuma medida ou coluna do visual, nem diretamente nem através das medidas que ela chama. Use a medida de título certa para cada visual. | — |
+| PBI062 | Sugestão | 7 | Tempo no eixo vertical de um gráfico de barras | O tempo se lê da esquerda para a direita: use colunas ou linha. | — |
+| PBI063 | Sugestão | 6 | Cartões de KPI estreitos demais ou muitos na mesma linha | No máximo 5 cartões por linha, cada um com pelo menos 176 px, para caberem o valor e a linha de contexto. | — |
+| PBI064 | Sugestão | 6 | Gráfico pequeno demais para ler | Pelo menos 200 × 140 px; menor que isso, prefira um cartão. Páginas de tooltip são exceção. | — |
 
 ## Placar de harmonia
 
