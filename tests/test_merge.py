@@ -106,6 +106,8 @@ class TestManualEditsSurvive(unittest.TestCase):
         self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["position"]["height"], 252)
 
     def test_untouched_report_rebuilds_byte_for_byte(self):
+        for f in self.report.rglob("*.json"):            # a Windows checkout (core.autocrlf) uses CRLF
+            f.write_bytes(f.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
         before = {p: p.read_bytes() for p in self.report.rglob("*.json")}
         m = self.build(self.spec)
         self.assertEqual((m.written, m.kept, m.merged, m.removed), ([], [], [], []))
