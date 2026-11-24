@@ -412,7 +412,19 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI056": ("SUGGESTION", "6", "Data visual without a title", ()),
     "PBI057": ("SUGGESTION", "6", "Axis title shown", ()),
     "PBI058": ("SUGGESTION", "6", "More than 6 colours on a page", ()),
+    "PBI059": ("SUGGESTION", "6", "Title or label likely truncated by the visual width", ()),
+    "PBI060": ("SUGGESTION", "6", "Table too narrow for its columns", ()),
+    "PBI061": ("IMPORTANT", "1", "Dynamic title about something the visual does not show", ()),
+    "PBI062": ("SUGGESTION", "7", "Time on the vertical axis of a bar chart", ()),
+    "PBI063": ("SUGGESTION", "6", "KPI cards too narrow or too many in one row", ()),
+    "PBI064": ("SUGGESTION", "6", "Chart too small to read", ()),
 }
+CHART_TYPES = {"lineChart", "areaChart", "clusteredBarChart", "clusteredColumnChart", "barChart", "columnChart",
+               "lineClusteredColumnComboChart", "lineStackedColumnComboChart", "scatterChart", "waterfallChart",
+               "stackedBarChart", "stackedColumnChart", "ribbonChart"}
+TIME_NAME = re.compile(r"^(?:data|date|dia|day|m[eê]s|month|ano[- ]?m[eê]s|year[- ]?month|trimestre|quarter|semana|week)\b",
+                       re.I)
+TEXT_WIDTH = 0.5        # average glyph width of Segoe UI, in em: estimates whether a title fits
 # Harmony score: 100 per page minus these penalties for each finding on that page.
 HARMONY_PENALTY = {"BLOCKER": 20, "IMPORTANT": 10, "SUGGESTION": 4}
 BPA_TO_PBI: dict[str, set[str]] = {}
@@ -614,6 +626,65 @@ def family_of(font: str) -> str:
     return "segoe ui" if font.startswith("segoe ui") else font
 
 
+def projections(visual: dict) -> dict[str, list[tuple[str, str, str]]]:
+    """{role: [(kind, entity, property)]} for a visual's query."""
+    out: dict[str, list[tuple[str, str, str]]] = {}
+    for role, body in ((visual.get("query") or {}).get("queryState") or {}).items():
+        for p in body.get("projections", []):
+            f = p.get("field") or {}
+            kind = next(iter(f), "")
+            inner = f.get(kind) or {}
+            if kind == "Aggregation":
+                inner = (inner.get("Expression") or {}).get("Column") or {}
+            ent = ((inner.get("Expression") or {}).get("SourceRef") or {}).get("Entity", "")
+            out.setdefault(role, []).append((kind, ent, inner.get("Property", "")))
+    return out
+
+
+def dax_refs(expr: str) -> set[str]:
+    return set(re.findall(r"\[([^\]]+)\]", strip_dax(expr or "")))
+
+
+def design_review(visual: dict, w: float, h: float, title: str, page_w: float,
+                  measure_dax: dict[str, str], time_columns: set[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Art-director checks on one data visual: what a designer would catch at a glance."""
+    found = []
+    vtype = visual.get("visualType", "")
+    roles = projections(visual)
+    big = vtype in BIG_NUMBER_VISUALS
+    title_px = (9 if big else 10) * 4 / 3
+    if title and len(title) * title_px * TEXT_WIDTH + 24 > w:
+        fits = int((w - 24) / (title_px * TEXT_WIDTH))
+        found.append(("PBI059", f"title '{title}' ({len(title)} characters) does not fit {w:g} px — "
+                                f"about {fits} fit; shorten it or widen the visual"))
+    if vtype == "tableEx":
+        cols = len(roles.get("Values", []))
+        if cols and (w - 16) / cols < 80:
+            found.append(("PBI060", f"{cols} columns in {w:g} px ({(w - 16) / cols:.0f} px each) — keep ≥ 80 px "
+                                    "per column: drop columns or give the table the full width"))
+    vco = visual.get("visualContainerObjects") or {}
+    text = ((vco.get("title") or [{}])[0].get("properties") or {}).get("text") or {}
+    title_measure = ((text.get("expr") or {}).get("Measure") or {}).get("Property") if isinstance(text, dict) else None
+    if title_measure and title_measure in measure_dax:
+        shown = {p for r in roles.values() for _, _, p in r}
+        refs = dax_refs(measure_dax[title_measure])
+        deep = set(refs)
+        for r in refs:
+            deep |= dax_refs(measure_dax.get(r, ""))
+        if refs and shown and not (deep & shown):
+            found.append(("PBI061", f"the title comes from [{title_measure}], which uses "
+                                    f"{', '.join(sorted(refs)[:3])} — none of them is in the visual "
+                                    f"({', '.join(sorted(shown)[:3])}); the title would describe something else"))
+    if vtype in ("clusteredBarChart", "barChart", "stackedBarChart", "hundredPercentStackedBarChart"):
+        cat = (roles.get("Category") or [("", "", "")])[0]
+        if (cat[1], cat[2]) in time_columns:
+            found.append(("PBI062", f"{cat[1]}[{cat[2]}] is time, shown down the vertical axis — time reads left "
+                                    "to right: use a column or line chart"))
+    if vtype in CHART_TYPES and page_w > 320 and (h < 140 or w < 200):
+        found.append(("PBI064", f"{w:g}×{h:g} px is too small for a chart — at least 200×140, or use a card"))
+    return found
+
+
 def audit(root: Path, config: dict | None = None) -> list:
     config = config or {"disable": set(), "ignore": []}
     out: list[dict] = []
@@ -645,8 +716,16 @@ def audit(root: Path, config: dict | None = None) -> list:
     for rep in reports:
         fields |= report_fields(rep / "definition")
 
+    measure_dax: dict[str, str] = {}
+    time_columns: set[tuple[str, str]] = set()
     for d in defs:
         model = parse_model(d)
+        for _t, _m in model.measures:
+            measure_dax[_m.name] = _m.expression
+        for _t in model.tables:
+            for _c in _t.columns:
+                if _c.data_type == "dateTime" or _t.data_category == "Time" or TIME_NAME.match(_c.name):
+                    time_columns.add((_t.name, _c.name))
         model_ign = ignored_rules(model.annotations)
         mt = rel(d / "model.tmdl")
         if model.annotations.get("__PBI_TimeIntelligenceEnabled", "0") != "0":
@@ -784,6 +863,7 @@ def audit(root: Path, config: dict | None = None) -> list:
             if GENERIC_PAGE.match(display.strip()):
                 add("PBI042", rel(pj), f"page '{display}' — name it after the question it answers")
             data_visuals = slicers = 0
+            cards: list[tuple[float, float, str]] = []
             tab_items: list[tuple[float, float, float, str]] = []
             page_fills: set[str] = set()
             for vj in sorted(pj.parent.glob("visuals/*/visual.json")):
@@ -859,8 +939,21 @@ def audit(root: Path, config: dict | None = None) -> list:
                     add("PBI019", rel(vj), f"{vtype} on page '{display}' has no alt text")
                 if vtype in ("pieChart", "donutChart"):
                     add("PBI040", rel(vj), f"{vtype} on page '{display}' — ≤ 3 slices, otherwise a sorted bar")
+                for rule, msg in design_review(v, w, h, literal, page_w, measure_dax, time_columns):
+                    add(rule, where_v, f"{vtype} on page '{display}': {msg}")
+                if vtype in BIG_NUMBER_VISUALS:
+                    cards.append((y, w, where_v))
             if data_visuals > 8:
                 add("PBI018", rel(pj), f"page '{display}' has {data_visuals} data visuals (target ≤ 8)")
+            rows_of_cards: dict[float, list] = {}
+            for cy, cw, where_c in cards:
+                rows_of_cards.setdefault(round(cy / 8), []).append((cw, where_c))
+            for row in rows_of_cards.values():
+                narrow = [c for c in row if c[0] < 176]
+                if len(row) > 5 or narrow:
+                    add("PBI063", (narrow or row)[0][1], f"page '{display}': {len(row)} KPI cards in one row"
+                        + (f", the narrowest {min(c[0] for c in row):g} px wide" if narrow else "")
+                        + " — at most 5 per row, each at least 176 px, so values and context lines fit")
             by_tab = [t[3] + str(t[1:3]) for t in sorted(tab_items)]
             by_reading = [t[3] + str(t[1:3]) for t in sorted(tab_items, key=lambda t: (t[1], t[2]))]
             if by_tab != by_reading:

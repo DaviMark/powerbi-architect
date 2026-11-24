@@ -225,9 +225,10 @@ reason, nothing is louder than it needs to be, and the page feels inevitable.
 6. **Consistency across pages.** Same shell, same positions for the same things (filters always in the
    top bar, updated-at always top-right), same colours for the same meaning.
 7. **Words.** Titles, labels, measure names and empty states follow [copywriting.md](copywriting.md).
-8. **Run the audit** with `--min-harmony 90`: `PBI046`–`PBI058` catch oversized slicers, large fonts,
+8. **Run the audit** with `--min-harmony 90`: `PBI046`–`PBI064` catch oversized slicers, large fonts,
    off-grid visuals, extra slicers, mixed fonts, visuals outside the page, wrong tab order, low-contrast
-   text, generic or missing titles, axis titles and too many colours. Each page gets a harmony score
+   text, generic or missing titles, axis titles, too many colours, truncated titles, cramped tables,
+   dynamic titles about another visual, time down a bar chart, narrow KPI rows and charts too small to read. Each page gets a harmony score
    (100 minus 20 per blocker, 10 per important finding, 4 per suggestion); deliver at 90 or more.
 
 ## 12. Review ritual (before Gate 2)
