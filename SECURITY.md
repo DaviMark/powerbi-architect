@@ -28,6 +28,10 @@ Não abra issues públicas para problemas de segurança.
 - `install/*`: copiam arquivos para as pastas de skills e depois (só em instalação por repositório) rodam
   `pbi_graph.py install`. Nada é baixado, nenhum pacote é instalado e nenhum conteúdo do repositório é
   executado. `--no-graph` / `-NoGraph` = só copiar.
+- `templates/visuals/`: os quatro visuais customizados da skill (KPI, tendência, lista, anel). `"privileges": []`
+  (sem rede), sem `eval` e sem `innerHTML` (texto só por `textContent`). Os pacotes prontos ficam em
+  `templates/visuals/dist/` e o motor de layout os copia para dentro do relatório. Só
+  `tools/build_visuals.py` (manutenção, não usado pela skill) baixa pacotes npm, e apenas para `.tmp/`.
 - `templates/pbiviz-bullet-kpi/`: código TypeScript de um visual customizado com `"privileges": []`
   (sem acesso à web), sem `eval`/código dinâmico e sem injeção de HTML. As dependências só são instaladas
   se *você* rodar `npm install` para compilá-lo.

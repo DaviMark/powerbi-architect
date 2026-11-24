@@ -1,4 +1,4 @@
-import { Tone, Tokens, el, sv, clear } from "./dom";
+import { Tone, Tokens, el, sv, clear, shrinkToFit } from "./dom";
 
 /** What the KPI card shows. Texts arrive formatted (Power BI's formatter, or the preview's sample). */
 export interface KpiModel {
@@ -37,9 +37,10 @@ export function renderKpi(root: HTMLElement, m: KpiModel, w: number, h: number, 
     card.appendChild(el("div", `font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;` +
         `color:${t.muted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px;` +
         `max-width:${w - padX * 2}px`, m.label));
-    card.appendChild(el("div", `font-size:${valueSize}px;font-weight:600;letter-spacing:-.01em;line-height:1.1;` +
+    const valueEl = el("div", `font-size:${valueSize}px;font-weight:600;letter-spacing:-.01em;line-height:1.1;` +
         `font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
-        `max-width:${w - padX * 2 - (sw ? sw + 12 : 0)}px`, m.value));
+        `max-width:${w - padX * 2 - (sw ? sw + 12 : 0)}px`, m.value);
+    card.appendChild(valueEl);
 
     const foot = el("div", "display:flex;align-items:center;gap:6px;min-height:18px;white-space:nowrap;overflow:hidden");
     if (m.delta) {
@@ -81,4 +82,5 @@ export function renderKpi(root: HTMLElement, m: KpiModel, w: number, h: number, 
         card.appendChild(svg as unknown as HTMLElement);
     }
     root.appendChild(card);
+    shrinkToFit(valueEl, 14);
 }
