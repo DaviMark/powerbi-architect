@@ -215,6 +215,34 @@ class TestArtDirector(unittest.TestCase):
                 self.assertIn((rule, f.parent.name), found, rule)
 
 
+class TestNoAiLook(unittest.TestCase):
+    def test_round_corners_shadows_gutters_and_copies(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = copy_example(d)
+            bars = [f for f in sorted((p / "ContasReceber.Report").rglob("visual.json"))
+                    if '"clusteredBarChart"' in f.read_text(encoding="utf-8")]
+            f = bars[0]
+            v = json.loads(f.read_text(encoding="utf-8"))
+            vco = v["visual"].setdefault("visualContainerObjects", {})
+            vco["border"] = [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}},
+                                             "radius": {"expr": {"Literal": {"Value": "20D"}}}}}]
+            vco["dropShadow"] = [{"properties": {"show": {"expr": {"Literal": {"Value": "true"}}}}}]
+            f.write_text(json.dumps(v), encoding="utf-8")
+            copy = f.parent.parent / "copia000000000000000"
+            copy.mkdir()
+            v2 = json.loads(json.dumps(v))
+            v2["name"] = copy.name
+            v2["position"]["y"] += 4
+            (copy / "visual.json").write_text(json.dumps(v2), encoding="utf-8")
+            line = next(f for f in sorted((p / "ContasReceber.Report").rglob("visual.json"))
+                        if '"lineChart"' in f.read_text(encoding="utf-8"))
+            lv = json.loads(line.read_text(encoding="utf-8"))
+            lv["position"]["width"] -= 8                     # 24 px to its neighbour, 16 px everywhere else
+            line.write_text(json.dumps(lv), encoding="utf-8")
+            rules = {i["rule"] for i in ap.audit(p) if i["where"].endswith(("visual.json",))}
+            self.assertTrue({"PBI066", "PBI067", "PBI068", "PBI069"} <= rules, rules)
+
+
 class TestSuppression(unittest.TestCase):
     def broken(self, d: str) -> Path:
         p = copy_example(d)
