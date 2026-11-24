@@ -2,8 +2,7 @@
 
 Toda versão nova da skill passa pelo mesmo teste. A mesma IA recebe os mesmos dois pedidos duas vezes:
 uma com a skill daquela versão e outra sem skill nenhuma. São 4 execuções por versão, poucos minutos ao
-todo. As entregas são conferidas pelos mesmos
-requisitos, sempre por ferramenta. Assim:
+todo. As entregas são conferidas pelos mesmos requisitos, sempre por ferramenta. Assim:
 - **na versão X**, a comparação é a skill X contra a IA sem a skill;
 - **na versão Y**, a comparação é a skill Y contra a IA sem a skill;
 - **entre versões**, a página mostra quanto cada versão melhorou (ou piorou) nos mesmos critérios.
@@ -89,6 +88,14 @@ python benchmarks/run.py report
 ```
 
 A versão vem do `SKILL.md`. Mude-a antes de medir, para não sobrescrever a anterior.
+
+**Mesma régua para todas as versões.** Se a nova versão muda uma conferência (a auditoria ou a crítica do
+preview), confira de novo as entregas guardadas das versões anteriores antes do `report`. As execuções
+não rodam de novo; só a pontuação é refeita:
+
+```bash
+python benchmarks/run.py score --versao 1.3.0
+```
 
 ## Limites
 

@@ -6,7 +6,7 @@ Chrome or Chromium is optional (pixel critique and images).
 
     python benchmarks/run.py prepare  [--out .tmp/benchmark]          # 4 workspaces + the prompts
     python benchmarks/run.py record   <run> --tokens N --tools N --seconds S [--model M]
-    python benchmarks/run.py score    [--out .tmp/benchmark]          # requirements, metrics, images
+    python benchmarks/run.py score    [--out .tmp/benchmark] [--versao X]  # requirements, metrics, images
     python benchmarks/run.py report                                   # benchmarks/index.html
 
 Each version runs every scenario twice: once with the skill (the agent reads the skill's SKILL.md and may
@@ -289,11 +289,22 @@ def render_images(folder: Path, sample: dict, dest: Path, prefix: str) -> list[s
     return out
 
 
-def score(out: Path) -> None:
-    v = version()
+def score(out: Path, again: str | None = None) -> None:
+    """Check every run of the current version, or re-check an earlier one (`again`) with today's checks, so
+    that every version on the page is measured with the same yardstick."""
+    v = again or version()
     base = out / v
-    runs = json.loads((base / "runs.json").read_text(encoding="utf-8"))
     d = results_dir(v)
+    if (base / "runs.json").exists():                 # the workspaces of this machine: score, then archive them
+        runs = json.loads((base / "runs.json").read_text(encoding="utf-8"))
+        archive(runs, base, d)
+    elif (d / "execucoes.json").exists():             # only the archive (another machine, an earlier version)
+        runs = json.loads((d / "execucoes.json").read_text(encoding="utf-8"))
+    else:
+        sys.exit(f"no runs for version {v}: neither {base / 'runs.json'} nor {d / 'execucoes.json'}")
+    for r in runs:
+        r["pasta"] = str(d / "entregas" / r["run"])
+        r["amostra"] = str(d / "amostras" / f"{r['cenario']}.json")
     shutil.rmtree(d / "imagens", ignore_errors=True)
     (d / "imagens").mkdir(parents=True)
     usage = json.loads((d / "consumo.json").read_text(encoding="utf-8")) if (d / "consumo.json").exists() else {}
@@ -309,7 +320,7 @@ def score(out: Path) -> None:
             continue
         s = by_id[r["cenario"]]
         folder = Path(r["pasta"])
-        sample = json.loads((base / "_amostras" / f"{s['id']}.json").read_text(encoding="utf-8"))
+        sample = json.loads(Path(r["amostra"]).read_text(encoding="utf-8"))
         res = score_run(s, folder, sample, legacy_fields)
         res.update({"run": r["run"], "cenario": s["id"], "nome": s["nome"], "condicao": r["condicao"],
                     "consumo": usage.get(r["run"]), "imagens": render_images(folder, sample, d / "imagens", r["run"])})
@@ -331,13 +342,31 @@ def score(out: Path) -> None:
             "tokens_medios": avg("tokens"), "ferramentas_medias": avg("ferramentas"), "segundos_medios": avg("segundos"),
             "por_requisito": {k: sum(1 for x in rs if x["requisitos"][k][0]) for k, _, _ in REQUIREMENTS},
         }
-    data = {"versao": v, "data": dt.date.today().isoformat(),
+    measured = dt.date.today().isoformat()
+    if again and (d / "resultados.json").exists():             # re-checked: keep the date of the runs
+        measured = json.loads((d / "resultados.json").read_text(encoding="utf-8")).get("data", measured)
+    data = {"versao": v, "data": measured,
             "modelo": sorted({u["modelo"] for u in usage.values()}) if usage else [],
             "requisitos": [{"id": k, "nome": n, "descricao": t} for k, n, t in REQUIREMENTS],
             "resumo": summary, "execucoes": results}
     (d / "resultados.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     write_version_readme(data, d)
     print(f"[ok] {d / 'resultados.json'}")
+
+
+ARCHIVE_SKIP = shutil.ignore_patterns("preview*", "prev", "*.png", "*.html", "__pycache__", "*.pyc")
+
+
+def archive(runs: list, base: Path, d: Path) -> None:
+    """Keep every delivered project (without previews or images) and the sample data with the results, so
+    that a later version can re-check these runs with its own checks (`score --versao`)."""
+    shutil.rmtree(d / "entregas", ignore_errors=True)
+    (d / "amostras").mkdir(parents=True, exist_ok=True)
+    for r in runs:
+        shutil.copytree(r["pasta"], d / "entregas" / r["run"], ignore=ARCHIVE_SKIP)
+        shutil.copy(base / "_amostras" / f"{r['cenario']}.json", d / "amostras" / f"{r['cenario']}.json")
+    keep = [{"run": r["run"], "cenario": r["cenario"], "condicao": r["condicao"]} for r in runs]
+    (d / "execucoes.json").write_text(json.dumps(keep, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def write_version_readme(data: dict, d: Path) -> None:
@@ -403,6 +432,7 @@ def main() -> int:
     r.add_argument("--model", default="")
     s = sub.add_parser("score")
     s.add_argument("--out", type=Path, default=ROOT / ".tmp" / "benchmark")
+    s.add_argument("--versao", help="re-check the saved runs of an earlier version with the current checks")
     sub.add_parser("report")
     a = ap.parse_args()
     if a.cmd == "prepare":
@@ -410,7 +440,7 @@ def main() -> int:
     elif a.cmd == "record":
         record(a.run, a.tokens, a.tools, a.seconds, a.model)
     elif a.cmd == "score":
-        score(a.out)
+        score(a.out, a.versao)
     else:
         report()
     return 0

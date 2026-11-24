@@ -1,0 +1,11 @@
+relationship f74610e1ccc915295f1d
+	fromColumn: ft_entregas.id_transportadora
+	toColumn: dm_transportadora.id_transportadora
+
+relationship 2c01750dfd48c6f22392
+	fromColumn: ft_entregas.id_cidade
+	toColumn: dm_cidade.id_cidade
+
+relationship 1b4a062c90cec439305f
+	fromColumn: ft_entregas.'Data Prevista'
+	toColumn: dm_calendario.Data

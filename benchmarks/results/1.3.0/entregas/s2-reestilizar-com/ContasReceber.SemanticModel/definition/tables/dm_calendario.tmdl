@@ -1,0 +1,76 @@
+/// Calendário de 1º de janeiro de dois anos atrás até o fim do ano corrente: cobre os 24 meses das tabelas fato. Marcado como tabela de datas.
+table dm_calendario
+	dataCategory: Time
+
+	column Data
+		dataType: dateTime
+		isKey
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Data]
+
+	column Ano
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Ano]
+
+	column 'Mês Nº'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Mês Nº]
+
+	column Mês
+		dataType: string
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Mês]
+		sortByColumn: 'Mês Nº'
+
+	column 'Ano-Mês Nº'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Ano-Mês Nº]
+
+	column 'Ano-Mês'
+		dataType: string
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Ano-Mês]
+		sortByColumn: 'Ano-Mês Nº'
+
+	hierarchy 'Ano > Mês'
+
+		level Ano
+			column: Ano
+
+		level Mês
+			column: Mês
+
+	partition dm_calendario = calculated
+		mode: import
+		source =
+				VAR _fim = DATE ( YEAR ( TODAY () ), 12, 31 )
+				VAR _inicio = DATE ( YEAR ( TODAY () ) - 2, 1, 1 )
+				RETURN
+				    ADDCOLUMNS (
+				        CALENDAR ( _inicio, _fim ),
+				        "Ano", YEAR ( [Date] ),
+				        "Mês Nº", MONTH ( [Date] ),
+				        "Mês", FORMAT ( [Date], "mmm" ),
+				        "Ano-Mês Nº", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+				        "Ano-Mês", FORMAT ( [Date], "mmm/yy" ),
+				        "Data", [Date]
+				    )
