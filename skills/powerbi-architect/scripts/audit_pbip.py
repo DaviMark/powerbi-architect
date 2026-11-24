@@ -419,6 +419,10 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI063": ("SUGGESTION", "6", "KPI cards too narrow or too many in one row", ()),
     "PBI064": ("SUGGESTION", "6", "Chart too small to read", ()),
     "PBI065": ("SUGGESTION", "a11y", "Theme colours that look alike to people with colour-vision deficiency", ()),
+    "PBI066": ("SUGGESTION", "6", "Corners rounder than 8 px (the generic 'AI dashboard' look)", ()),
+    "PBI067": ("SUGGESTION", "6", "Shadow or glow on a visual", ()),
+    "PBI068": ("SUGGESTION", "6", "Uneven, cramped or loose gutters between visuals", ()),
+    "PBI069": ("SUGGESTION", "1", "Two visuals that show the same thing", ()),
 }
 CHART_TYPES = {"lineChart", "areaChart", "clusteredBarChart", "clusteredColumnChart", "barChart", "columnChart",
                "lineClusteredColumnComboChart", "lineStackedColumnComboChart", "scatterChart", "waterfallChart",
@@ -625,6 +629,56 @@ def is_neutral(h: str) -> bool:
 
 def family_of(font: str) -> str:
     return "segoe ui" if font.startswith("segoe ui") else font
+
+
+def vco_or(visual: dict) -> dict:
+    return visual.get("visualContainerObjects") or {}
+
+
+def num_literal(o, raw: bool = False):
+    """The value of a Literal expression ("8D" → 8.0); raw=True returns the text."""
+    try:
+        v = o["expr"]["Literal"]["Value"]
+    except (KeyError, TypeError):
+        return None
+    if raw:
+        return str(v).strip("'")
+    try:
+        return float(str(v).rstrip("DLM"))
+    except ValueError:
+        return None
+
+
+def layout_review(boxes: list) -> list[tuple[str, str, str]]:
+    """Gutters and repeated breakdowns on one page (data visuals only; KPI variation lines are excluded)."""
+    found = []
+    rows: list[list] = []
+    for b in sorted(boxes, key=lambda b: (b[1], b[0])):
+        row = next((r for r in rows if abs(r[0][1] - b[1]) <= 2), None)
+        row.append(b) if row else rows.append([b])
+    gaps = []
+    for r in rows:
+        r.sort(key=lambda b: b[0])
+        gaps += [(r[i][0] - (r[i - 1][0] + r[i - 1][2]), r[i][4]) for i in range(1, len(r))]
+    for i in range(1, len(rows)):
+        above = max(b[1] + b[3] for b in rows[i - 1])
+        gaps.append((rows[i][0][1] - above, rows[i][0][4]))
+    gaps = [(g, w) for g, w in gaps if g >= 0]
+    for g, w in gaps:
+        if g < 8 or g > 32:
+            found.append(("PBI068", w, f"{g:g} px between neighbouring visuals — use the 16 px gutter"))
+    sizes = sorted({round(g) for g, _ in gaps if 8 <= g <= 32})
+    if len(sizes) > 1:
+        found.append(("PBI068", gaps[0][1], f"gutters of {', '.join(map(str, sizes))} px — use one size everywhere"))
+    seen: dict[tuple, str] = {}
+    for b in boxes:
+        if b[5] in CHART_TYPES and b[6]:
+            k = (b[5], b[6])
+            if k in seen:
+                found.append(("PBI069", b[4], f"two {b[5]} with the same fields ({', '.join(b[6][:3])}) — keep one "
+                                              "and use the space for a different question"))
+            seen.setdefault(k, b[4])
+    return found
 
 
 def projections(visual: dict) -> dict[str, list[tuple[str, str, str]]]:
@@ -894,6 +948,7 @@ def audit(root: Path, config: dict | None = None) -> list:
             if GENERIC_PAGE.match(display.strip()):
                 add("PBI042", rel(pj), f"page '{display}' — name it after the question it answers")
             data_visuals = slicers = 0
+            boxes: list[tuple[float, float, float, float, str, str, tuple]] = []
             cards: list[tuple[float, float, str]] = []
             tab_items: list[tuple[float, float, float, str]] = []
             page_fills: set[str] = set()
@@ -917,6 +972,14 @@ def audit(root: Path, config: dict | None = None) -> list:
                 if off and min(w, h) > 2:
                     add("PBI048", where_v, f"{vtype or 'visual'} on page '{display}': {', '.join(off)} not a "
                                            "multiple of 4 px — align it to the grid")
+                radius = num_literal(((vco_or(v).get("border") or [{}])[0].get("properties") or {}).get("radius"))
+                if radius is not None and radius > 8:
+                    add("PBI066", where_v, f"{vtype or 'visual'} on page '{display}': corner radius {radius:g} px — "
+                                           "keep 0–8 px; very round cards read as a template, not a product")
+                shadow = ((vco_or(v).get("dropShadow") or [{}])[0].get("properties") or {}).get("show")
+                if str(num_literal(shadow, raw=True)).lower() == "true":
+                    add("PBI067", where_v, f"{vtype or 'visual'} on page '{display}' has a shadow — use the "
+                                           "hairline border; depth adds noise, not meaning")
                 text_cols, fill_cols = colour_usage(v)
                 page_fills |= {c for c in fill_cols if not is_neutral(c)}
                 low = sorted(c for c in text_cols if contrast_on_white(c) < 4.5)
@@ -952,6 +1015,9 @@ def audit(root: Path, config: dict | None = None) -> list:
                     continue
                 data_visuals += 1
                 tab_items.append((pos.get("tabOrder", pos.get("z", 0)), y, x, vtype))
+                roles_ = projections(v)
+                boxes.append((x, y, w, h, where_v, vtype,
+                              tuple(sorted(f"{e}[{p_}]" for r_ in roles_.values() for _, e, p_ in r_))))
                 tprops = ((vco_.get("title") or [{}])[0].get("properties", {}))
                 title_show = str(tprops.get("show", {}).get("expr", {}).get("Literal", {}).get("Value", "")).lower()
                 title_text = tprops.get("text", {})
@@ -976,6 +1042,9 @@ def audit(root: Path, config: dict | None = None) -> list:
                     cards.append((y, w, where_v))
             if data_visuals > 8:
                 add("PBI018", rel(pj), f"page '{display}' has {data_visuals} data visuals (target ≤ 8)")
+            if page_w > 320:
+                for rule, where_g, msg in layout_review(boxes):
+                    add(rule, where_g, f"page '{display}': {msg}")
             rows_of_cards: dict[float, list] = {}
             for cy, cw, where_c in cards:
                 rows_of_cards.setdefault(round(cy / 8), []).append((cw, where_c))
