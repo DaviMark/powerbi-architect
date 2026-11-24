@@ -3,11 +3,11 @@
   "name": "4a0c342ba68353f365ea",
   "position": {
     "x": 232,
-    "y": 80,
-    "z": 32000,
+    "y": 200,
+    "z": 36000,
     "width": 672,
-    "height": 264,
-    "tabOrder": 32000
+    "height": 228,
+    "tabOrder": 36000
   },
   "visual": {
     "visualType": "waterfallChart",
@@ -95,8 +95,13 @@
             },
             "text": {
               "expr": {
-                "Literal": {
-                  "Value": "'Como as faixas compõem o vencido'"
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Titulo Vencido"
                 }
               }
             }

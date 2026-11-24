@@ -5,7 +5,15 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
+
+## [1.5.0] — 2026-11-24
 ### Adicionado
+- **Diagnóstico e Detalhe do cliente no mesmo nível da Visão Geral.** O Diagnóstico abre com quatro KPIs
+  da skill (ainda a vencer, vencido há mais de 90 dias, clientes em atraso, dias de atraso) sobre a
+  cascata com título dinâmico, as barras e a tabela nativas. O Detalhe do cliente troca linha e colunas
+  por tendência com o ano anterior e o anel das faixas; os KPIs nativos ganham a minitendência.
+- O anel empilha (anel grande em cima, legenda embaixo) quando o cartão é mais alto que largo.
+- Medidas `Vencido 90+` e `Texto Vencido 90+` no exemplo.
 - **Quarto visual da skill: `ring`.** Anel com o número no centro e legenda com valor e participação:
   um todo dividido em fatias (faixas de atraso, categorias) ou o avanço contra uma meta (EBITDA contra o
   orçado). Mesmo acabamento e a mesma identidade dos outros três.

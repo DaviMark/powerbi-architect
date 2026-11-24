@@ -1,0 +1,68 @@
+{
+ "measures": {
+  "Valor Aberto": "R$ 4,8 mi",
+  "Valor Vencido": "R$ 1,2 mi",
+  "% Vencido": "25,0%",
+  "Atraso Médio (dias)": "42",
+  "Texto A Vencer": "R$ 3,6 mi ainda a vencer",
+  "Texto Clientes Vencidos": "31 clientes em atraso",
+  "Meta % Vencido": "15%",
+  "Meta Dias Atraso": "30",
+  "Texto Atualizacao": "Atualizado em 24/11/2025 06:00"
+ },
+ "fields": {
+  "dm_cliente[Cliente]": [
+   "Mercantil Aurora",
+   "Distribuidora Norte",
+   "Construtora Vale",
+   "Farmácia Central",
+   "Atacado Planalto",
+   "Supermercado Bom Preço",
+   "Auto Peças Silva",
+   "Transportes Rápido",
+   "Escola Horizonte",
+   "Clínica Vida",
+   "Padaria Estrela",
+   "Móveis Lar",
+   "Tech Sul",
+   "Agro Campo",
+   "Papelaria Nova",
+   "Hotel Mirante",
+   "Gráfica Ideal",
+   "Eletro Casa"
+  ],
+  "dm_regional[Regional]": [
+   "Sudeste",
+   "Sul",
+   "Nordeste",
+   "Centro-Oeste",
+   "Norte"
+  ],
+  "dm_cliente[Segmento]": [
+   "Varejo",
+   "Indústria",
+   "Serviços"
+  ],
+  "dm_calendario[Ano-Mês]": [
+   "2024-01",
+   "2024-02",
+   "2024-03",
+   "2024-04",
+   "2024-05",
+   "2024-06",
+   "2024-07",
+   "2024-08",
+   "2024-09",
+   "2024-10",
+   "2024-11",
+   "2024-12",
+   "2025-01",
+   "2025-02",
+   "2025-03",
+   "2025-04",
+   "2025-05",
+   "2025-06"
+  ]
+ },
+ "series": {}
+}

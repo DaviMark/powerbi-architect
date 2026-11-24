@@ -7,3 +7,5 @@ __pycache__/
 .DS_Store
 Thumbs.db
 !skills/powerbi-architect/templates/visuals/dist/
+# Pacotes dos visuais copiados para as entregas do benchmark: a pontuação não precisa deles
+benchmarks/versoes/*/entregas/**/CustomVisuals/

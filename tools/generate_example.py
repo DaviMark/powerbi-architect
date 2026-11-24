@@ -203,6 +203,10 @@ MEASURES = [
      "DIVIDE (\n\t\t\tSUMX (\n\t\t\t\tFILTER ( ft_titulos, ft_titulos[Dias Atraso] > 0 ),\n"
      "\t\t\t\tft_titulos[Dias Atraso] * ft_titulos[Valor Aberto]\n\t\t\t),\n\t\t\t[Valor Vencido]\n\t\t)",
      "#,0", "Indicadores"),
+    ("Vencido 90+", "Valor vencido há mais de 90 dias: a parte do vencido mais difícil de receber.",
+     "CALCULATE ( [Valor Aberto], ft_titulos[Dias Atraso] > 90 )", r"\R\$ #,0", "Valores"),
+    ("Texto Vencido 90+", "Linha do KPI de vencido há mais de 90 dias: a parte que ele é do vencido.",
+     "FORMAT ( DIVIDE ( [Vencido 90+], [Valor Vencido] ), \"0%\" ) & \" do vencido\"", None, "Textos"),
     ("Vencido Ano Anterior", "Valor vencido no mesmo período do ano anterior, para comparar na tendência.",
      "CALCULATE ( [Valor Vencido], SAMEPERIODLASTYEAR ( dm_calendario[Data] ) )", r"\R\$ #,0", "Valores"),
     ("Valor a Vencer", "Saldo em aberto das parcelas que ainda não venceram.",

@@ -28,7 +28,7 @@ respondem uma pergunta em três segundos.
 </tr>
 </table>
 
-<sub>Benchmark da versão 1.4.0: Claude Sonnet 5.5, os mesmos pedidos com e sem a skill, sete requisitos
+<sub>Benchmark da versão 1.5.0: Claude Sonnet 5.5, os mesmos pedidos com e sem a skill, sete requisitos
 conferidos por ferramenta. <a href="https://davimark.github.io/powerbi-architect/">Veja a página completa</a>.</sub>
 
 <br>

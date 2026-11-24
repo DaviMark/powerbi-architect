@@ -9,8 +9,10 @@ entregas são conferidas por ferramenta, em sete requisitos, sem opinião.
 |---|---|---|---|---|---|
 | [1.3.0](versoes/1.3.0/README.md) | 93% (13 de 14) | 43% (6 de 14) | +50 p.p. | 1 de 2 | 92 mil |
 | [1.4.0](versoes/1.4.0/README.md) | **100% (14 de 14)** | 29% (4 de 14) | **+71 p.p.** | **2 de 2** | 96 mil |
+| [1.5.0](versoes/1.5.0/README.md) | **100% (14 de 14)** | 29% (4 de 14) | **+71 p.p.** | **2 de 2** | 96 mil |
 
-Claude Sonnet 5.5 nas duas condições. As duas versões foram pontuadas com as conferências de hoje.
+Claude Sonnet 5.5 nas duas condições. As três versões foram pontuadas com as conferências de hoje. Na 1.5.0, cada execução rodou num
+agente novo do Claude Code, com o mesmo pedido e a mesma pasta.
 
 ![Página do benchmark](painel.png)
 

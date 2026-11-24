@@ -1,0 +1,33 @@
+/// Cidades de destino.
+/// Grão: 1 linha por cidade · Fonte: dw.vw_dim_cidade · Conexão: dw
+table dm_cidade
+
+	column id_cidade
+		dataType: int64
+		isKey
+		isHidden
+		summarizeBy: none
+		sourceColumn: id_cidade
+
+	column Cidade
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Cidade
+
+	column UF
+		dataType: string
+		summarizeBy: none
+		sourceColumn: UF
+
+	column Região
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Região
+
+	partition dm_cidade = m
+		mode: import
+		source =
+				let
+				    Fonte = Value.NativeQuery(Sql.Database(Servidor, Banco), "SELECT t.id_cidade, t.nome AS [Cidade], t.uf AS [UF], t.regiao AS [Região] FROM dw.vw_dim_cidade AS t", null, [EnableFolding = true])
+				in
+				    Fonte

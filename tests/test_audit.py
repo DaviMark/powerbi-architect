@@ -229,8 +229,10 @@ class TestArtDirector(unittest.TestCase):
             col_f, col = max(files["clusteredColumnChart"], key=lambda fv: fv[1]["position"]["width"])
             col["visual"]["visualContainerObjects"]["title"][0]["properties"]["text"] = \
                 {"expr": {"Literal": {"Value": "'" + "Um título longo demais para um gráfico estreito " * 2 + "'"}}}
-            col["position"]["height"] = 120                                  # PBI059 and PBI064
-            col_f.write_text(json.dumps(col), encoding="utf-8")
+            col_f.write_text(json.dumps(col), encoding="utf-8")              # PBI059
+            fall_f, fall = files["waterfallChart"][0]
+            fall["position"]["height"] = 120                                 # PBI064
+            fall_f.write_text(json.dumps(fall), encoding="utf-8")
             table_f, table = next((f, v) for f, v in files["tableEx"] if len(
                 v["visual"]["query"]["queryState"]["Values"]["projections"]) == 5)
             table["position"]["width"] = 360                                 # PBI060
@@ -245,7 +247,7 @@ class TestArtDirector(unittest.TestCase):
             card["position"]["width"] = 160                                  # PBI063
             card_f.write_text(json.dumps(card), encoding="utf-8")
             found = {(i["rule"], Path(i["where"]).parent.name) for i in ap.audit(p)}
-            for rule, f in (("PBI059", col_f), ("PBI064", col_f), ("PBI060", table_f), ("PBI061", bar_f),
+            for rule, f in (("PBI059", col_f), ("PBI064", fall_f), ("PBI060", table_f), ("PBI061", bar_f),
                             ("PBI062", bar_f), ("PBI063", card_f)):
                 self.assertIn((rule, f.parent.name), found, rule)
 

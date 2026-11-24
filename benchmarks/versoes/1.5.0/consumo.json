@@ -1,0 +1,26 @@
+{
+  "s1-logistica-com": {
+    "ferramentas": 15,
+    "modelo": "Claude Sonnet 5.5",
+    "segundos": 147.0,
+    "tokens": 94472
+  },
+  "s1-logistica-sem": {
+    "ferramentas": 3,
+    "modelo": "Claude Sonnet 5.5",
+    "segundos": 35.0,
+    "tokens": 68489
+  },
+  "s2-reestilizar-com": {
+    "ferramentas": 24,
+    "modelo": "Claude Sonnet 5.5",
+    "segundos": 301.0,
+    "tokens": 97156
+  },
+  "s2-reestilizar-sem": {
+    "ferramentas": 4,
+    "modelo": "Claude Sonnet 5.5",
+    "segundos": 34.0,
+    "tokens": 69515
+  }
+}

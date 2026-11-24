@@ -6,7 +6,7 @@ ferramentas (schemas da Microsoft, `audit_pbip.py`, `preview_pbir.py --critique`
 
 ## 1. A mesma IA, os mesmos pedidos
 
-No [benchmark](../benchmarks/README.md) da versão 1.4.0, o Claude Sonnet 5.5 recebeu dois pedidos duas
+No [benchmark](../benchmarks/README.md) da versão 1.5.0, o Claude Sonnet 5.5 recebeu dois pedidos duas
 vezes: com a skill e sem ela. Um pedido era montar um relatório de logística a partir de um modelo; o
 outro, deixar profissional um relatório amador sem perder informação.
 
@@ -14,21 +14,21 @@ outro, deixar profissional um relatório amador sem perder informação.
 |---|---|---|
 | Requisitos atendidos | **14 de 14** (100%) | 4 de 14 (29%) |
 | Entregas que abrem no Power BI sem erro | **2 de 2** | 0 de 2 |
-| Nota de harmonia média (0 a 100) | **98** | 5 |
-| Achados da auditoria, em média | **3,5** | 25 |
+| Nota de harmonia média (0 a 100) | **100** | 0 |
+| Achados da auditoria, em média | **1,5** | 33 |
 | Visuais com título e texto alternativo | **todos** | faltando nas duas entregas |
-| Tokens por execução | 96 mil | 76 mil |
-| Tempo por execução | 59 s | 31 s |
+| Tokens por execução | 96 mil | 69 mil |
+| Tempo por execução | 3 min 44 s | 34 s |
 
-Sem a skill, as duas entregas tinham erros de JSON que impedem o arquivo de abrir (2 e 9 erros), um
-achado bloqueador cada, visuais sem título nem texto alternativo e texto cortado. A IA respondeu
+Sem a skill, as duas entregas tinham erros de JSON que impedem o arquivo de abrir (3 e 2 erros), um
+achado bloqueador cada, visuais sem texto alternativo e texto cortado. A IA respondeu
 "pronto" nas duas.
 
 <table>
 <tr><th>Sem a skill</th><th>Com a skill</th></tr>
 <tr>
-<td><img src="../benchmarks/versoes/1.4.0/imagens/s1-logistica-sem-p1.png" alt="Relatório de logística feito sem a skill"></td>
-<td><img src="../benchmarks/versoes/1.4.0/imagens/s1-logistica-com-p1.png" alt="Relatório de logística feito com a skill"></td>
+<td><img src="../benchmarks/versoes/1.5.0/imagens/s1-logistica-sem-p1.png" alt="Relatório de logística feito sem a skill"></td>
+<td><img src="../benchmarks/versoes/1.5.0/imagens/s1-logistica-com-p1.png" alt="Relatório de logística feito com a skill"></td>
 </tr>
 </table>
 
@@ -92,15 +92,15 @@ válidos nos schemas da Microsoft.
 
 ## O custo de usar
 
-- Cerca de 26% mais tokens e quase o dobro do tempo por pedido (59 s contra 31 s): a IA pergunta,
-  confere e corrige antes de entregar.
+- Cerca de 39% mais tokens e bem mais tempo por pedido (3 min 44 s contra 34 s, em média): a IA lê a
+  skill, monta o relatório, audita, gera o preview, critica os pixels e corrige antes de entregar.
 - Os visuais da skill são visuais customizados. Empresas que bloqueiam visuais customizados usam os
   nativos equivalentes, com um acabamento mais simples.
 
 ## Limites desta comparação
 
-- O benchmark é da versão 1.4.0, anterior aos visuais novos (KPI com variação, tendência, lista e anel).
-  A próxima rodada do benchmark mede a versão atual.
+- O benchmark mede a versão 1.5.0, com os visuais novos. As versões 1.3.0 e 1.4.0 foram pontuadas de
+  novo com a mesma régua e estão na [página do benchmark](https://davimark.github.io/powerbi-architect/).
 - São dois cenários com uma execução por condição. A tendência é clara, mas a amostra é pequena.
 - As imagens são do preview da skill, que desenha com o mesmo código dos visuais. Abrir no Power BI
   Desktop continua sendo a conferência final.

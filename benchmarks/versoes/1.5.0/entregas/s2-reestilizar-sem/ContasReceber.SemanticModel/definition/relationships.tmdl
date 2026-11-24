@@ -1,0 +1,11 @@
+relationship 293d8fa89ebb0f54fe81
+	fromColumn: ft_titulos.id_cliente
+	toColumn: dm_cliente.id_cliente
+
+relationship c458883cbad9abc15912
+	fromColumn: ft_titulos.id_regional
+	toColumn: dm_regional.id_regional
+
+relationship d3f81f0ee4c4c0dbd758
+	fromColumn: ft_titulos.'Data Vencimento'
+	toColumn: dm_calendario.Data

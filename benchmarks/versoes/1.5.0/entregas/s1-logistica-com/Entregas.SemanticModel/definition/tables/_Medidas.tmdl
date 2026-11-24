@@ -1,0 +1,64 @@
+/// Medidas do relatório de entregas e data da última carga.
+table _Medidas
+
+	/// Quantidade de entregas com data prevista no período.
+	measure Entregas = COUNTROWS ( ft_entregas )
+		formatString: #,0
+		displayFolder: Volume
+
+	/// Entregas concluídas sem atraso.
+	measure 'Entregas no Prazo' = CALCULATE ( [Entregas], ft_entregas[Status] = "Entregue", ft_entregas[Dias Atraso] = 0 )
+		formatString: #,0
+		displayFolder: Volume
+
+	/// Entregas no prazo sobre as concluídas (OTD).
+	measure '% No Prazo' = DIVIDE ( [Entregas no Prazo], CALCULATE ( [Entregas], ft_entregas[Status] = "Entregue" ) )
+		formatString: 0.0%
+		displayFolder: Indicadores
+
+	/// Meta de entregas no prazo acordada com os clientes.
+	measure 'Meta % No Prazo' = 0.95
+		formatString: 0%
+		displayFolder: Metas
+
+	/// Média de dias de atraso das entregas atrasadas.
+	measure 'Atraso Médio (dias)' = CALCULATE ( AVERAGE ( ft_entregas[Dias Atraso] ), ft_entregas[Dias Atraso] > 0 )
+		formatString: #,0.0
+		displayFolder: Indicadores
+
+	/// Entregas devolvidas ao remetente.
+	measure Devoluções = CALCULATE ( [Entregas], ft_entregas[Status] = "Devolvida" )
+		formatString: #,0
+		displayFolder: Volume
+
+	/// Devoluções sobre o total de entregas.
+	measure '% Devolução' = DIVIDE ( [Devoluções], [Entregas] )
+		formatString: 0.0%
+		displayFolder: Indicadores
+
+	/// Valor de frete pago às transportadoras.
+	measure 'Custo Frete' = SUM ( ft_entregas[Valor Frete] )
+		formatString: \R\$ #,0
+		displayFolder: Custos
+
+	/// Custo de frete por quilo transportado.
+	measure 'Frete por Kg' = DIVIDE ( [Custo Frete], SUM ( ft_entregas[Peso Kg] ) )
+		formatString: \R\$ #,0.00
+		displayFolder: Custos
+
+	/// Data e hora da última carga, para a barra do topo.
+	measure 'Texto Atualizacao' = "Atualizado em " & FORMAT ( MAX ( '_Medidas'[Data Carga] ), "dd/mm/yyyy hh:nn" )
+		displayFolder: Títulos
+
+	column 'Data Carga'
+		dataType: dateTime
+		isHidden
+		formatString: dd/mm/yyyy hh:nn
+		summarizeBy: none
+		isNameInferred
+		isDataTypeInferred
+		sourceColumn: [Data Carga]
+
+	partition _Medidas = calculated
+		mode: import
+		source = ROW ( "Data Carga", UTCNOW () - 3 / 24 )

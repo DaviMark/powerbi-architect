@@ -1,0 +1,40 @@
+/// Parâmetro de campo das abas do cabeçalho: troca o eixo do tempo entre mês, trimestre e ano.
+table _Granularidade
+
+	column Granularidade
+		dataType: string
+		summarizeBy: none
+		sourceColumn: [Value1]
+		sortByColumn: 'Granularidade Ordem'
+
+		relatedColumnDetails
+			groupByColumn: 'Granularidade Campos'
+
+	column 'Granularidade Campos'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: [Value2]
+		sortByColumn: 'Granularidade Ordem'
+
+		extendedProperty ParameterMetadata =
+				{
+				  "version": 3,
+				  "kind": 2
+				}
+
+	column 'Granularidade Ordem'
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: [Value3]
+
+	partition _Granularidade = calculated
+		mode: import
+		source =
+				{
+				    ( "Mês", NAMEOF ( 'dm_calendario'[Ano-Mês] ), 0 ),
+				    ( "Trimestre", NAMEOF ( 'dm_calendario'[Ano-Trimestre] ), 1 ),
+				    ( "Ano", NAMEOF ( 'dm_calendario'[Ano] ), 2 )
+				}

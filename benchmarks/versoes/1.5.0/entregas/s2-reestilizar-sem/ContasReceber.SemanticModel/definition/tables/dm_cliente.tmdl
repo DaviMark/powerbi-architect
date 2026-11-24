@@ -1,0 +1,28 @@
+/// Clientes com título a receber.
+/// Grão: 1 linha por cliente · Fonte: dw.dim_cliente · Conexão: dw
+table dm_cliente
+
+	column id_cliente
+		dataType: int64
+		isKey
+		isHidden
+		summarizeBy: none
+		sourceColumn: id_cliente
+
+	column Cliente
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Cliente
+
+	column Segmento
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Segmento
+
+	partition dm_cliente = m
+		mode: import
+		source =
+				let
+				    Fonte = Value.NativeQuery(Sql.Database(Servidor, Banco), "SELECT c.id_cliente, c.nome_fantasia AS Cliente, c.segmento AS Segmento FROM dw.dim_cliente AS c", null, [EnableFolding = true])
+				in
+				    Fonte
