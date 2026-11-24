@@ -1,0 +1,12 @@
+{
+  "id": "s2-atendimento",
+  "nome": "Atendimento: relatório a partir do modelo",
+  "tipo": "relatorio",
+  "modelo": "benchmarks/models/atendimento.json",
+  "projeto": "Atendimento",
+  "pedido": "Crie o relatório deste modelo em PBIR: uma visão geral do atendimento para a gerência e uma página comparando as equipes de suporte, em Atendimento.Report.",
+  "paginas": [
+    "vis[aã]o|geral|resumo|overview",
+    "equipe"
+  ]
+}

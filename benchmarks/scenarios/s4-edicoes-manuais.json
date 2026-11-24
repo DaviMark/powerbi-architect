@@ -1,0 +1,11 @@
+{
+  "id": "s4-edicoes-manuais",
+  "nome": "Edições feitas à mão: pedido novo sem perder nada",
+  "tipo": "edicoes",
+  "kit": "vendas",
+  "projeto": "Vendas",
+  "pedido": "Adicione ao relatório uma página 'Clientes' com o ranking dos clientes por receita e uma tabela com receita, % margem e pedidos por cliente.",
+  "paginas": [
+    "cliente"
+  ]
+}
