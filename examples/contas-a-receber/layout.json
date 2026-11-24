@@ -38,7 +38,7 @@
         {"height": 264, "split": [2, 1], "visuals": [
           {"type": "waterfallChart", "category": "ft_titulos[Faixa Atraso]", "values": ["Valor Vencido"],
            "title": "Como as faixas compõem o vencido", "sort": "category",
-           "sentiment": {"increase": "#CE2C31", "decrease": "#00824D", "total": "#666666"},
+           "sentiment": {"increase": "#E5484D", "decrease": "#2E9E6B", "total": "#8E8E93"},
            "alt": "Cascata do valor vencido por faixa de atraso, até o total"},
           {"type": "clusteredBarChart", "category": "dm_cliente[Segmento]", "values": ["Valor Vencido"],
            "title": "Vencido por segmento", "sort": "desc",
