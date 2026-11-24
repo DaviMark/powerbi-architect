@@ -14,7 +14,8 @@ Report each item as PASS / WARN (with reason) / FAIL. Severity: **B** blocker ·
 
 ## DAX
 - [B] Every measure: description (business sentence), format string, display folder
-- [B] Control totals reconcile with a trusted source (Gate 2)
+- [B] Control totals reconcile with a trusted source (Gate 2): `scripts/reconcile.py` exits 0 at the
+  business grain, with the result shown to the user ([numbers.md](numbers.md))
 - [I] Base → derived layering; `DIVIDE`; variables; column predicates
 - [S] Calculation groups / field parameters where they remove duplication
 

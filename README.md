@@ -269,6 +269,7 @@ skills/powerbi-architect/
 │   ├── fabric-and-cicd.md          Direct Lake, Git do Fabric, deployment pipelines, CI
 │   ├── copywriting.md              títulos, nomes de medida, números e textos das páginas
 │   ├── chart-craft.md              receita de acabamento de cada visual, formatos de número, revisão de 3 segundos
+│   ├── numbers.md                  provar os números: reconciliação, armadilhas de DAX, SQL e M, Python
 │   ├── performance.md · security.md · quality-checklist.md
 ├── templates/
 │   ├── starter-kits/               ← kits de vendas, financeiro, RH e estoque
@@ -284,7 +285,8 @@ skills/powerbi-architect/
     ├── preview_pbir.py             ← prévia das páginas em HTML, sem o Power BI Desktop
     ├── make_theme.py               ← tema a partir da cor da marca, com contraste conferido
     ├── new_project.py              ← projeto PBIP completo a partir de um kit inicial
-    └── pbip_changes.py             ← percebe o que você mudou à mão e conta para a IA
+    ├── pbip_changes.py             ← percebe o que você mudou à mão e conta para a IA
+    └── reconcile.py                ← compara os números do relatório com os da origem, linha a linha
 
 examples/contas-a-receber/          ← projeto PBIP completo que segue todas as regras
 ```
