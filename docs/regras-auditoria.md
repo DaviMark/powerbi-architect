@@ -75,6 +75,14 @@ Os códigos `PBI044` e `PBI045` estão reservados para as regras propostas nas i
 | PBI067 | Sugestão | 6 | Sombra ou brilho num visual | Use a borda fina. Profundidade acrescenta ruído, não significado. | — |
 | PBI068 | Sugestão | 6 | Gutters irregulares, apertados ou largos demais | Mantenha 16 px entre vizinhos, o mesmo em toda a página. Menos de 8 px parece apertado; mais de 32 px desconecta. | — |
 | PBI069 | Sugestão | 1 | Dois visuais mostrando a mesma coisa | Dois gráficos do mesmo tipo com os mesmos campos na mesma página, como uma cópia esquecida. Fique com um e use o espaço para outra pergunta. | — |
+| PBI070 | Importante | 5 | Média de percentual | A média de percentuais não é o percentual do total: uma filial com 10 vendas pesa o mesmo que uma com 10 mil. Divida as somas: `DIVIDE ( SUM ( numerador ), SUM ( denominador ) )`. | — |
+| PBI071 | Importante | 5 | Saldo ou estoque somado ao longo do tempo | Numa tabela de fotos (posição diária ou mensal), somar o saldo de um mês soma todas as posições. Pegue a última: `LASTNONBLANK` sobre o calendário. | — |
+| PBI072 | Sugestão | 5 | Formato que não combina com a medida | Medida de percentual sem `%` no formato, ou de valor formatada como percentual. | — |
+| PBI073 | Importante | 4 | Junção implícita ou sem chave no SQL de origem | `FROM a, b` ou `JOIN` sem `ON` cruzam todas as linhas e multiplicam os totais. Escreva `JOIN … ON` com a chave. | — |
+| PBI074 | Importante | 4 | NOLOCK ou READ UNCOMMITTED no SQL de origem | Lê linhas em gravação: o total pode contar uma linha duas vezes ou nenhuma. | — |
+| PBI075 | Sugestão | 4 | SELECT DISTINCT na consulta de uma fato | Se há linhas repetidas, corrija o join ou o grão; o DISTINCT também apaga linhas iguais legítimas (duas vendas idênticas). | — |
+| PBI076 | Importante | 3 | SELECT * no SQL de origem | Liste as colunas: colunas novas na origem entrariam no modelo sem ninguém ver. | — |
+| PBI077 | Sugestão | 4 | Função numa coluna do WHERE | `YEAR(data) = 2025` impede o uso do índice. Compare com um intervalo: `data >= '2025-01-01' AND data < '2026-01-01'`. | — |
 
 ## Placar de harmonia
 

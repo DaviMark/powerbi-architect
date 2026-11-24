@@ -423,7 +423,23 @@ RULES: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
     "PBI067": ("SUGGESTION", "6", "Shadow or glow on a visual", ()),
     "PBI068": ("SUGGESTION", "6", "Uneven, cramped or loose gutters between visuals", ()),
     "PBI069": ("SUGGESTION", "1", "Two visuals that show the same thing", ()),
+    # Numbers that come out wrong without any error message.
+    "PBI070": ("IMPORTANT", "5", "Average of a percentage (wrong in every total)", ()),
+    "PBI071": ("IMPORTANT", "5", "Balance or stock summed over time", ()),
+    "PBI072": ("SUGGESTION", "5", "Format string does not match what the measure returns", ()),
+    "PBI073": ("IMPORTANT", "4", "Implicit or keyless join in the source SQL", ()),
+    "PBI074": ("IMPORTANT", "4", "NOLOCK or READ UNCOMMITTED in the source SQL (dirty reads)", ()),
+    "PBI075": ("SUGGESTION", "4", "SELECT DISTINCT in a fact query (hides a grain problem)", ()),
+    "PBI076": ("IMPORTANT", "3", "SELECT * in the source SQL", ()),
+    "PBI077": ("SUGGESTION", "4", "Function on a column in WHERE (slow, may skip the index)", ()),
 }
+PERCENT_NAME = re.compile(r"%|\bpercent|\bpct\b|\btaxa\b|\brate\b|\bpercentual\b", re.I)
+MONEY_NAME = re.compile(r"\b(?:valor|receita|custo|frete|saldo|pre[cç]o|faturamento|revenue|cost|price|amount|sales)\b", re.I)
+STOCK_NAME = re.compile(r"\b(?:saldo|estoque|quantidade|qtd|headcount|ativo|balance|stock|on ?hand|posi[cç][aã]o|inventory)\b",
+                        re.I)
+SNAPSHOT_HINT = re.compile(r"snapshot|\bfoto\b|posi[cç][aã]o|por dia|di[aá]ri[oa]|mensal|end of (?:day|month)", re.I)
+TIME_AWARE = re.compile(r"\b(?:LASTNONBLANK|LASTNONBLANKVALUE|LASTDATE|CLOSINGBALANCE\w*|OPENINGBALANCE\w*|ENDOF\w+|"
+                        r"FIRSTNONBLANK|MAX\s*\(\s*'?dm_calendario)", re.I)
 CHART_TYPES = {"lineChart", "areaChart", "clusteredBarChart", "clusteredColumnChart", "barChart", "columnChart",
                "lineClusteredColumnComboChart", "lineStackedColumnComboChart", "scatterChart", "waterfallChart",
                "stackedBarChart", "stackedColumnChart", "ribbonChart"}
@@ -631,6 +647,78 @@ def family_of(font: str) -> str:
     return "segoe ui" if font.startswith("segoe ui") else font
 
 
+def number_review(m, code: str, table, model) -> list[tuple[str, str]]:
+    """DAX that returns a number without error, and the wrong number."""
+    found = []
+    for agg, ref in re.findall(r"\b(AVERAGE|AVERAGEX)\s*\((.*)", code, re.I):
+        target = re.search(r"\[([^\]]+)\]", ref)
+        if target and PERCENT_NAME.search(target.group(1)):
+            found.append(("PBI070", f"averages [{target.group(1)}], a percentage: the average of ratios is not "
+                                    "the ratio of the totals (a branch with 10 sales weighs as much as one with "
+                                    "10 000) — divide the sums: DIVIDE ( SUM ( numerator ), SUM ( denominator ) )"))
+            break
+    if not TIME_AWARE.search(code):
+        for tname, col in re.findall(r"\bSUM\s*\(\s*'?([\w ]+?)'?\s*\[([^\]]+)\]", code, re.I):
+            src = model.table(tname.strip())
+            hint = " ".join(filter(None, [src.description if src else "", tname]))
+            if src and STOCK_NAME.search(col) and SNAPSHOT_HINT.search(hint):
+                found.append(("PBI071", f"sums {tname}[{col}], a balance in a snapshot table: over a month or a "
+                                        "year it adds every day's position — take the last one: CALCULATE ( SUM ( … ), "
+                                        "LASTNONBLANK ( dm_calendario[Data], CALCULATE ( COUNTROWS ( fact ) ) ) )"))
+                break
+    fmt = m.format_string or ""
+    if fmt and PERCENT_NAME.search(m.name) and "%" not in fmt and "FORMAT" not in code.upper():
+        found.append(("PBI072", f"is a percentage by its name but formatted as '{fmt}' — use 0.0%"))
+    elif "%" in fmt.replace("\\%", "") and MONEY_NAME.search(m.name) and not PERCENT_NAME.search(m.name):
+        found.append(("PBI072", f"is an amount by its name but formatted as a percentage ('{fmt}')"))
+    return found
+
+
+def native_sql(m_source: str) -> str:
+    """The SQL text inside Value.NativeQuery / Sql.Database Query=, with M's doubled quotes undone."""
+    parts = re.findall(r'"((?:[^"]|"")*)"', m_source)
+    return "\n".join(p.replace('""', '"') for p in parts if re.search(r"\bselect\b", p, re.I))
+
+
+def sql_review(sql: str, is_fact: bool) -> list[tuple[str, str]]:
+    """Source SQL that silently changes the numbers or the load."""
+    found = []
+    if not sql:
+        return found
+    flat = re.sub(r"--[^\n]*|/\*.*?\*/", " ", sql, flags=re.S)
+    flat = re.sub(r"'(?:[^']|'')*'", "''", flat)
+    if re.search(r"\bselect\s+(?:distinct\s+)?(?:top\s+\d+\s+)?\*", flat, re.I):
+        found.append(("PBI076", "SELECT * — list the columns: new source columns would load silently"))
+    from_list = re.search(r"\bfrom\s+(.*?)(?:\bwhere\b|\bgroup\s+by\b|\border\s+by\b|\bunion\b|$)", flat,
+                          re.I | re.S)
+    first_from = re.sub(r"\bwith\s*\([^)]*\)", " ", from_list.group(1), flags=re.I).split("join")[0] if from_list else ""
+    if from_list and re.search(r"^[^()]*?\w+(?:\s+(?:as\s+)?\w+)?\s*,\s*\w", first_from, re.I):
+        found.append(("PBI073", "joins tables with a comma (FROM a, b) — write JOIN … ON with the key; a forgotten "
+                                "condition multiplies rows"))
+    for m in re.finditer(r"\bjoin\b(.*?)(?=\bjoin\b|\bwhere\b|\bgroup\b|\border\b|$)", flat, re.I | re.S):
+        body = m.group(1)
+        on = re.search(r"\bon\b(.*)", body, re.I | re.S)
+        if re.match(r"\s*\(?\s*select\b", body, re.I):
+            continue
+        if not on or re.match(r"\s*\(?\s*1\s*=\s*1", on.group(1)):
+            if not re.search(r"\bcross\s+join\b|\bcross\s+apply\b|\bouter\s+apply\b", flat[max(0, m.start() - 12):m.end()], re.I):
+                found.append(("PBI073", "JOIN without a key condition — every row of one side meets every row "
+                                        "of the other"))
+                break
+    if re.search(r"\bnolock\b|read\s+uncommitted", flat, re.I):
+        found.append(("PBI074", "NOLOCK / READ UNCOMMITTED reads rows that are being written — totals can count "
+                                "a row twice or not at all"))
+    if is_fact and re.search(r"\bselect\s+distinct\b", flat, re.I):
+        found.append(("PBI075", "SELECT DISTINCT in a fact — if rows repeat, fix the join or the grain; DISTINCT "
+                                "also removes legitimate equal rows (two identical sales)"))
+    where = re.search(r"\bwhere\b(.*?)(?:\bgroup\s+by\b|\border\s+by\b|$)", flat, re.I | re.S)
+    if where and re.search(r"\b(?:year|month|cast|convert|upper|lower|trim|ltrim|rtrim|isnull|coalesce|"
+                           r"format|to_char|date_trunc)\s*\(\s*[\w.\[\]]+\s*[,)]", where.group(1), re.I):
+        found.append(("PBI077", "a function wraps a column in WHERE — compare the column to a range instead "
+                                "(data >= '2025-01-01' AND data < '2026-01-01')"))
+    return found
+
+
 def vco_or(visual: dict) -> dict:
     return visual.get("visualContainerObjects") or {}
 
@@ -836,6 +924,8 @@ def audit(root: Path, config: dict | None = None) -> list:
             for p in t.partitions:
                 if p.kind != "m":
                     continue
+                for rule, msg in sql_review(native_sql(p.source), t.name.startswith(("ft_", "fact", "fato"))):
+                    add(rule, path, f"'{t.name}': {msg}", p.line, t_ign)
                 if HARDCODED.search(p.source):
                     add("PBI003", path, f"'{t.name}': hard-coded server — use parameters", p.line, t_ign)
                 n = steps(p.source)
@@ -883,6 +973,8 @@ def audit(root: Path, config: dict | None = None) -> list:
                 if re.search(r"\bIFERROR\s*\(", code, re.I):
                     add("PBI033", path, f"measure [{m.name}] uses IFERROR — handle the case explicitly",
                         m.line, m_ign)
+                for rule, msg in number_review(m, code, t, model):
+                    add(rule, path, f"measure [{m.name}] {msg}", m.line, m_ign)
                 if re.search(r"\]\s*\.\s*\[Date\]", code):
                     add("PBI017", path, f"measure [{m.name}] uses the auto date/time hierarchy (.[Date]) — "
                                         "use the date table", m.line, m_ign)
