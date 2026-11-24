@@ -5,6 +5,8 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
+
+## [1.3.0] — 2026-11-24
 ### Adicionado
 - **Suas edições no Desktop nunca se perdem.** O `pbir_layout.py` gera as páginas de novo com um merge em
   três vias, como o git: visual movido, renomeado, criado ou apagado à mão fica como o usuário deixou, e
