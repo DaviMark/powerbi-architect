@@ -110,6 +110,8 @@ Depois, é só pedir trabalho de Power BI. A skill carrega sozinha. Funciona den
 | Relatório | 15 visuais, pizza, legenda | título que conclui, KPIs, tendência com a meta, detalhe |
 | Entrega | "pronto!" | aprovação humana, números conferidos, página de documentação |
 
+Números, imagens e o custo de cada lado no **[comparativo com e sem a skill](docs/comparativo.md)**.
+
 ## Tudo o que vem junto
 
 | | |
