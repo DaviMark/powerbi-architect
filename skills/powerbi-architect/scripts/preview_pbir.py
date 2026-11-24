@@ -128,6 +128,17 @@ class Preview:
         vals = self.sample.get("fields", {}).get(field or "", [])
         return vals[:n] if vals else []
 
+    @staticmethod
+    def top_n(container: dict) -> int | None:
+        """Rows kept by a Top N visual filter, if the visual has one."""
+        for f in (container.get("filterConfig") or {}).get("filters", []):
+            if f.get("type") == "TopN":
+                try:
+                    return int(f["filter"]["From"][0]["Expression"]["Subquery"]["Query"]["Top"])
+                except (KeyError, IndexError, TypeError, ValueError):
+                    return None
+        return None
+
     def series(self, measure: str | None, n: int, fallback: list[float]) -> list[float]:
         vals = self.sample.get("series", {}).get(measure or "", [])
         return (vals or fallback)[:n]
@@ -279,6 +290,9 @@ class Preview:
                     hl[sel.split(".")[-1]] = c
             first = self.labels(cols[0] if cols else None, 14)
             n_rows = len(first) or 14
+            top = self.top_n(v)
+            if top:                                        # Power BI's Top N filter keeps only these rows
+                first, n_rows = first[:top], min(n_rows, top)
             size = 9 * PT
             head = "".join(f'<th style="text-align:{"left" if i == 0 else "right"};font-weight:600;color:{ink2};'
                            f'padding:{CAL["table_cell_padding"]}">{html.escape(c.split("[")[-1].rstrip("]"))}</th>' for i, c in enumerate(cols))
@@ -295,7 +309,9 @@ class Preview:
                     cells.append(f'<td style="padding:{CAL["table_cell_padding"]};color:{style_ink};text-align:{"left" if j == 0 else "right"};'
                                  f'border-top:1px solid #F1F1F1">{content}</td>')
                 body += "<tr>" + "".join(cells) + "</tr>"
-            inner = (title + f'<table style="width:calc(100% - 8px);margin:{CAL["table_margin"]};border-collapse:collapse;'
+            # A full-height list scrolls in Power BI; a short table must fit its rows (the critic counts them).
+            scroll = ' data-scroll="1"' if h >= 400 else ""
+            inner = (title + f'<table{scroll} style="width:calc(100% - 8px);margin:{CAL["table_margin"]};border-collapse:collapse;'
                      f'font:400 {size:.1f}px {FONT}"><tr>{head}</tr>{body}</table>')
         elif vtype:
             try:
@@ -554,6 +570,8 @@ CRITIC_JS = r"""
       v.querySelectorAll("*").forEach(el => {
         const text = (el.childElementCount === 0 ? el.textContent : "").trim();
         if (!text) return;
+        const row = el.closest("tr");
+        if (row && row.getBoundingClientRect().bottom > r.bottom + 0.5) return;  // rows that do not fit: counted below
         const cs = getComputedStyle(el), rg = document.createRange();
         rg.selectNodeContents(el);
         const e = rg.getBoundingClientRect();                  // the glyphs, not the padded box
@@ -569,6 +587,12 @@ CRITIC_JS = r"""
       if (spilled.length) add(page, v, "clipped", spilled.length + " text(s) spill out of the visual, e.g. '" +
                                 spilled[0] + "'");
       v.querySelectorAll("table").forEach(t => {
+        const trs = [...t.querySelectorAll("tr")].slice(1);
+        const fit = trs.filter(tr => tr.getBoundingClientRect().bottom <= r.bottom + 0.5).length;
+        if (fit < trs.length && !t.dataset.scroll)
+          add(page, v, "rows", (trs.length - fit) + " of " + trs.length + " rows do not fit (room for " + fit +
+              ") — keep the rows that fit (\"top\": " + Math.max(fit, 1) + " with \"sortBy\": \"<measure> desc\", " +
+              "and say it in the title) or make the row \"height\": \"auto\" with \"items\": " + trs.length);
         if (t.scrollWidth > v.clientWidth + 1) add(page, v, "overflow", "the table is " + t.scrollWidth + " px wide in a " +
                                                    v.clientWidth + " px visual");
         const empty = r.bottom - t.getBoundingClientRect().bottom;
@@ -665,7 +689,7 @@ def screenshot(preview: "Preview", mobile: bool, out_dir: Path) -> int:
     """One PNG per page: Playwright when installed, otherwise the local Edge/Chrome in headless mode."""
     out_dir.mkdir(parents=True, exist_ok=True)
     pages = preview.pages(mobile)
-    names = [f"page-{i + 1}.png" for i in range(len(pages))]
+    names = [f"page-{i + 1}{'-mobile' if mobile else ''}.png" for i in range(len(pages))]   # desktop PNGs stay
     try:
         from playwright.sync_api import sync_playwright  # optional
         with sync_playwright() as p:

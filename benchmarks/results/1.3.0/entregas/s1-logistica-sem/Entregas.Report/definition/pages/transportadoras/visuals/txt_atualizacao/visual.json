@@ -1,0 +1,38 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "txt_atualizacao",
+  "position": {
+    "x": 20,
+    "y": 15,
+    "z": 0,
+    "width": 600,
+    "height": 40,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "_Medidas"
+                    }
+                  },
+                  "Property": "Texto Atualizacao"
+                }
+              },
+              "queryRef": "_Medidas.Texto Atualizacao",
+              "nativeQueryRef": "Texto Atualizacao"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

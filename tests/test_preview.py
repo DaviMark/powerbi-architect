@@ -101,8 +101,33 @@ class TestPreview(unittest.TestCase):
             r = run("preview_pbir.py", report, "--sample", EXAMPLE / "preview-sample.json", "--critique",
                     "--out", Path(d) / "c.html")
             self.assertEqual(r.returncode, 1, r.stdout)
-            for kind in ("[truncated]", "[clipped]", "[grid]"):
+            for kind in ("[truncated]", "[rows]", "[grid]"):
                 self.assertIn(kind, r.stdout)
+
+    def test_critique_counts_table_rows_and_honours_top_n(self):
+        import pbir_layout
+        import shutil
+        table = {"type": "tableEx", "columns": ["dm_cliente[Cliente]", "Valor Vencido"], "title": "Clientes", "alt": "t"}
+        def critique(visual, height):
+            with tempfile.TemporaryDirectory() as d:
+                report = Path(d) / "X.Report"
+                shutil.copytree(REPORT, report)
+                spec = {"app": "A", "measures": "_Medidas", "pages": [{"name": "P", "rows": [
+                    {"height": height, "visuals": [visual]}]}]}
+                pbir_layout.Builder(spec).build(report, force=True)
+                return run("preview_pbir.py", report, "--sample", EXAMPLE / "preview-sample.json", "--critique",
+                           "--out", Path(d) / "c.html")
+        short = critique(table, 200)                              # 14 sample clients in a 200 px table
+        self.assertEqual(short.returncode, 1, short.stdout)
+        self.assertIn("[rows]", short.stdout)
+        self.assertNotIn("[clipped]", short.stdout)
+        import re
+        fit = int(re.search(r'"top": (\d+)', short.stdout).group(1))   # depends on the fonts of the machine
+        self.assertTrue(1 <= fit < 14, short.stdout)
+        fixed = critique({**table, "top": fit, "sortBy": "Valor Vencido desc"}, 200)    # the suggested fix works
+        self.assertEqual(fixed.returncode, 0, fixed.stdout)
+        full = critique(table, "fill")                            # a full-height list scrolls in Power BI
+        self.assertNotIn("[rows]", full.stdout)
 
     def test_overlay_and_calibration(self):
         with tempfile.TemporaryDirectory() as d:

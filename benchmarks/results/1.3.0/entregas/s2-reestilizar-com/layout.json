@@ -1,0 +1,144 @@
+{
+ "app": "Contas a receber",
+ "measures": "_Medidas",
+ "slicers": [
+  "dm_cliente[Segmento]"
+ ],
+ "pages": [
+  {
+   "name": "Visão Geral",
+   "id": "legado",
+   "icon": "layout-dashboard",
+   "rows": [
+    {
+     "height": 88,
+     "visuals": [
+      {
+       "type": "kpi",
+       "measure": "Valor Aberto",
+       "label": "Saldo em aberto",
+       "id": "k1",
+       "variation": "Texto A Vencer",
+       "alt": "Saldo em aberto total das parcelas, vencidas ou a vencer"
+      },
+      {
+       "type": "kpi",
+       "measure": "Valor Vencido",
+       "label": "Valor vencido",
+       "id": "k2",
+       "variation": "Texto Clientes Vencidos",
+       "alt": "Valor vencido: saldo das parcelas com vencimento anterior à carga"
+      },
+      {
+       "type": "kpi",
+       "measure": "% Vencido",
+       "label": "% do saldo vencido",
+       "id": "k3",
+       "variation": "Texto Var % Vencido",
+       "variationColor": "Cor Var % Vencido",
+       "alt": "Percentual do saldo em aberto que já venceu, comparado à meta"
+      },
+      {
+       "type": "kpi",
+       "measure": "Atraso Médio (dias)",
+       "label": "Dias de atraso, média ponderada",
+       "id": "k4",
+       "variation": "Texto Var Dias Atraso",
+       "variationColor": "Cor Var Dias Atraso",
+       "alt": "Atraso médio em dias das parcelas vencidas, comparado à meta"
+      }
+     ]
+    },
+    {
+     "height": 292,
+     "split": [
+      4,
+      7
+     ],
+     "visuals": [
+      {
+       "type": "clusteredBarChart",
+       "category": "dm_regional[Regional]",
+       "values": [
+        "Valor Vencido"
+       ],
+       "sort": "desc",
+       "title": "Valor vencido por regional",
+       "alt": "Valor vencido por regional, do maior para o menor",
+       "id": "pizza"
+      },
+      {
+       "type": "lineChart",
+       "category": "dm_calendario[Ano-Mês]",
+       "values": [
+        "Valor Vencido"
+       ],
+       "sort": "category",
+       "title": "Valor vencido por mês de vencimento",
+       "alt": "Valor vencido por ano e mês, em reais",
+       "id": "linha"
+      }
+     ]
+    },
+    {
+     "height": 200,
+     "visuals": [
+      {
+       "type": "tableEx",
+       "columns": [
+        "dm_cliente[Cliente]",
+        "Valor Vencido",
+        "% Vencido"
+       ],
+       "title": "Clientes com valor vencido",
+       "alt": "Tabela de clientes com valor vencido e percentual vencido",
+       "id": "tabela",
+       "sortBy": "Valor Vencido desc"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Documentação",
+   "icon": "file-description",
+   "slicers": [],
+   "rows": [
+    {
+     "height": 616,
+     "split": [
+      3,
+      2
+     ],
+     "visuals": [
+      {
+       "type": "tableEx",
+       "key": "medidas",
+       "title": "Medidas",
+       "columns": [
+        "_Documentacao[Pasta]",
+        "_Documentacao[Medida]",
+        "_Documentacao[Descrição]",
+        "_Documentacao[Expressão DAX]"
+       ],
+       "alt": "Catálogo de medidas com pasta, descrição e expressão DAX"
+      },
+      {
+       "type": "tableEx",
+       "key": "cargas",
+       "title": "Cargas",
+       "columns": [
+        "_Cargas[Tabela]",
+        "_Cargas[Descrição]",
+        "_Cargas[Armazenamento]",
+        "_Cargas[Última Carga]"
+       ],
+       "alt": "Tabelas carregadas e data da última carga"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "updated": "Texto Atualizacao"
+}

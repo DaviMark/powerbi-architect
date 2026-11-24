@@ -1,0 +1,58 @@
+/// Parcelas de títulos a receber em aberto ou pagas nos últimos 24 meses.
+/// Grão: 1 linha por parcela · Fonte: dw.fato_titulos_receber · Conexão: dw
+table ft_titulos
+
+	column id_cliente
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: id_cliente
+
+	column id_regional
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: id_regional
+
+	column 'Data Vencimento'
+		dataType: dateTime
+		isHidden
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Data Vencimento
+
+	column 'Valor Aberto'
+		dataType: decimal
+		isHidden
+		formatString: \R\$ #,0.00
+		summarizeBy: none
+		sourceColumn: Valor Aberto
+
+	/// Dias entre o vencimento e a data da carga; 0 quando ainda não venceu.
+	column 'Dias Atraso'
+		dataType: int64
+		isHidden
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Dias Atraso
+
+	/// Faixa de atraso: A vencer, 1-30, 31-60, 61-90, 90+.
+	column 'Faixa Atraso'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Faixa Atraso
+		sortByColumn: 'Faixa Atraso Ordem'
+
+	column 'Faixa Atraso Ordem'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Faixa Atraso Ordem
+
+	partition ft_titulos = m
+		mode: import
+		source =
+				let
+				    Fonte = Value.NativeQuery(Sql.Database(Servidor, Banco), "SELECT t.id_cliente, t.id_regional, t.data_vencimento AS [Data Vencimento], t.valor_aberto AS [Valor Aberto], t.dias_atraso AS [Dias Atraso], t.faixa_atraso AS [Faixa Atraso], t.faixa_atraso_ordem AS [Faixa Atraso Ordem] FROM dw.fato_titulos_receber AS t WHERE t.valor_aberto > 0", null, [EnableFolding = true])
+				in
+				    Fonte

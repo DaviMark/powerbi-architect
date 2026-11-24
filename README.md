@@ -48,6 +48,10 @@ atendeu **16 de 18** itens esperados com a skill e **6 de 18** sem ela (8 de 10 
 com correção às cegas. As respostas brutas estão no repositório. No design, com um modelo que a skill
 nunca tinha visto, [dois modelos de IA](evals/results/2026-11-22-design-e13/README.md) passaram de
 harmonia 0 para 100 com a skill, e um avaliador cego preferiu a versão com a skill nos dois casos.
+No [benchmark da versão 1.4.0](https://davimark.github.io/powerbi-architect/), os relatórios feitos com
+a skill atenderam **100%** dos requisitos conferidos por ferramenta, contra **29%** sem ela. Cada versão
+nova é medida do mesmo jeito, e a [página do benchmark](https://davimark.github.io/powerbi-architect/)
+mostra a evolução entre versões.
 
 ## Os oito princípios
 
@@ -315,6 +319,9 @@ Detalhes em [SECURITY.md](SECURITY.md).
 
 - [`evals/`](evals/README.md): dez cenários com comportamento esperado, os materiais de apoio e os
   [resultados publicados](evals/results/2026-11-21/README.md), com as respostas brutas.
+- [`benchmarks/`](benchmarks/README.md): a cada versão, os mesmos dois pedidos com a skill e sem
+  ela, com consumo médio de tokens e tempo, os mesmos sete requisitos e uma
+  [página publicada](https://davimark.github.io/powerbi-architect/) que compara as versões.
 - CI no Linux e no Windows, do Python 3.9 ao 3.13: testes da auditoria, do grafo e dos instaladores sobre o
   projeto de exemplo; todo exemplo de código das referências conferido; JSON validado pelos schemas da
   Microsoft; **`.pbiviz` reconstruído** com as ferramentas oficiais.
