@@ -68,8 +68,8 @@ Talk to the user in **their language**. Write documentation in the project langu
 | 6 Verify | validate, DAX checks, reference numbers | **Human confirms numbers** |
 | 7 Document | README, changelog, dictionary, version | — |
 
-Never skip the two human gates or claim numbers are right without a trusted reference. Details and the
-standalone folder layout: [references/workflow.md](references/workflow.md).
+Never skip the two human gates. Numbers are right only when `scripts/reconcile.py` matches the source
+([references/numbers.md](references/numbers.md)). Layout: [references/workflow.md](references/workflow.md).
 **Common domain** (sales, finance, HR, inventory)? After Gate 1 start from a kit:
 `python scripts/new_project.py <kit> <Folder> [--primary "#hex"]` (`--list` for kits); adapt it to the design.
 
@@ -82,7 +82,7 @@ standalone folder layout: [references/workflow.md](references/workflow.md).
   when users filter by both at once.
 - **Storage:** Import by default; DirectQuery only for freshness or size (ADR, aggregations); Direct Lake
   on Fabric: [references/fabric-and-cicd.md](references/fabric-and-cicd.md).
-- **Cardinality is cost:** split datetime, round decimals, avoid unique text.
+- **Cardinality is cost:** split datetime, avoid unique text.
 Full guide: [references/modeling.md](references/modeling.md) · [references/performance.md](references/performance.md).
 
 ## 4. Visual decision tree
@@ -153,7 +153,7 @@ add back one thing.
 - **TMDL:** tabs; quote names with spaces; `///` descriptions; no `lineageTag`; expressions one level
   deeper. [references/tmdl.md](references/tmdl.md).
 - **PBIR:** keep the `$schema` versions present (never newer than the user's Desktop); 20-char hex names =
-  folder names; exact `Entity`/`Property`; `pages.json` in sync. JSON per visual: [references/pbir.md](references/pbir.md).
+  folder names; exact `Entity`/`Property`; `pages.json` in sync. [references/pbir.md](references/pbir.md).
 - **The user's edits win.** Rebuilding with `pbir_layout.py` merges three ways against
   `.powerbi-architect/<Name>.Report.layout-lock.json` (commit it): visuals the user moved, retitled, added or
   deleted by hand stay that way, and the output lists what was kept. Never pass `--force` unless the user

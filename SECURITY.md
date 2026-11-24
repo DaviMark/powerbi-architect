@@ -21,6 +21,8 @@ Não abra issues públicas para problemas de segurança.
 - `scripts/make_theme.py`: só biblioteca padrão do Python, **sem rede**. Escreve um arquivo JSON de tema.
 - `scripts/pbip_changes.py`: só biblioteca padrão do Python, **sem rede**, sem subprocessos. Lê os arquivos
   dos projetos PBIP e escreve só em `.powerbi-architect/` (a foto do projeto e o diário `alteracoes.md`).
+- `scripts/reconcile.py`: só biblioteca padrão do Python, **sem rede**, sem subprocessos. Lê dois arquivos
+  CSV e não escreve nada.
 - `scripts/new_project.py`: só biblioteca padrão do Python, **sem rede**, sem subprocessos. Lê um kit de
   `templates/starter-kits/` e escreve só dentro da pasta de saída, que precisa estar vazia.
 - `install/*`: copiam arquivos para as pastas de skills e depois (só em instalação por repositório) rodam
