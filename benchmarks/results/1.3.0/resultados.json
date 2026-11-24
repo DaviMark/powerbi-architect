@@ -1,0 +1,356 @@
+{
+  "versao": "1.3.0",
+  "data": "2026-11-24",
+  "modelo": [
+    "Claude Sonnet 5.5"
+  ],
+  "requisitos": [
+    {
+      "id": "abre",
+      "nome": "Abre sem erro",
+      "descricao": "JSON válido nos schemas da Microsoft e todo campo usado pelos visuais existe no modelo"
+    },
+    {
+      "id": "bloqueadores",
+      "nome": "Zero bloqueadores",
+      "descricao": "Nenhum achado bloqueador na auditoria"
+    },
+    {
+      "id": "harmonia",
+      "nome": "Harmonia ≥ 90",
+      "descricao": "Todas as páginas com nota de harmonia de 90 ou mais"
+    },
+    {
+      "id": "acessivel",
+      "nome": "Acessível",
+      "descricao": "Todo visual de dados com título e texto alternativo; texto com contraste ≥ 4,5:1"
+    },
+    {
+      "id": "pixel",
+      "nome": "Pixel a pixel",
+      "descricao": "Nenhum achado da crítica do preview: texto cortado, sobreposição, gutters, grade"
+    },
+    {
+      "id": "pedido",
+      "nome": "Pedido atendido",
+      "descricao": "As páginas pedidas existem e nenhuma informação do relatório anterior sumiu"
+    },
+    {
+      "id": "numeros",
+      "nome": "Números seguros",
+      "descricao": "Nenhum padrão de DAX ou SQL que devolve número errado (PBI032, PBI070–PBI077)"
+    }
+  ],
+  "resumo": {
+    "com": {
+      "execucoes": 2,
+      "requisitos_atendidos": 13,
+      "requisitos_avaliados": 14,
+      "entregas_completas": 1,
+      "harmonia_media": 100.0,
+      "achados_medios": 2.5,
+      "tokens_medios": 92431.0,
+      "ferramentas_medias": 11.0,
+      "segundos_medios": 47.2,
+      "por_requisito": {
+        "abre": 2,
+        "bloqueadores": 2,
+        "harmonia": 2,
+        "acessivel": 2,
+        "pixel": 1,
+        "pedido": 2,
+        "numeros": 2
+      }
+    },
+    "sem": {
+      "execucoes": 2,
+      "requisitos_atendidos": 6,
+      "requisitos_avaliados": 14,
+      "entregas_completas": 0,
+      "harmonia_media": 43.0,
+      "achados_medios": 20.5,
+      "tokens_medios": 76980.5,
+      "ferramentas_medias": 4.0,
+      "segundos_medios": 37.5,
+      "por_requisito": {
+        "abre": 1,
+        "bloqueadores": 0,
+        "harmonia": 0,
+        "acessivel": 1,
+        "pixel": 0,
+        "pedido": 2,
+        "numeros": 2
+      }
+    }
+  },
+  "execucoes": [
+    {
+      "requisitos": {
+        "abre": [
+          true,
+          ""
+        ],
+        "bloqueadores": [
+          true,
+          ""
+        ],
+        "harmonia": [
+          true,
+          ""
+        ],
+        "acessivel": [
+          true,
+          ""
+        ],
+        "pixel": [
+          true,
+          ""
+        ],
+        "pedido": [
+          true,
+          ""
+        ],
+        "numeros": [
+          true,
+          ""
+        ]
+      },
+      "metricas": {
+        "harmonia_media": 100.0,
+        "paginas": 3,
+        "achados": {
+          "BLOCKER": 0,
+          "IMPORTANT": 0,
+          "SUGGESTION": 3
+        },
+        "critica": 0,
+        "regras": [
+          "PBI034",
+          "PBI043"
+        ]
+      },
+      "critica_detalhe": [],
+      "run": "s1-logistica-com",
+      "cenario": "s1-logistica",
+      "nome": "Logística: relatório a partir do modelo",
+      "condicao": "com",
+      "consumo": {
+        "ferramentas": 10,
+        "modelo": "Claude Sonnet 5.5",
+        "segundos": 48.2,
+        "tokens": 95105
+      },
+      "imagens": [
+        "s1-logistica-com-p1.png",
+        "s1-logistica-com-p2.png"
+      ],
+      "atendidos": 7,
+      "avaliados": 7
+    },
+    {
+      "requisitos": {
+        "abre": [
+          false,
+          "1 erro(s) de schema"
+        ],
+        "bloqueadores": [
+          false,
+          "1 bloqueador(es)"
+        ],
+        "harmonia": [
+          false,
+          "Visão Geral 0, Transportadoras 20"
+        ],
+        "acessivel": [
+          false,
+          "PBI019, PBI056"
+        ],
+        "pixel": [
+          false,
+          "2 achado(s)"
+        ],
+        "pedido": [
+          true,
+          ""
+        ],
+        "numeros": [
+          true,
+          ""
+        ]
+      },
+      "metricas": {
+        "harmonia_media": 10.0,
+        "paginas": 2,
+        "achados": {
+          "BLOCKER": 1,
+          "IMPORTANT": 15,
+          "SUGGESTION": 19
+        },
+        "critica": 2,
+        "regras": [
+          "PBI006",
+          "PBI019",
+          "PBI034",
+          "PBI043",
+          "PBI046",
+          "PBI048",
+          "PBI056",
+          "PBI068"
+        ]
+      },
+      "critica_detalhe": [
+        "Transportadoras › : [uneven] gutters of 20, 25 px on one page — use one",
+        "Visão Geral › : [uneven] gutters of 15, 20 px on one page — use one"
+      ],
+      "run": "s1-logistica-sem",
+      "cenario": "s1-logistica",
+      "nome": "Logística: relatório a partir do modelo",
+      "condicao": "sem",
+      "consumo": {
+        "ferramentas": 4,
+        "modelo": "Claude Sonnet 5.5",
+        "segundos": 46.1,
+        "tokens": 75917
+      },
+      "imagens": [
+        "s1-logistica-sem-p1.png",
+        "s1-logistica-sem-p2.png"
+      ],
+      "atendidos": 2,
+      "avaliados": 7
+    },
+    {
+      "requisitos": {
+        "abre": [
+          true,
+          ""
+        ],
+        "bloqueadores": [
+          true,
+          ""
+        ],
+        "harmonia": [
+          true,
+          ""
+        ],
+        "acessivel": [
+          true,
+          ""
+        ],
+        "pixel": [
+          false,
+          "1 achado(s)"
+        ],
+        "pedido": [
+          true,
+          ""
+        ],
+        "numeros": [
+          true,
+          ""
+        ]
+      },
+      "metricas": {
+        "harmonia_media": 100.0,
+        "paginas": 2,
+        "achados": {
+          "BLOCKER": 0,
+          "IMPORTANT": 0,
+          "SUGGESTION": 2
+        },
+        "critica": 1,
+        "regras": [
+          "PBI034",
+          "PBI043"
+        ]
+      },
+      "critica_detalhe": [
+        "Visão Geral › tableEx: [rows] 9 of 14 rows do not fit (room for 5) — keep the rows that fit (\"top\": 5 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
+      ],
+      "run": "s2-reestilizar-com",
+      "cenario": "s2-reestilizar",
+      "nome": "Relatório amador: deixar profissional sem perder informação",
+      "condicao": "com",
+      "consumo": {
+        "ferramentas": 12,
+        "modelo": "Claude Sonnet 5.5",
+        "segundos": 46.1,
+        "tokens": 89757
+      },
+      "imagens": [
+        "s2-reestilizar-com-p1.png",
+        "s2-reestilizar-com-p2.png"
+      ],
+      "atendidos": 6,
+      "avaliados": 7
+    },
+    {
+      "requisitos": {
+        "abre": [
+          true,
+          ""
+        ],
+        "bloqueadores": [
+          false,
+          "1 bloqueador(es)"
+        ],
+        "harmonia": [
+          false,
+          "Painel de Cobrança 76"
+        ],
+        "acessivel": [
+          true,
+          ""
+        ],
+        "pixel": [
+          false,
+          "1 achado(s)"
+        ],
+        "pedido": [
+          true,
+          ""
+        ],
+        "numeros": [
+          true,
+          ""
+        ]
+      },
+      "metricas": {
+        "harmonia_media": 76.0,
+        "paginas": 1,
+        "achados": {
+          "BLOCKER": 1,
+          "IMPORTANT": 2,
+          "SUGGESTION": 3
+        },
+        "critica": 1,
+        "regras": [
+          "PBI006",
+          "PBI034",
+          "PBI043",
+          "PBI046",
+          "PBI047",
+          "PBI053"
+        ]
+      },
+      "critica_detalhe": [
+        "Painel de Cobrança › tableEx: [rows] 8 of 14 rows do not fit (room for 6) — keep the rows that fit (\"top\": 6 with \"sortBy\": \"<measure> desc\", and say it in the title) or make the row \"height\": \"auto\" with \"items\": 14"
+      ],
+      "run": "s2-reestilizar-sem",
+      "cenario": "s2-reestilizar",
+      "nome": "Relatório amador: deixar profissional sem perder informação",
+      "condicao": "sem",
+      "consumo": {
+        "ferramentas": 4,
+        "modelo": "Claude Sonnet 5.5",
+        "segundos": 29.0,
+        "tokens": 78044
+      },
+      "imagens": [
+        "s2-reestilizar-sem-p1.png"
+      ],
+      "atendidos": 4,
+      "avaliados": 7
+    }
+  ]
+}

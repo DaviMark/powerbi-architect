@@ -1,0 +1,12 @@
+{
+  "id": "s1-logistica",
+  "nome": "Logística: relatório a partir do modelo",
+  "tipo": "relatorio",
+  "modelo": "evals/fixtures/E13-entregas-modelo.json",
+  "projeto": "Entregas",
+  "pedido": "Crie o relatório deste modelo em PBIR: uma página de visão geral para a diretoria de logística e uma página comparando as transportadoras, em Entregas.Report.",
+  "paginas": [
+    "vis[aã]o|geral|resumo|overview",
+    "transportador"
+  ]
+}

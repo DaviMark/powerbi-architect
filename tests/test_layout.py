@@ -143,6 +143,47 @@ class TestLayoutEngine(unittest.TestCase):
             self.build(self.spec(rows=[{"height": 248, "visuals": [
                 {"type": "clusteredBarChart", "category": "a[b]", "values": ["M"], "target": "T", "title": "t", "alt": "t"}]}]))
 
+    def test_table_top_n_filter(self):
+        table = {"type": "tableEx", "columns": ["dm_cliente[Cliente]", "Valor Vencido"], "sortBy": "Valor Vencido desc",
+                 "top": 5, "title": "Os 5 clientes com mais valor vencido", "alt": "t"}
+        files = self.build(self.spec(rows=[{"height": "auto", "visuals": [table]}]))
+        c = next(v for k, v in files.items() if k.endswith("visual.json") and v["visual"]["visualType"] == "tableEx")
+        flt = c["filterConfig"]["filters"][0]
+        self.assertEqual(flt["type"], "TopN")
+        self.assertEqual(flt["field"]["Column"]["Property"], "Cliente")
+        q = flt["filter"]["From"][0]["Expression"]["Subquery"]["Query"]
+        self.assertEqual((q["Top"], q["OrderBy"][0]["Direction"]), (5, 2))
+        self.assertEqual(q["OrderBy"][0]["Expression"]["Measure"]["Property"], "Valor Vencido")
+        self.assertEqual(c["position"]["height"], 64 + 28 * 5)          # the auto row fits the five rows
+        self.assertNotIn("_filterConfig", c["visual"])
+        for bad in ({**table, "sortBy": None}, {**table, "top": 0}, {**table, "top": "5"},
+                    {**table, "columns": ["Valor Vencido", "dm_cliente[Cliente]"]}):
+            with self.subTest(bad=bad), self.assertRaises(pbir_layout.SpecError):
+                self.build(self.spec(rows=[{"height": 200, "visuals": [bad]}]))
+
+    def test_short_table_without_top_gets_a_note(self):
+        table = {"type": "tableEx", "columns": ["dm_cliente[Cliente]", "Valor Vencido"], "title": "Clientes", "alt": "t"}
+        b = pbir_layout.Builder(self.spec(rows=[{"height": 200, "visuals": [table]}]))
+        with tempfile.TemporaryDirectory() as d:
+            b.build(Path(d) / "X.Report")
+        self.assertEqual(len(b.notes), 1)
+        self.assertIn('"top": 4', b.notes[0])
+        b = pbir_layout.Builder(self.spec(rows=[{"height": 200, "visuals": [{**table, "top": 4,
+                                                                             "sortBy": "Valor Vencido desc"}]}]))
+        with tempfile.TemporaryDirectory() as d:
+            b.build(Path(d) / "X.Report")
+        self.assertEqual(b.notes, [])
+
+    def test_table_top_n_survives_extract(self):
+        table = {"type": "tableEx", "columns": ["dm_cliente[Cliente]", "Valor Vencido"], "sortBy": "Valor Vencido desc",
+                 "top": 5, "title": "Os 5 clientes", "alt": "t"}
+        with tempfile.TemporaryDirectory() as d:
+            report = Path(d) / "X.Report"
+            pbir_layout.Builder(self.spec(rows=[{"height": 200, "visuals": [table]}])).build(report)
+            spec = pbir_layout.Extractor(report).run()
+        got = [v for p in spec["pages"] for r in p["rows"] for v in r["visuals"] if v["type"] == "tableEx"][0]
+        self.assertEqual((got["top"], got["sortBy"]), (5, "Valor Vencido desc"))
+
     def test_gallery_builds_on_the_example_model(self):
         spec = json.loads((ROOT / "docs" / "galeria" / "layout.json").read_text(encoding="utf-8"))
         types = {v["visual"]["visualType"] for k, v in self.build(spec).items() if k.endswith("visual.json")}

@@ -1,0 +1,29 @@
+/// Regionais de venda e o e-mail do gestor (usado na segurança por linha).
+/// Grão: 1 linha por regional · Fonte: dw.dim_regional · Conexão: dw
+table dm_regional
+
+	column id_regional
+		dataType: int64
+		isKey
+		isHidden
+		summarizeBy: none
+		sourceColumn: id_regional
+
+	column Regional
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Regional
+
+	column 'Email Gestor'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Email Gestor
+
+	partition dm_regional = m
+		mode: import
+		source =
+				let
+				    Fonte = Value.NativeQuery(Sql.Database(Servidor, Banco), "SELECT r.id_regional, r.nome AS Regional, r.email_gestor AS [Email Gestor] FROM dw.dim_regional AS r", null, [EnableFolding = true])
+				in
+				    Fonte
