@@ -946,10 +946,16 @@ class Builder:
 
     @staticmethod
     def too_wide_for_phone(visual: dict) -> bool:
-        """Tables with more than 3 columns do not fit 304 px: the phone shows the summary, not the sheet."""
-        if visual.get("visualType") not in ("tableEx", "pivotTable"):
+        """What does not fit 304 px stays on the desktop: tables with more than 3 columns, a matrix with
+        columns across, a waterfall (its steps need their labels). The phone shows the summary."""
+        vtype = visual.get("visualType")
+        if vtype == "waterfallChart":
+            return True
+        if vtype not in ("tableEx", "pivotTable"):
             return False
         qs = (visual.get("query") or {}).get("queryState") or {}
+        if vtype == "pivotTable" and (qs.get("Columns") or {}).get("projections"):
+            return True
         return sum(len(r.get("projections", [])) for k, r in qs.items() if k in ("Values", "Rows")) > 3
 
     def mobile(self, placed):
@@ -1031,9 +1037,13 @@ class Builder:
                 files[f"{base}/visuals/{vid}/visual.json"] = dump(self.container(vid, pos, i * 1000, visual))
                 if key in mobile:
                     x, y, w, h = mobile[key]
-                    files[f"{base}/visuals/{vid}/mobile.json"] = dump({
-                        "$schema": f"{SCHEMA}/visualContainerMobileState/1.0.0/schema.json",
-                        "position": {"x": x, "y": y, "z": i * 1000, "width": w, "height": h, "tabOrder": i * 1000}})
+                    state = {"$schema": f"{SCHEMA}/visualContainerMobileState/1.0.0/schema.json",
+                             "position": {"x": x, "y": y, "z": i * 1000, "width": w, "height": h, "tabOrder": i * 1000}}
+                    title = ((visual.get("visualContainerObjects") or {}).get("title") or [{}])[0].get("properties", {})
+                    if str((title.get("show") or {}).get("expr", {}).get("Literal", {}).get("Value")).lower() == "true":
+                        # On the phone a long title wraps to a second line instead of being cut.
+                        state["visualContainerObjects"] = {"title": [{"properties": {"titleWrap": lit("true")}}]}
+                    files[f"{base}/visuals/{vid}/mobile.json"] = dump(state)
         order = [self.page_ids[p["name"]] for p in self.spec["pages"]]
         files["definition/pages/pages.json"] = dump({"$schema": f"{SCHEMA}/pagesMetadata/1.0.0/schema.json",
                                                      "pageOrder": order, "activePageName": order[0]})

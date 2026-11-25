@@ -265,6 +265,13 @@
       39,
       71,
       12
+    ],
+    "Cobertura (dias)@dm_produto[Categoria]": [
+      68,
+      52,
+      41,
+      33,
+      24
     ]
   },
   "pages": [
@@ -387,11 +394,7 @@
       "icon": "chart-bar",
       "rows": [
         {
-          "height": 332,
-          "split": [
-            1,
-            1
-          ],
+          "height": "fill",
           "visuals": [
             {
               "type": "scatter",
@@ -400,7 +403,16 @@
               "y": "Cobertura (dias)",
               "title": "Muito valor parado fica no canto superior direito",
               "alt": "Dispersão de produtos por valor em estoque e cobertura"
-            },
+            }
+          ]
+        },
+        {
+          "height": "auto",
+          "split": [
+            1,
+            1
+          ],
+          "visuals": [
             {
               "type": "clusteredBarChart",
               "category": "dm_produto[Categoria]",
@@ -409,13 +421,9 @@
               ],
               "title": "Cobertura por categoria",
               "sort": "desc",
-              "alt": "Cobertura em dias por categoria"
-            }
-          ]
-        },
-        {
-          "height": "fill",
-          "visuals": [
+              "alt": "Cobertura em dias por categoria",
+              "items": 5
+            },
             {
               "type": "matrix",
               "rows": [

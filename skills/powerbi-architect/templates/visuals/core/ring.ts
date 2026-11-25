@@ -136,5 +136,5 @@ export function renderRing(root: HTMLElement, m: RingModel, w: number, h: number
     body.appendChild(legend);
     card.appendChild(body);
     root.appendChild(card);
-    shrinkToFit(centerEl, 11);
+    shrinkToFit(centerEl, 9);
 }

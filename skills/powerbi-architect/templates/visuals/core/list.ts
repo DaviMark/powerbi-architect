@@ -94,6 +94,7 @@ function drawList(root: HTMLElement, m: ListModel, w: number, h: number, t: Toke
     head.appendChild(hr);
     table.appendChild(head);
 
+    const fitNames: HTMLElement[] = [];
     const body = el("tbody", "");
     m.rows.forEach((r, i) => {
         const tr = el("tr", `height:${rowH}px;border-bottom:1px solid ${t.faint}`);
@@ -106,7 +107,11 @@ function drawList(root: HTMLElement, m: ListModel, w: number, h: number, t: Toke
                 initials(r.item)));
         }
         const names = el("div", `display:flex;flex-direction:column;min-width:0;line-height:16px;max-width:${Math.max(80, (w >= 420 ? Math.max(96, w * 0.45) : w - 140) - level * 24)}px`);
-        names.appendChild(el("span", "font-weight:600;overflow:hidden;text-overflow:ellipsis", r.item));
+        // On a phone a long name takes two lines instead of losing letters.
+        const nameEl = el("span", "font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis" + (w < 420
+            ? ";white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical" : ""), r.item);
+        names.appendChild(nameEl);
+        fitNames.push(nameEl);
         if (r.sub) {
             names.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis`, r.sub));
         }
@@ -127,6 +132,7 @@ function drawList(root: HTMLElement, m: ListModel, w: number, h: number, t: Toke
     wrap.appendChild(table);
     frame.appendChild(wrap);
     root.appendChild(frame);
+    fitNames.forEach(n => shrinkToFit(n, 10));   // a long name loses a little size before it loses letters
     if (titleEl) {
         shrinkToFit(titleEl, 11);
     }

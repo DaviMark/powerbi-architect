@@ -89,10 +89,13 @@ PBIR. No projeto de exemplo, são 19 vezes menos tokens.
 **Qualquer IA no seu repositório** (Claude Code, GitHub Copilot, Cursor, Codex, Gemini CLI)
 
 ```bash
-git clone https://github.com/DaviMark/powerbi-architect.git
+git clone -c core.longpaths=true https://github.com/DaviMark/powerbi-architect.git
 ./powerbi-architect/install/install.sh /caminho/do/repo          # macOS e Linux
 .\powerbi-architect\install\install.ps1 -Target C:\caminho\do\repo  # Windows
 ```
+
+No Windows, o `core.longpaths=true` evita erro de caminho longo nas entregas do benchmark quando a pasta
+do clone já é funda.
 
 **Sem terminal** (Claude.ai): baixe o `.zip` da [última versão](https://github.com/DaviMark/powerbi-architect/releases/latest).
 

@@ -35,7 +35,10 @@ export function renderTrend(root: HTMLElement, m: TrendModel, w: number, h: numb
         const line = el("div", "display:flex;align-items:baseline;gap:8px;margin-top:6px;white-space:nowrap;min-width:0");
         line.appendChild(el("span", "font-size:22px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums", m.total));
         if (m.totalNote) {
-            note = el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0`, m.totalNote);
+            // A phone keeps only the variation ("▲ 13,9%"): the period and the comparison do not fit.
+            const short = w < 420 ? (m.totalNote.match(/[▲▼=]\s?[\d.,]+\s?%?/) || [m.totalNote])[0] : m.totalNote;
+            note = el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0;` +
+                `display:inline-block;max-width:${Math.max(40, w - pad * 2 - 130)}px`, short);
             line.appendChild(note);
         }
         left.appendChild(line);
@@ -111,7 +114,9 @@ export function renderTrend(root: HTMLElement, m: TrendModel, w: number, h: numb
             draw(m.values[i], cx - bw / 2, i === focus ? t.accent : t.track, i);
         }
         if (i % every === (n - 1) % every || i === n - 1) {
-            const lab = sv("text", { x: cx.toFixed(1), y: plotH - 4, "text-anchor": "middle", "font-size": 10,
+            const last = i === n - 1;   // the last label ends at the plot's edge, never past it
+            const lab = sv("text", { x: (last ? Math.min(cx + slot / 2, plotW) : cx).toFixed(1), y: plotH - 4,
+                "text-anchor": last ? "end" : "middle", "font-size": 10,
                 fill: i === focus ? t.ink : t.muted, "font-weight": i === focus ? 600 : 400 });
             lab.textContent = m.labels[i] || "";
             svg.appendChild(lab);

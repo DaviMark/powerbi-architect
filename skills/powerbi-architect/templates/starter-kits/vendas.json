@@ -292,11 +292,11 @@
     {
       "name": "Cor Barra Margem",
       "description": "Cor das barras de margem: vermelho abaixo da meta, cor de destaque na meta ou acima.",
-      "expr": "IF ( [% Margem] < [Meta % Margem], \"#CE2C31\", \"#3E63DD\" )",
+      "expr": "IF ( [% Margem] < [Meta % Margem], \"#CE2C31\", \"#18181B\" )",
       "folder": "Cores",
       "sampleColor": [
-        "#3E63DD",
-        "#3E63DD",
+        "#18181B",
+        "#18181B",
         "#CE2C31",
         "#CE2C31"
       ]

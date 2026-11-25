@@ -17,7 +17,8 @@ JSON file so labels, number lengths and legends look real:
      "colors":   {"Cor Var % Vencido": "#CE2C31",          # one colour, a list (one per bar) or
                   "Cor Meta": {"total": "#CE2C31", "byCategory": ["#3E63DD", "#CE2C31"]}},  # both
      "fields":   {"dm_regional[Regional]": ["Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]},
-     "series":   {"dm_regional[Regional]": [4.2, 3.1, 2.4, 1.2, 0.8]}}   # by category field (or measure)
+     "series":   {"dm_regional[Regional]": [4.2, 3.1, 2.4, 1.2, 0.8]}}   # by category field (or measure;
+                                                  # "<measure>@<field>" when a field shows several measures)
 
 --mobile renders the phone layout (mobile.json) instead of the desktop pages.
 Use it as the last step of every report change: render, look at each page, fix, render again.
@@ -28,6 +29,7 @@ import argparse
 import base64
 import html
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -442,9 +444,15 @@ class Preview:
         tink = self.style(vtype, "title", "fontColor", ink)
         tw = 600 if "Semibold" in str(self.style(vtype, "title", "fontFamily", "")) else 400
         title = ""
+        wrap_extra = 0
         if str(title_show).lower() != "false" and title_text:
+            wrap = str(lit(prop(vco, "title", "titleWrap"), "false")).lower() == "true"
+            if wrap:   # the title takes the lines it needs and the chart gets the rest
+                per_line = max((w - 24) / (tsize * PT * 0.56), 1)
+                wrap_extra = (math.ceil(len(str(title_text)) / per_line) - 1) * tsize * PT * 1.35
             title = (f'<div style="font:{tw} {tsize * PT:.1f}px {FONT};color:{tink};padding:{CAL["title_padding"]};'
-                     f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{title_text}</div>')
+                     + ("white-space:normal;line-height:1.35" if wrap else
+                        "white-space:nowrap;overflow:hidden;text-overflow:ellipsis") + f'">{title_text}</div>')
         inner = ""
         bar = lambda width, height=8: (f'<span style="display:inline-block;width:{width}%;height:{height}px;'  # noqa: E731
                                        f'background:#EBEBEB;border-radius:2px"></span>')
@@ -587,6 +595,9 @@ class Preview:
                 else:
                     meas = c if not c.startswith("[") else (roles.get("Values") or [None])[0]
                     raw = self.sample.get("series", {}).get(meas or "") or self.synth(meas, n_rows, offset=j * 3)
+                    if c.startswith("[") and raw:      # one column per member across: each member its own values
+                        digits = 0 if all(float(x).is_integer() for x in raw) else 1
+                        raw = [round(x * WOBBLE[(r * 3 + j * 5) % len(WOBBLE)], digits) for r, x in enumerate(raw)]
                     filled[j] = [self.num_text(x, meas) for x in raw[:n_rows]]
             is_text = lambda i: i == 0 or ("[" in cols[i] and not cols[i].startswith("["))  # noqa: E731
             head = "".join(f'<th style="text-align:{"left" if is_text(i) else "right"};font-weight:600;color:{ink2};'
@@ -616,7 +627,7 @@ class Preview:
                 self._sort_desc = srt.get("direction") == "Descending" and "Measure" in srt.get("field", {})
             except (KeyError, IndexError, TypeError):
                 self._sort_desc = False
-            inner = title + self.chart(vtype, roles, objs, w, h)
+            inner = title + self.chart(vtype, roles, objs, w, h - wrap_extra)
         chromeless = str(title_show).lower() == "false" and str(bg_show).lower() == "false"
         tags = (f'data-t="{html.escape(vtype)}" data-name="{html.escape(str(v.get("name", "")))}" '
                 f'data-title="{html.escape(str(title_text or ""))}"' + (' data-chromeless="1"' if chromeless else ""))
@@ -772,7 +783,9 @@ class Preview:
                     f'border-bottom:1px solid #EBEBEB;border-left:1px solid #EBEBEB">{dots}</div>')
         if kind in ("piechart", "donutchart"):
             labels = self.labels(cat, 6) or [""] * 5
-            vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, len(labels), [5, 4, 3, 2, 1]))[:len(labels)]
+            series_ = self.sample.get("series", {})   # "<measure>@<field>" when one category shows several measures
+            vals = (series_.get(f"{m}@{cat}") or series_.get(cat or "") or
+                    self.series(m, len(labels), [5, 4, 3, 2, 1]))[:len(labels)]
             palette = (self.theme.get("dataColors") or [self.accent, "#666666", "#999999", "#BBBBBB", "#DDDDDD"])
             total, acc, stops = sum(vals) or 1, 0.0, []
             for i, v in enumerate(vals):
@@ -813,7 +826,8 @@ class Preview:
         by_measure, by_category = (self.sample.get("series", {}).get(k or "") for k in (m, cat))
         # A time series belongs to the measure; a ranking belongs to the category it ranks.
         first, second = (by_measure, by_category) if kind == "linechart" else (by_category, by_measure)
-        vals = (first or second or self.synth(m, n, trend=kind == "linechart")
+        both = self.sample.get("series", {}).get(f"{m}@{cat}")   # this measure by this category, when given
+        vals = (both or first or second or self.synth(m, n, trend=kind == "linechart")
                 or [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2])[:len(labels)]
         if getattr(self, "_sort_desc", False) and kind != "linechart":     # Power BI applies the visual's sort
             pairs = sorted(zip(labels, vals), key=lambda lv: -lv[1])
@@ -932,7 +946,12 @@ class Preview:
                     mf = f.parent / "mobile.json"
                     if not mf.exists():
                         continue
-                    pos = json.loads(mf.read_text(encoding="utf-8-sig")).get("position", {})
+                    state = json.loads(mf.read_text(encoding="utf-8-sig"))
+                    pos = state.get("position", {})
+                    vco = (v.get("visual") or {}).setdefault("visualContainerObjects", {})
+                    for obj, extra in (state.get("visualContainerObjects") or {}).items():   # phone formatting
+                        base = (vco.get(obj) or [{}])[0].get("properties", {})
+                        vco[obj] = [{"properties": {**base, **extra[0].get("properties", {})}}]
                 bottom = max(bottom, pos.get("y", 0) + pos.get("height", 0))
                 items.append(self.render_visual(v, pos, nav, p.get("displayName", "")))
             if mobile and not items:
