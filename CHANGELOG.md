@@ -5,6 +5,8 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
+
+## [1.5.1] — 2026-11-24
 ### Corrigido
 - **Kits no celular sem nenhum achado.** No layout de celular, títulos longos quebram em duas linhas
   (formatação só do celular, `titleWrap` no `mobile.json`); a cascata e a matriz com colunas ficam só no
