@@ -5,6 +5,12 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
 ## [Não publicado]
+### Corrigido
+- **Kits no celular sem nenhum achado.** No layout de celular, títulos longos quebram em duas linhas
+  (formatação só do celular, `titleWrap` no `mobile.json`); a cascata e a matriz com colunas ficam só no
+  computador, como as tabelas largas. Um teste exige computador e celular limpos nos quatro kits.
+- Barras de margem do kit de vendas na tinta da paleta, não no azul antigo.
+- README: `git clone -c core.longpaths=true` para o Windows.
 
 ## [1.5.0] — 2026-11-24
 ### Adicionado
