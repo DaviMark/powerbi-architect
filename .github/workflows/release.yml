@@ -38,7 +38,7 @@ jobs:
       - name: Empacotar a skill
         env:
           TAG: ${{ github.ref_name }}
-        run: (cd skills && zip -qr "../powerbi-architect-$TAG.zip" powerbi-architect)
+        run: git archive --format=zip --output="powerbi-architect-$TAG.zip" HEAD:skills powerbi-architect
       - name: Gerar atestado de procedência do zip
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
