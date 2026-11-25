@@ -88,6 +88,19 @@ class TestPreview(unittest.TestCase):
             self.assertIn("background:#CE2C31", html)
 
     @unittest.skipUnless(__import__("preview_pbir").find_browser(), "needs Edge, Chrome or Chromium")
+    def test_every_kit_is_clean_on_desktop_and_phone(self):
+        """The quality of the example holds for every starter kit, on the desktop and on the phone."""
+        for kit in ("vendas", "financeiro", "rh", "estoque"):
+            with self.subTest(kit=kit), tempfile.TemporaryDirectory() as d:
+                proj = Path(d) / kit
+                self.assertEqual(run("new_project.py", kit, proj).returncode, 0)
+                report = next(proj.glob("*.Report"))
+                for mode in ([], ["--mobile"]):
+                    r = run("preview_pbir.py", report, "--sample", proj / "preview-sample.json", "--critique",
+                            *mode, "--out", Path(d) / "c.html")
+                    self.assertEqual(r.returncode, 0, r.stdout)
+
+    @unittest.skipUnless(__import__("preview_pbir").find_browser(), "needs Edge, Chrome or Chromium")
     def test_critique_measures_the_rendered_page(self):
         import pbir_layout
         import shutil

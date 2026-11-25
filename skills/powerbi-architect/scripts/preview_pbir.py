@@ -28,6 +28,7 @@ import argparse
 import base64
 import html
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -442,9 +443,15 @@ class Preview:
         tink = self.style(vtype, "title", "fontColor", ink)
         tw = 600 if "Semibold" in str(self.style(vtype, "title", "fontFamily", "")) else 400
         title = ""
+        wrap_extra = 0
         if str(title_show).lower() != "false" and title_text:
+            wrap = str(lit(prop(vco, "title", "titleWrap"), "false")).lower() == "true"
+            if wrap:   # the title takes the lines it needs and the chart gets the rest
+                per_line = max((w - 24) / (tsize * PT * 0.56), 1)
+                wrap_extra = (math.ceil(len(str(title_text)) / per_line) - 1) * tsize * PT * 1.35
             title = (f'<div style="font:{tw} {tsize * PT:.1f}px {FONT};color:{tink};padding:{CAL["title_padding"]};'
-                     f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{title_text}</div>')
+                     + ("white-space:normal;line-height:1.35" if wrap else
+                        "white-space:nowrap;overflow:hidden;text-overflow:ellipsis") + f'">{title_text}</div>')
         inner = ""
         bar = lambda width, height=8: (f'<span style="display:inline-block;width:{width}%;height:{height}px;'  # noqa: E731
                                        f'background:#EBEBEB;border-radius:2px"></span>')
@@ -616,7 +623,7 @@ class Preview:
                 self._sort_desc = srt.get("direction") == "Descending" and "Measure" in srt.get("field", {})
             except (KeyError, IndexError, TypeError):
                 self._sort_desc = False
-            inner = title + self.chart(vtype, roles, objs, w, h)
+            inner = title + self.chart(vtype, roles, objs, w, h - wrap_extra)
         chromeless = str(title_show).lower() == "false" and str(bg_show).lower() == "false"
         tags = (f'data-t="{html.escape(vtype)}" data-name="{html.escape(str(v.get("name", "")))}" '
                 f'data-title="{html.escape(str(title_text or ""))}"' + (' data-chromeless="1"' if chromeless else ""))
@@ -932,7 +939,12 @@ class Preview:
                     mf = f.parent / "mobile.json"
                     if not mf.exists():
                         continue
-                    pos = json.loads(mf.read_text(encoding="utf-8-sig")).get("position", {})
+                    state = json.loads(mf.read_text(encoding="utf-8-sig"))
+                    pos = state.get("position", {})
+                    vco = (v.get("visual") or {}).setdefault("visualContainerObjects", {})
+                    for obj, extra in (state.get("visualContainerObjects") or {}).items():   # phone formatting
+                        base = (vco.get(obj) or [{}])[0].get("properties", {})
+                        vco[obj] = [{"properties": {**base, **extra[0].get("properties", {})}}]
                 bottom = max(bottom, pos.get("y", 0) + pos.get("height", 0))
                 items.append(self.render_visual(v, pos, nav, p.get("displayName", "")))
             if mobile and not items:
