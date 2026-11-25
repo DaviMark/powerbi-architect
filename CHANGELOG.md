@@ -10,6 +10,12 @@ Todas as mudanças relevantes do projeto ficam registradas aqui. O formato segue
   (formatação só do celular, `titleWrap` no `mobile.json`); a cascata e a matriz com colunas ficam só no
   computador, como as tabelas largas. Um teste exige computador e celular limpos nos quatro kits.
 - Barras de margem do kit de vendas na tinta da paleta, não no azul antigo.
+- Textos dos visuais à prova de fonte mais larga (Linux, outra fonte da marca): rótulo e nota do KPI e
+  centro do anel encolhem até caber; no celular a nota da tendência mostra só a variação, nomes longos
+  da lista quebram em duas linhas e o último mês do eixo não passa da borda.
+- Kit de estoque, página Cobertura: dispersão na largura toda; barras e matriz embaixo, na altura que
+  as linhas pedem. O preview aceita série de amostra por medida e campo (`"<medida>@<campo>"`) e varia
+  os valores entre as colunas de uma matriz.
 - README: `git clone -c core.longpaths=true` para o Windows.
 
 ## [1.5.0] — 2026-11-24

@@ -34,9 +34,10 @@ export function renderKpi(root: HTMLElement, m: KpiModel, w: number, h: number, 
     const sw = sparkKind === "none" ? 0 : Math.round(Math.min(Math.max(w * 0.3, 64), 120));
     const sh = compact ? 28 : 36;
 
-    card.appendChild(el("div", `font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;` +
+    const labelEl = el("div", `font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;` +
         `color:${t.muted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px;` +
-        `max-width:${w - padX * 2}px`, m.label));
+        `max-width:${w - padX * 2}px`, m.label);
+    card.appendChild(labelEl);
     const valueEl = el("div", `font-size:${valueSize}px;font-weight:600;letter-spacing:-.01em;line-height:1.1;` +
         `font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
         `max-width:${w - padX * 2 - (sw ? sw + 12 : 0)}px`, m.value);
@@ -50,8 +51,11 @@ export function renderKpi(root: HTMLElement, m: KpiModel, w: number, h: number, 
             (t.highContrast ? `;border:1px solid ${tone.fg}` : ""), m.delta);
         foot.appendChild(pill);
     }
+    let noteEl: HTMLElement | undefined;
     if (m.note) {
-        foot.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis`, m.note));
+        noteEl = el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0;` +
+            "display:inline-block", m.note);
+        foot.appendChild(noteEl);
     }
     card.appendChild(foot);
 
@@ -83,4 +87,8 @@ export function renderKpi(root: HTMLElement, m: KpiModel, w: number, h: number, 
     }
     root.appendChild(card);
     shrinkToFit(valueEl, 14);
+    shrinkToFit(labelEl, 9);
+    if (noteEl) {
+        shrinkToFit(noteEl, 9);
+    }
 }

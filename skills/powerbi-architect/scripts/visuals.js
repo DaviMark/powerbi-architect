@@ -160,9 +160,10 @@ function renderKpi(root, m, w, h, t) {
             : Math.min(...pts) / (Math.max(...pts) || 1) < 0.6 ? "bars" : "line";
     const sw = sparkKind === "none" ? 0 : Math.round(Math.min(Math.max(w * 0.3, 64), 120));
     const sh = compact ? 28 : 36;
-    card.appendChild(el("div", `font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;` +
+    const labelEl = el("div", `font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;` +
         `color:${t.muted};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:14px;` +
-        `max-width:${w - padX * 2}px`, m.label));
+        `max-width:${w - padX * 2}px`, m.label);
+    card.appendChild(labelEl);
     const valueEl = el("div", `font-size:${valueSize}px;font-weight:600;letter-spacing:-.01em;line-height:1.1;` +
         `font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
         `max-width:${w - padX * 2 - (sw ? sw + 12 : 0)}px`, m.value);
@@ -175,8 +176,11 @@ function renderKpi(root, m, w, h, t) {
             (t.highContrast ? `;border:1px solid ${tone.fg}` : ""), m.delta);
         foot.appendChild(pill);
     }
+    let noteEl;
     if (m.note) {
-        foot.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis`, m.note));
+        noteEl = el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0;` +
+            "display:inline-block", m.note);
+        foot.appendChild(noteEl);
     }
     card.appendChild(foot);
     if (sparkKind !== "none") {
@@ -208,6 +212,10 @@ function renderKpi(root, m, w, h, t) {
     }
     root.appendChild(card);
     shrinkToFit(valueEl, 14);
+    shrinkToFit(labelEl, 9);
+    if (noteEl) {
+        shrinkToFit(noteEl, 9);
+    }
 }
 
 // ---- list.ts
@@ -276,6 +284,7 @@ function drawList(root, m, w, h, t, hook, level) {
     columns.forEach(c => hr.appendChild(th(c.title, c.kind === "number")));
     head.appendChild(hr);
     table.appendChild(head);
+    const fitNames = [];
     const body = el("tbody", "");
     m.rows.forEach((r, i) => {
         const tr = el("tr", `height:${rowH}px;border-bottom:1px solid ${t.faint}`);
@@ -287,7 +296,11 @@ function drawList(root, m, w, h, t, hook, level) {
                 `align-items:center;justify-content:center;font-size:11px;font-weight:600;background:${bg};color:${fg}`, initials(r.item)));
         }
         const names = el("div", `display:flex;flex-direction:column;min-width:0;line-height:16px;max-width:${Math.max(80, (w >= 420 ? Math.max(96, w * 0.45) : w - 140) - level * 24)}px`);
-        names.appendChild(el("span", "font-weight:600;overflow:hidden;text-overflow:ellipsis", r.item));
+        // On a phone a long name takes two lines instead of losing letters.
+        const nameEl = el("span", "font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis" + (w < 420
+            ? ";white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical" : ""), r.item);
+        names.appendChild(nameEl);
+        fitNames.push(nameEl);
         if (r.sub) {
             names.appendChild(el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis`, r.sub));
         }
@@ -308,6 +321,7 @@ function drawList(root, m, w, h, t, hook, level) {
     wrap.appendChild(table);
     frame.appendChild(wrap);
     root.appendChild(frame);
+    fitNames.forEach(n => shrinkToFit(n, 10)); // a long name loses a little size before it loses letters
     if (titleEl) {
         shrinkToFit(titleEl, 11);
     }
@@ -366,7 +380,10 @@ function renderTrend(root, m, w, h, t, hook) {
         const line = el("div", "display:flex;align-items:baseline;gap:8px;margin-top:6px;white-space:nowrap;min-width:0");
         line.appendChild(el("span", "font-size:22px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums", m.total));
         if (m.totalNote) {
-            note = el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0`, m.totalNote);
+            // A phone keeps only the variation ("▲ 13,9%"): the period and the comparison do not fit.
+            const short = w < 420 ? (m.totalNote.match(/[▲▼=]\s?[\d.,]+\s?%?/) || [m.totalNote])[0] : m.totalNote;
+            note = el("span", `font-size:11px;color:${t.muted};overflow:hidden;text-overflow:ellipsis;min-width:0;` +
+                `display:inline-block;max-width:${Math.max(40, w - pad * 2 - 130)}px`, short);
             line.appendChild(note);
         }
         left.appendChild(line);
@@ -439,7 +456,9 @@ function renderTrend(root, m, w, h, t, hook) {
             draw(m.values[i], cx - bw / 2, i === focus ? t.accent : t.track, i);
         }
         if (i % every === (n - 1) % every || i === n - 1) {
-            const lab = sv("text", { x: cx.toFixed(1), y: plotH - 4, "text-anchor": "middle", "font-size": 10,
+            const last = i === n - 1; // the last label ends at the plot's edge, never past it
+            const lab = sv("text", { x: (last ? Math.min(cx + slot / 2, plotW) : cx).toFixed(1), y: plotH - 4,
+                "text-anchor": last ? "end" : "middle", "font-size": 10,
                 fill: i === focus ? t.ink : t.muted, "font-weight": i === focus ? 600 : 400 });
             lab.textContent = m.labels[i] || "";
             svg.appendChild(lab);
@@ -572,7 +591,7 @@ function renderRing(root, m, w, h, t, hook) {
     body.appendChild(legend);
     card.appendChild(body);
     root.appendChild(card);
-    shrinkToFit(centerEl, 11);
+    shrinkToFit(centerEl, 9);
 }
 window.PBIArchitect = { TOKENS, brandTokens, tint, renderKpi, renderList, renderTrend, renderRing, ringColours, toneOf };
 })();

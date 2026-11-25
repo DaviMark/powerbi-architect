@@ -17,7 +17,8 @@ JSON file so labels, number lengths and legends look real:
      "colors":   {"Cor Var % Vencido": "#CE2C31",          # one colour, a list (one per bar) or
                   "Cor Meta": {"total": "#CE2C31", "byCategory": ["#3E63DD", "#CE2C31"]}},  # both
      "fields":   {"dm_regional[Regional]": ["Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"]},
-     "series":   {"dm_regional[Regional]": [4.2, 3.1, 2.4, 1.2, 0.8]}}   # by category field (or measure)
+     "series":   {"dm_regional[Regional]": [4.2, 3.1, 2.4, 1.2, 0.8]}}   # by category field (or measure;
+                                                  # "<measure>@<field>" when a field shows several measures)
 
 --mobile renders the phone layout (mobile.json) instead of the desktop pages.
 Use it as the last step of every report change: render, look at each page, fix, render again.
@@ -594,6 +595,9 @@ class Preview:
                 else:
                     meas = c if not c.startswith("[") else (roles.get("Values") or [None])[0]
                     raw = self.sample.get("series", {}).get(meas or "") or self.synth(meas, n_rows, offset=j * 3)
+                    if c.startswith("[") and raw:      # one column per member across: each member its own values
+                        digits = 0 if all(float(x).is_integer() for x in raw) else 1
+                        raw = [round(x * WOBBLE[(r * 3 + j * 5) % len(WOBBLE)], digits) for r, x in enumerate(raw)]
                     filled[j] = [self.num_text(x, meas) for x in raw[:n_rows]]
             is_text = lambda i: i == 0 or ("[" in cols[i] and not cols[i].startswith("["))  # noqa: E731
             head = "".join(f'<th style="text-align:{"left" if is_text(i) else "right"};font-weight:600;color:{ink2};'
@@ -779,7 +783,9 @@ class Preview:
                     f'border-bottom:1px solid #EBEBEB;border-left:1px solid #EBEBEB">{dots}</div>')
         if kind in ("piechart", "donutchart"):
             labels = self.labels(cat, 6) or [""] * 5
-            vals = (self.sample.get("series", {}).get(cat or "") or self.series(m, len(labels), [5, 4, 3, 2, 1]))[:len(labels)]
+            series_ = self.sample.get("series", {})   # "<measure>@<field>" when one category shows several measures
+            vals = (series_.get(f"{m}@{cat}") or series_.get(cat or "") or
+                    self.series(m, len(labels), [5, 4, 3, 2, 1]))[:len(labels)]
             palette = (self.theme.get("dataColors") or [self.accent, "#666666", "#999999", "#BBBBBB", "#DDDDDD"])
             total, acc, stops = sum(vals) or 1, 0.0, []
             for i, v in enumerate(vals):
@@ -820,7 +826,8 @@ class Preview:
         by_measure, by_category = (self.sample.get("series", {}).get(k or "") for k in (m, cat))
         # A time series belongs to the measure; a ranking belongs to the category it ranks.
         first, second = (by_measure, by_category) if kind == "linechart" else (by_category, by_measure)
-        vals = (first or second or self.synth(m, n, trend=kind == "linechart")
+        both = self.sample.get("series", {}).get(f"{m}@{cat}")   # this measure by this category, when given
+        vals = (both or first or second or self.synth(m, n, trend=kind == "linechart")
                 or [9, 7.5, 6, 4.5, 3, 5, 6.5, 5.5, 7, 6, 8, 7.2])[:len(labels)]
         if getattr(self, "_sort_desc", False) and kind != "linechart":     # Power BI applies the visual's sort
             pairs = sorted(zip(labels, vals), key=lambda lv: -lv[1])
